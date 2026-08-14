@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { optimize } from 'svgo'
 
@@ -58,7 +58,9 @@ async function main() {
     execFileSync('unzip', ['-qo', archive, '-d', join(work, 'extracted')])
 
     const include = new RegExp(source.include)
-    const files = (await walk(join(work, 'extracted'))).filter((file) => include.test(file))
+    const files = (await walk(join(work, 'extracted'))).filter(
+      (file) => include.test(file) && !isArchiveJunk(file),
+    )
     if (files.length === 0) fail(`Archive contained no files matching ${source.include}`)
 
     const svgDir = join(packageDir, 'svg')
@@ -118,6 +120,15 @@ async function main() {
   } finally {
     rmSync(work, { recursive: true, force: true })
   }
+}
+
+/**
+ * Archives zipped on macOS carry an AppleDouble twin (`._Arch_S3_48.svg`) beside every file.
+ * They match the include pattern but hold extended attributes, not SVG — and those attributes
+ * embed the packager's local paths, so they must never reach `svg/`.
+ */
+function isArchiveJunk(file: string): boolean {
+  return basename(file).startsWith('._') || file.includes(`${sep}__MACOSX${sep}`)
 }
 
 async function walk(dir: string): Promise<string[]> {
