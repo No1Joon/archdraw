@@ -1,0 +1,37 @@
+{
+  "name": "archdraw-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r --filter=./packages/* typecheck",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "icons:sync": "tsx scripts/sync-icons.ts",
+    "changeset": "changeset",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8",
+    "@changesets/cli": "3.0.0",
+    "@types/node": "26.2.0",
+    "svgo": "4.0.2",
+    "tsdown": "0.22.14",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "@resvg/resvg-js",
+      "esbuild"
+    ]
+  }
+}
