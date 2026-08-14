@@ -74,7 +74,9 @@ async function main() {
       const optimized = optimize(readFileSync(file, 'utf8'), {
         multipass: true,
         plugins: [
-          { name: 'preset-default', params: { overrides: { removeViewBox: false } } },
+          // `preset-default` keeps viewBox as of SVGO 4; the render step needs it on every icon,
+          // so the loop below drops anything that comes out without one rather than trusting this.
+          'preset-default',
           // Icons are inlined side by side in one SVG document; unprefixed gradient
           // and clipPath ids would collide and silently repaint the wrong shapes.
           { name: 'prefixIds', params: { prefix: slug } },
