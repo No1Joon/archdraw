@@ -1,0 +1,17 @@
+The source code in this package is licensed under the MIT License (see the
+repository root LICENSE file).
+
+The SVG assets under `svg/` and the icon data compiled into `dist/` are the
+AWS Architecture Icons. They are the property of Amazon Web Services, Inc. or
+its affiliates, are not covered by the MIT License, and remain subject to the
+AWS Architecture Icons terms of use:
+
+  https://aws.amazon.com/architecture/icons/
+
+Those terms permit use of the icons for creating architecture diagrams. They
+do not grant trademark rights, and they prohibit modifying the icons or using
+them to imply an AWS endorsement. Review them before redistributing this
+package or its output.
+
+This package is not affiliated with, endorsed by, or sponsored by Amazon Web
+Services, Inc.

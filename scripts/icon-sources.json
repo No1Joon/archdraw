@@ -1,0 +1,16 @@
+{
+  "aws": {
+    "url": null,
+    "note": "Asset package URL from https://aws.amazon.com/architecture/icons/ — the filename carries a date and changes every release, so pin it here after each sync.",
+    "include": "_48\\.svg$",
+    "stripPrefixes": ["Arch_", "Res_", "Arch-Category_", "Category_"],
+    "stripSuffixes": ["_48"]
+  },
+  "gcp": {
+    "url": null,
+    "note": "Icon archive from https://cloud.google.com/icons.",
+    "include": "\\.svg$",
+    "stripPrefixes": [],
+    "stripSuffixes": []
+  }
+}
