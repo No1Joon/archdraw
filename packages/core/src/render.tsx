@@ -1,6 +1,6 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import type { IconResolver } from './icons.js'
-import { GROUP_HEADER, LABEL_BAND } from './layout.js'
+import { EDGE_LABEL_SIZE, GROUP_HEADER, LABEL_BAND, NODE_LABEL_SIZE } from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
 
 export interface Theme {
@@ -156,36 +156,13 @@ function Node({
         y={height + LABEL_BAND - 6}
         textAnchor="middle"
         fill={theme.text}
-        fontSize={12}
+        fontSize={NODE_LABEL_SIZE}
         fontWeight={500}
       >
         {meta.label}
       </text>
     </g>
   )
-}
-
-/**
- * Halfway along the route by arc length. Picking a bend point instead puts the label on the
- * arrowhead whenever ELK routes an edge straight, which is most of them.
- */
-function midpoint(points: { x: number; y: number }[]): { x: number; y: number } | undefined {
-  const spans = points
-    .slice(1)
-    .map((point, i) => Math.hypot(point.x - (points[i]?.x ?? 0), point.y - (points[i]?.y ?? 0)))
-  let remaining = spans.reduce((total, span) => total + span, 0) / 2
-
-  for (const [i, span] of spans.entries()) {
-    const from = points[i]
-    const to = points[i + 1]
-    if (!from || !to) break
-    if (remaining <= span) {
-      const ratio = span === 0 ? 0 : remaining / span
-      return { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio }
-    }
-    remaining -= span
-  }
-  return points[0]
 }
 
 function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: Theme }) {
@@ -196,7 +173,8 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
   const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const index = Number(edge.id.slice(1))
   const meta = ir.edges[index]
-  const mid = midpoint(points)
+  // ELK laid the label out with the rest of the graph, so this is a slot nothing else claimed.
+  const label = edge.labels?.[0]
 
   return (
     <g>
@@ -208,8 +186,14 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
         strokeDasharray={meta?.style === 'dashed' ? '5 4' : undefined}
         markerEnd="url(#archdraw-arrow)"
       />
-      {meta?.label && mid ? (
-        <text x={mid.x} y={mid.y - 6} textAnchor="middle" fill={theme.mutedText} fontSize={11}>
+      {meta?.label && label ? (
+        <text
+          x={(label.x ?? 0) + (label.width ?? 0) / 2}
+          y={(label.y ?? 0) + EDGE_LABEL_SIZE}
+          textAnchor="middle"
+          fill={theme.mutedText}
+          fontSize={EDGE_LABEL_SIZE}
+        >
           {meta.label}
         </text>
       ) : null}

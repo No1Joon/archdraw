@@ -7,6 +7,9 @@ export const ICON_SIZE = 64
 /** Reserved under each icon for its label, which ELK places outside the node. */
 export const LABEL_BAND = 22
 export const GROUP_HEADER = 30
+/** Render and layout have to agree on these, or the width estimate below describes other text. */
+export const NODE_LABEL_SIZE = 12
+export const EDGE_LABEL_SIZE = 11
 
 /**
  * Label width without a font engine — core runs in Node and the browser and touches neither
@@ -14,9 +17,9 @@ export const GROUP_HEADER = 30
  * character; treating them the same lets neighbouring labels overlap.
  */
 const CJK = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
-function labelWidth(text: string): number {
+function labelWidth(text: string, fontSize: number): number {
   let width = 0
-  for (const character of text) width += CJK.test(character) ? 12.4 : 6.4
+  for (const character of text) width += (CJK.test(character) ? 1.03 : 0.53) * fontSize
   return width
 }
 
@@ -49,7 +52,22 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     const enclosing = new Set(containersOf(edge.to))
     const lca = containersOf(edge.from).find((id) => enclosing.has(id)) ?? null
     const list = edgesOf.get(lca) ?? []
-    list.push({ id: `e${index}`, sources: [edge.from], targets: [edge.to] })
+    // Handing ELK the label's size makes it route around the label and hand back a placement,
+    // rather than us dropping the text on the route's midpoint and hoping nothing is under it.
+    list.push({
+      id: `e${index}`,
+      sources: [edge.from],
+      targets: [edge.to],
+      labels: edge.label
+        ? [
+            {
+              text: edge.label,
+              width: labelWidth(edge.label, EDGE_LABEL_SIZE),
+              height: EDGE_LABEL_SIZE + 4,
+            },
+          ]
+        : [],
+    })
     edgesOf.set(lca, list)
   })
 
@@ -63,7 +81,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
           labels: [
             {
               text: node.label,
-              width: labelWidth(node.label),
+              width: labelWidth(node.label, NODE_LABEL_SIZE),
               height: LABEL_BAND,
             },
           ],
@@ -91,6 +109,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       'elk.spacing.nodeNode': '48',
       'elk.layered.spacing.nodeNodeBetweenLayers': '72',
       'elk.spacing.edgeNode': '24',
+      'elk.edgeLabels.placement': 'CENTER',
+      'elk.spacing.edgeLabel': '6',
       'elk.padding': '[top=24,left=24,bottom=24,right=24]',
     },
     children: build(null),
