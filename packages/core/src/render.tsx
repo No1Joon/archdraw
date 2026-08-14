@@ -20,8 +20,11 @@ export const defaultTheme: Theme = {
   text: '#12181f',
   mutedText: '#5b6675',
   edge: '#5b6675',
-  fontFamily:
-    "ui-sans-serif, -apple-system, 'Helvetica Neue', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif",
+  // Noto leads because resvg takes the first family it can resolve and never walks the rest of
+  // the list — a system-ui keyword in front would quietly decide every PNG this tool writes.
+  // Both Noto names appear because the webfont ships as `Noto Sans KR` while the desktop CJK
+  // bundle installs as `Noto Sans CJK KR`.
+  fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
 
 export interface DiagramProps {
