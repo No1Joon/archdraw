@@ -1,0 +1,31 @@
+{
+  "name": "archdraw",
+  "version": "0.0.0",
+  "description": "Render cloud architecture diagrams from YAML or a prompt.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "archdraw": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown src/cli.ts --format esm --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@archdraw/ai": "workspace:*",
+    "@archdraw/core": "workspace:*",
+    "@archdraw/icons-aws": "workspace:*",
+    "@archdraw/icons-gcp": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
+    "commander": "15.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "yaml": "2.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
