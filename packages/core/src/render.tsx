@@ -81,9 +81,6 @@ interface ContainerProps {
 function Container({ node, byId, icons, theme, ir }: ContainerProps) {
   return (
     <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
-      {(node.edges as ElkExtendedEdge[] | undefined)?.map((edge) => (
-        <EdgePath key={edge.id} edge={edge} ir={ir} theme={theme} />
-      ))}
       {node.children?.map((child) => {
         const meta = byId.get(child.id)
         if (meta?.isGroup) {
@@ -121,6 +118,11 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
           <Node key={child.id} node={child} meta={meta} icons={icons} theme={theme} />
         ) : null
       })}
+      {/* After the children: an edge that crosses a group ends on its target's border, so
+          painting it first lets the group's own fill swallow the last stretch and the arrowhead. */}
+      {(node.edges as ElkExtendedEdge[] | undefined)?.map((edge) => (
+        <EdgePath key={edge.id} edge={edge} ir={ir} theme={theme} />
+      ))}
     </g>
   )
 }
