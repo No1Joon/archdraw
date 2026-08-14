@@ -168,8 +168,9 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
   const section = edge.sections?.[0]
   if (!section) return null
 
-  const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
-  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+  // Straight line only — ELK's bend points are dropped, never drawn.
+  const { startPoint: from, endPoint: to } = section
+  const d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`
   const index = Number(edge.id.slice(1))
   const meta = ir.edges[index]
   const label = edge.labels?.[0]
