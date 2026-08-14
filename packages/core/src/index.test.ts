@@ -83,6 +83,38 @@ describe('icon resolver', () => {
   })
 })
 
+const crossing = `
+provider: test
+nodes:
+  - { id: vpc, kind: vpc, label: Production VPC }
+  - { id: api, type: ecs, label: API, parent: vpc }
+  - { id: cdn, type: ecs, label: CDN }
+edges:
+  - { from: cdn, to: api }
+`
+
+describe('layout', () => {
+  it('hangs an edge off the lowest container holding both endpoints', async () => {
+    const { layout, parse } = await import('./index.js')
+    const root = await layout(normalize(parse(nested)))
+    const vpc = root.children?.find((child) => child.id === 'vpc')
+
+    // ELK reports the sections relative to whatever node owns the edge, so owning it at the
+    // root would place this one at the root origin instead of inside the group.
+    expect(root.edges ?? []).toHaveLength(0)
+    expect(vpc?.edges?.map((edge) => edge.id)).toEqual(['e0'])
+  })
+
+  it('keeps an edge that crosses a group boundary on the root', async () => {
+    const { layout, parse } = await import('./index.js')
+    const root = await layout(normalize(parse(crossing)))
+    const vpc = root.children?.find((child) => child.id === 'vpc')
+
+    expect(root.edges?.map((edge) => edge.id)).toEqual(['e0'])
+    expect(vpc?.edges ?? []).toHaveLength(0)
+  })
+})
+
 describe('renderToSvg', () => {
   it('renders a stable SVG', async () => {
     const svg = await renderToSvg(nested, { icons: pack })
