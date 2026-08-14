@@ -160,8 +160,10 @@ function slugify(name: string, source: Source): string {
   for (const suffix of source.stripSuffixes) {
     if (out.endsWith(suffix)) out = out.slice(0, -suffix.length)
   }
+  // Case boundaries are not word boundaries here: providers camel-case single brand names,
+  // so splitting on them yields `amazon-dynamo-db` and `amazon-sage-maker`. Separators in the
+  // filename are the only reliable signal.
   return out
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
