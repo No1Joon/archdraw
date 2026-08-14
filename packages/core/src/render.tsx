@@ -177,6 +177,29 @@ function Node({
   )
 }
 
+/**
+ * Halfway along the route by arc length. Picking a bend point instead puts the label on the
+ * arrowhead whenever ELK routes an edge straight, which is most of them.
+ */
+function midpoint(points: { x: number; y: number }[]): { x: number; y: number } | undefined {
+  const spans = points
+    .slice(1)
+    .map((point, i) => Math.hypot(point.x - (points[i]?.x ?? 0), point.y - (points[i]?.y ?? 0)))
+  let remaining = spans.reduce((total, span) => total + span, 0) / 2
+
+  for (const [i, span] of spans.entries()) {
+    const from = points[i]
+    const to = points[i + 1]
+    if (!from || !to) break
+    if (remaining <= span) {
+      const ratio = span === 0 ? 0 : remaining / span
+      return { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio }
+    }
+    remaining -= span
+  }
+  return points[0]
+}
+
 function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: Theme }) {
   const section = edge.sections?.[0]
   if (!section) return null
@@ -185,7 +208,7 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
   const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const index = Number(edge.id.slice(1))
   const meta = ir.edges[index]
-  const mid = points[Math.floor(points.length / 2)]
+  const mid = midpoint(points)
 
   return (
     <g>
