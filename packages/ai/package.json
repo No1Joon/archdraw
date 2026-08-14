@@ -1,0 +1,28 @@
+{
+  "name": "@archdraw/ai",
+  "version": "0.0.0",
+  "description": "Turn a natural-language prompt into a validated archdraw diagram.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.117.1",
+    "@archdraw/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
