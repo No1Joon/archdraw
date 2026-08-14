@@ -16,7 +16,8 @@ const CJK = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
 function labelWidth(text: string, fontSize: number): number {
   let width = 0
   for (const character of text) width += (CJK.test(character) ? 1.03 : 0.53) * fontSize
-  return width
+  // Whole pixels keep float noise out of the rendered dimensions.
+  return Math.ceil(width)
 }
 
 const elk = new ELK()
