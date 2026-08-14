@@ -1,4 +1,4 @@
-import type { ElkNode } from 'elkjs'
+import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
 import type { Ir } from './normalize.js'
 
@@ -18,6 +18,28 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     childrenOf.set(node.parent, list)
   }
 
+  // ELK reports an edge's coordinates relative to the node the edge is declared on, so each
+  // edge belongs on the lowest container holding both of its endpoints. Declaring them all on
+  // the root draws a group's inner edges at the root origin instead of the group's.
+  const parentOf = new Map(ir.nodes.map((node) => [node.id, node.parent]))
+  const containersOf = (id: string): (string | null)[] => {
+    const chain: (string | null)[] = []
+    for (let cursor = parentOf.get(id) ?? null; cursor; cursor = parentOf.get(cursor) ?? null) {
+      chain.push(cursor)
+    }
+    chain.push(null)
+    return chain
+  }
+
+  const edgesOf = new Map<string | null, ElkExtendedEdge[]>()
+  ir.edges.forEach((edge, index) => {
+    const enclosing = new Set(containersOf(edge.to))
+    const lca = containersOf(edge.from).find((id) => enclosing.has(id)) ?? null
+    const list = edgesOf.get(lca) ?? []
+    list.push({ id: `e${index}`, sources: [edge.from], targets: [edge.to] })
+    edgesOf.set(lca, list)
+  })
+
   const build = (parent: string | null): ElkNode[] =>
     (childrenOf.get(parent) ?? []).map((node) => {
       if (!node.isGroup) {
@@ -35,6 +57,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
           'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=20,right=20]`,
         },
         children: build(node.id),
+        edges: edgesOf.get(node.id) ?? [],
       }
     })
 
@@ -51,10 +74,6 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       'elk.padding': '[top=24,left=24,bottom=24,right=24]',
     },
     children: build(null),
-    edges: ir.edges.map((edge, index) => ({
-      id: `e${index}`,
-      sources: [edge.from],
-      targets: [edge.to],
-    })),
+    edges: edgesOf.get(null) ?? [],
   })
 }
