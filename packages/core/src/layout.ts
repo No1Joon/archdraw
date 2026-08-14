@@ -2,20 +2,16 @@ import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
 import type { Ir } from './normalize.js'
 
-/** The icon is the node — there is no card around it, so one constant sizes both. */
+/** The icon is the node; one constant sizes both. */
 export const ICON_SIZE = 64
-/** Reserved under each icon for its label, which ELK places outside the node. */
+/** Space under each icon for its label. */
 export const LABEL_BAND = 22
 export const GROUP_HEADER = 30
-/** Render and layout have to agree on these, or the width estimate below describes other text. */
+/** Layout and render must use the same sizes. */
 export const NODE_LABEL_SIZE = 12
 export const EDGE_LABEL_SIZE = 11
 
-/**
- * Label width without a font engine — core runs in Node and the browser and touches neither
- * DOM nor canvas, so it estimates. CJK glyphs are full-width and run about twice a latin
- * character; treating them the same lets neighbouring labels overlap.
- */
+/** Estimate — core has no font engine. CJK glyphs are full-width. */
 const CJK = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
 function labelWidth(text: string, fontSize: number): number {
   let width = 0
@@ -34,9 +30,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     childrenOf.set(node.parent, list)
   }
 
-  // ELK reports an edge's coordinates relative to the node the edge is declared on, so each
-  // edge belongs on the lowest container holding both of its endpoints. Declaring them all on
-  // the root draws a group's inner edges at the root origin instead of the group's.
+  // ELK reports edge coordinates relative to the node the edge is declared on.
   const parentOf = new Map(ir.nodes.map((node) => [node.id, node.parent]))
   const containersOf = (id: string): (string | null)[] => {
     const chain: (string | null)[] = []
@@ -52,8 +46,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     const enclosing = new Set(containersOf(edge.to))
     const lca = containersOf(edge.from).find((id) => enclosing.has(id)) ?? null
     const list = edgesOf.get(lca) ?? []
-    // Handing ELK the label's size makes it route around the label and hand back a placement,
-    // rather than us dropping the text on the route's midpoint and hoping nothing is under it.
+    // ELK places a label only when given its dimensions.
     list.push({
       id: `e${index}`,
       sources: [edge.from],

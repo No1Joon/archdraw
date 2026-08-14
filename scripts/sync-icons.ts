@@ -74,8 +74,6 @@ async function main() {
       const optimized = optimize(readFileSync(file, 'utf8'), {
         multipass: true,
         plugins: [
-          // `preset-default` keeps viewBox as of SVGO 4; the render step needs it on every icon,
-          // so the loop below drops anything that comes out without one rather than trusting this.
           'preset-default',
           // Icons are inlined side by side in one SVG document; unprefixed gradient
           // and clipPath ids would collide and silently repaint the wrong shapes.
@@ -124,11 +122,7 @@ async function main() {
   }
 }
 
-/**
- * Archives zipped on macOS carry an AppleDouble twin (`._Arch_S3_48.svg`) beside every file.
- * They match the include pattern but hold extended attributes, not SVG — and those attributes
- * embed the packager's local paths, so they must never reach `svg/`.
- */
+/** AppleDouble twins (`._name.svg`) match the include pattern but hold xattrs, not SVG. */
 function isArchiveJunk(file: string): boolean {
   return basename(file).startsWith('._') || file.includes(`${sep}__MACOSX${sep}`)
 }
@@ -160,9 +154,7 @@ function slugify(name: string, source: Source): string {
   for (const suffix of source.stripSuffixes) {
     if (out.endsWith(suffix)) out = out.slice(0, -suffix.length)
   }
-  // Case boundaries are not word boundaries here: providers camel-case single brand names,
-  // so splitting on them yields `amazon-dynamo-db` and `amazon-sage-maker`. Separators in the
-  // filename are the only reliable signal.
+  // Split on separators only: brand names are camel-cased (DynamoDB, SageMaker).
   return out
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

@@ -99,8 +99,6 @@ describe('layout', () => {
     const root = await layout(normalize(parse(nested)))
     const vpc = root.children?.find((child) => child.id === 'vpc')
 
-    // ELK reports the sections relative to whatever node owns the edge, so owning it at the
-    // root would place this one at the root origin instead of inside the group.
     expect(root.edges ?? []).toHaveLength(0)
     expect(vpc?.edges?.map((edge) => edge.id)).toEqual(['e0'])
   })
@@ -126,8 +124,7 @@ const labelled = (label: string) => ({
 describe('label sizing', () => {
   it('reserves more room for full-width labels than latin ones of equal length', async () => {
     const { layout } = await import('./index.js')
-    // Same character count, so a width that ignores script would lay these out identically and
-    // let the CJK labels overlap their neighbours.
+    // Equal character count, different script.
     const latin = await layout(normalize(labelled('abcdefg')))
     const hangul = await layout(normalize(labelled('가나다라마바사')))
 

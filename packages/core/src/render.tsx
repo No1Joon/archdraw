@@ -20,10 +20,7 @@ export const defaultTheme: Theme = {
   text: '#12181f',
   mutedText: '#5b6675',
   edge: '#5b6675',
-  // Noto leads because resvg takes the first family it can resolve and never walks the rest of
-  // the list — a system-ui keyword in front would quietly decide every PNG this tool writes.
-  // Both Noto names appear because the webfont ships as `Noto Sans KR` while the desktop CJK
-  // bundle installs as `Noto Sans CJK KR`.
+  // resvg resolves only the first family. Noto ships under both names.
   fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
 
@@ -117,8 +114,7 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
           <Node key={child.id} node={child} meta={meta} icons={icons} theme={theme} />
         ) : null
       })}
-      {/* After the children: an edge that crosses a group ends on its target's border, so
-          painting it first lets the group's own fill swallow the last stretch and the arrowhead. */}
+      {/* Edges paint after the children; a group fill would cover them otherwise. */}
       {(node.edges as ElkExtendedEdge[] | undefined)?.map((edge) => (
         <EdgePath key={edge.id} edge={edge} ir={ir} theme={theme} />
       ))}
@@ -176,7 +172,6 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
   const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const index = Number(edge.id.slice(1))
   const meta = ir.edges[index]
-  // ELK laid the label out with the rest of the graph, so this is a slot nothing else claimed.
   const label = edge.labels?.[0]
 
   return (
