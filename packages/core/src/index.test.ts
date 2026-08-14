@@ -1,0 +1,91 @@
+import { describe, expect, it } from 'vitest'
+import { createResolver, type IconPack } from './icons.js'
+import { renderToSvg } from './index.js'
+import { DiagramError, normalize } from './normalize.js'
+
+const pack: IconPack = {
+  provider: 'test',
+  icons: {
+    'elastic-container-service': {
+      viewBox: '0 0 48 48',
+      content: '<rect width="48" height="48"/>',
+    },
+    'relational-database-service': {
+      viewBox: '0 0 48 48',
+      content: '<circle cx="24" cy="24" r="24"/>',
+    },
+  },
+  aliases: { ecs: 'elastic-container-service', rds: 'relational-database-service' },
+}
+
+const nested = `
+provider: test
+title: Example
+groups:
+  - id: vpc
+    label: Production VPC
+    kind: vpc
+    children:
+      - { id: api, type: ecs, label: API }
+      - { id: db, type: rds, label: Database }
+edges:
+  - { from: api, to: db, label: SQL }
+`
+
+const flat = `
+provider: test
+title: Example
+nodes:
+  - { id: vpc, kind: vpc, label: Production VPC }
+  - { id: api, type: ecs, label: API, parent: vpc }
+  - { id: db, type: rds, label: Database, parent: vpc }
+edges:
+  - { from: api, to: db, label: SQL }
+`
+
+describe('normalize', () => {
+  it('produces the same IR for the nested and flat forms', async () => {
+    const { parse } = await import('./index.js')
+    expect(normalize(parse(nested))).toEqual(normalize(parse(flat)))
+  })
+
+  it('rejects a group that also declares a type', () => {
+    expect(() => normalize({ nodes: [{ id: 'a', kind: 'vpc', type: 'ecs' }] })).toThrow(
+      DiagramError,
+    )
+  })
+
+  it('rejects an edge pointing at a node that does not exist', () => {
+    expect(() =>
+      normalize({ nodes: [{ id: 'a', type: 'ecs' }], edges: [{ from: 'a', to: 'ghost' }] }),
+    ).toThrow(/unknown node 'ghost'/)
+  })
+
+  it('rejects duplicate ids', () => {
+    expect(() =>
+      normalize({
+        nodes: [
+          { id: 'a', type: 'ecs' },
+          { id: 'a', type: 'rds' },
+        ],
+      }),
+    ).toThrow(/Duplicate id/)
+  })
+})
+
+describe('icon resolver', () => {
+  it('resolves aliases to canonical slugs', () => {
+    expect(createResolver(pack).resolve('ecs').viewBox).toBe('0 0 48 48')
+  })
+
+  it('errors with near-miss suggestions instead of substituting an icon', () => {
+    expect(() => createResolver(pack).resolve('ecss')).toThrow(/Did you mean: ecs/)
+  })
+})
+
+describe('renderToSvg', () => {
+  it('renders a stable SVG', async () => {
+    const svg = await renderToSvg(nested, { icons: pack })
+    expect(svg).toMatchSnapshot()
+  })
+})
