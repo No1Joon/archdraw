@@ -39,10 +39,7 @@ function toResolver(icons: RenderOptions['icons']): IconResolver {
   return Array.isArray(icons) ? createResolver(...icons) : createResolver(icons)
 }
 
-/**
- * The whole pipeline: source -> validated IR -> ELK layout -> SVG string.
- * Identical output in Node and the browser — nothing here touches the DOM.
- */
+/** source -> validated IR -> ELK layout -> SVG string. Touches no DOM. */
 export async function renderToSvg(
   source: string | unknown,
   options: RenderOptions = {},

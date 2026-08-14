@@ -1,11 +1,4 @@
-/**
- * Hand-maintained short names. Canonical slugs are generated from the official
- * icon filenames; this table is what makes `type: ecs` work instead of forcing
- * `type: amazon-elastic-container-service`.
- *
- * Keys are what people (and models) actually write. Values must exist in `generated.ts`
- * after a sync — `pnpm icons:sync aws` fails on any alias pointing at a missing slug.
- */
+/** Hand-maintained short names. Values must exist in `generated.ts`; sync fails otherwise. */
 export const aliases: Record<string, string> = {
   alb: 'elastic-load-balancing',
   apigw: 'amazon-api-gateway',

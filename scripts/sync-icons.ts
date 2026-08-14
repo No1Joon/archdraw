@@ -1,14 +1,9 @@
 /**
- * Rebuilds an icon package from the provider's official icon archive.
- *
- * Maintainer-only: this is the one place that touches the network. Builds and CI
- * read the committed SVGs instead, so an upstream URL change can never break them.
+ * Rebuilds an icon package from the provider's official icon archive. Maintainer-only;
+ * the only code that uses the network. Review `git diff` before committing.
  *
  *   pnpm icons:sync aws                      # uses the pinned URL in icon-sources.json
  *   pnpm icons:sync aws --from ./assets.zip  # or a local download
- *
- * Review the resulting `git diff` before committing — that diff is the audit trail
- * for every icon that changed upstream.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -75,8 +70,7 @@ async function main() {
         multipass: true,
         plugins: [
           'preset-default',
-          // Icons are inlined side by side in one SVG document; unprefixed gradient
-          // and clipPath ids would collide and silently repaint the wrong shapes.
+          // Icons share one SVG document; unprefixed ids collide.
           { name: 'prefixIds', params: { prefix: slug } },
         ],
       }).data

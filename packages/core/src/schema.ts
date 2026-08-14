@@ -5,11 +5,7 @@ const Id = z
   .min(1)
   .regex(/^[A-Za-z0-9_-]+$/, 'id must be alphanumeric with - or _')
 
-/**
- * A single entry in the flat form. Non-recursive on purpose: this is the shape
- * `@archdraw/ai` emits under structured outputs, which does not support
- * recursive JSON Schema.
- */
+/** A single entry in the flat form. Non-recursive: structured outputs reject recursion. */
 export const FlatNodeSchema = z
   .object({
     id: Id,
@@ -23,10 +19,7 @@ export const FlatNodeSchema = z
   })
   .strict()
 
-/**
- * The authoring form additionally allows `children`, so humans can nest groups
- * the way the architecture actually nests.
- */
+/** The authoring form additionally allows `children`. */
 export type NodeEntry = z.infer<typeof FlatNodeSchema> & {
   children?: NodeEntry[]
 }

@@ -29,11 +29,7 @@ export class DiagramError extends Error {
   }
 }
 
-/**
- * Parses either input form into the single flat IR every later stage consumes.
- * Semantic problems (duplicate ids, dangling edges, a group carrying a `type`)
- * throw `DiagramError` so `@archdraw/ai` can feed the message back to the model.
- */
+/** Parses either input form into the flat IR. Semantic problems throw `DiagramError`. */
 export function normalize(input: unknown): Ir {
   const parsed = DiagramSchema.safeParse(input)
   if (!parsed.success) {

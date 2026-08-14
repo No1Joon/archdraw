@@ -63,14 +63,7 @@ function systemPrompt(provider: string, types: string[], suffix?: string): strin
   ].join('\n')
 }
 
-/**
- * Prompt -> validated diagram document.
- *
- * Structured outputs guarantee the response parses and matches the schema, so the retry loop
- * here only ever handles *semantic* failures — an unknown service slug, a dangling edge, a
- * group carrying a type. Those come back from `@archdraw/core` as readable messages, which is
- * exactly what the model needs to fix itself.
- */
+/** Prompt -> validated diagram document. Retries on semantic errors from `@archdraw/core`. */
 export async function fromPrompt(
   prompt: string,
   options: FromPromptOptions,
@@ -105,8 +98,7 @@ export async function fromPrompt(
     const document = JSON.parse(text) as Record<string, unknown>
     try {
       const ir = normalize(document)
-      // Resolving every type here — rather than at render time — keeps the retry loop
-      // able to fix an unknown slug while the conversation is still open.
+      // Resolve here so the retry loop can still fix an unknown slug.
       for (const node of ir.nodes) {
         if (node.type) resolver.resolve(node.type)
       }

@@ -74,8 +74,7 @@ function write(svg: string, out: string | undefined, scale: number) {
     return
   }
   if (extname(out).toLowerCase() === '.png') {
-    // resvg rasterises text with system fonts; a machine missing the fallback family
-    // renders blank labels rather than failing, so keep an eye on CI output.
+    // resvg rasterises with system fonts; a missing family renders blank labels.
     const png = new Resvg(svg, { fitTo: { mode: 'zoom', value: scale } }).render().asPng()
     writeFileSync(out, png)
   } else {

@@ -20,7 +20,7 @@ export interface IconResolver {
   list(): string[]
 }
 
-/** Unknown types are an error, never a silent fallback — a wrong icon reads as a correct one. */
+/** Unknown types are an error, never a silent fallback. */
 export function createResolver(...packs: IconPack[]): IconResolver {
   const icons = new Map<string, IconAsset>()
   const aliases = new Map<string, string>()

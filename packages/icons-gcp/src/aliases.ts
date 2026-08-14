@@ -1,11 +1,4 @@
-/**
- * Hand-maintained short names. Canonical slugs are generated from the official
- * icon filenames; this table is what makes `type: gke` work instead of forcing
- * `type: google-kubernetes-engine`.
- *
- * Keys are what people (and models) actually write. Values must exist in `generated.ts`
- * after a sync — `pnpm icons:sync gcp` fails on any alias pointing at a missing slug.
- */
+/** Hand-maintained short names. Values must exist in `generated.ts`; sync fails otherwise. */
 export const aliases: Record<string, string> = {
   bigquery: 'bigquery',
   cloudarmor: 'cloud-armor',

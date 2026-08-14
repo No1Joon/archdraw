@@ -146,7 +146,7 @@ function Node({
           width={width}
           height={height}
           viewBox={asset.viewBox}
-          // Icon bodies are vendored SVG from the sync script, never user input.
+          // Vendored SVG from the sync script, never user input.
           dangerouslySetInnerHTML={{ __html: asset.content }}
         />
       ) : null}

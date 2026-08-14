@@ -1,11 +1,6 @@
 /**
  * The JSON Schema handed to the Messages API as `output_config.format`.
- *
- * Written out by hand rather than derived from the Zod schema in `@archdraw/core`
- * because this is a wire contract against a documented schema subset: structured
- * outputs reject recursion, so this is the flat form only, and it must stay inside
- * the supported keyword set. `@archdraw/core` still validates whatever comes back —
- * this schema guarantees shape, not meaning.
+ * Hand-maintained: structured outputs reject recursion, so this is the flat form only.
  */
 export const flatDiagramJsonSchema = {
   type: 'object',
