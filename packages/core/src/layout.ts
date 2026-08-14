@@ -2,10 +2,23 @@ import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
 import type { Ir } from './normalize.js'
 
-export const NODE_WIDTH = 148
-export const NODE_HEIGHT = 104
-export const ICON_SIZE = 48
+/** The icon is the node — there is no card around it, so one constant sizes both. */
+export const ICON_SIZE = 64
+/** Reserved under each icon for its label, which ELK places outside the node. */
+export const LABEL_BAND = 22
 export const GROUP_HEADER = 30
+
+/**
+ * Label width without a font engine — core runs in Node and the browser and touches neither
+ * DOM nor canvas, so it estimates. CJK glyphs are full-width and run about twice a latin
+ * character; treating them the same lets neighbouring labels overlap.
+ */
+const CJK = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
+function labelWidth(text: string): number {
+  let width = 0
+  for (const character of text) width += CJK.test(character) ? 12.4 : 6.4
+  return width
+}
 
 const elk = new ELK()
 
@@ -41,20 +54,27 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   })
 
   const build = (parent: string | null): ElkNode[] =>
-    (childrenOf.get(parent) ?? []).map((node) => {
+    (childrenOf.get(parent) ?? []).map((node): ElkNode => {
       if (!node.isGroup) {
         return {
           id: node.id,
-          width: NODE_WIDTH,
-          height: NODE_HEIGHT,
-          labels: [{ text: node.label }],
+          width: ICON_SIZE,
+          height: ICON_SIZE,
+          labels: [
+            {
+              text: node.label,
+              width: labelWidth(node.label),
+              height: LABEL_BAND,
+            },
+          ],
+          layoutOptions: { 'elk.nodeLabels.placement': '[OUTSIDE, V_BOTTOM, H_CENTER]' },
         }
       }
       return {
         id: node.id,
         labels: [{ text: node.label }],
         layoutOptions: {
-          'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=20,right=20]`,
+          'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
         },
         children: build(node.id),
         edges: edgesOf.get(node.id) ?? [],

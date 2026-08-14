@@ -1,14 +1,12 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import type { IconResolver } from './icons.js'
-import { GROUP_HEADER, ICON_SIZE } from './layout.js'
+import { GROUP_HEADER, LABEL_BAND } from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
 
 export interface Theme {
   background: string
   groupStroke: string
   groupFill: string
-  nodeStroke: string
-  nodeFill: string
   text: string
   mutedText: string
   edge: string
@@ -19,8 +17,6 @@ export const defaultTheme: Theme = {
   background: '#ffffff',
   groupStroke: '#8c9bab',
   groupFill: '#f6f8fa',
-  nodeStroke: '#d5dbe1',
-  nodeFill: '#ffffff',
   text: '#12181f',
   mutedText: '#5b6675',
   edge: '#5b6675',
@@ -144,20 +140,12 @@ function Node({
 
   return (
     <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
-      <rect
-        width={width}
-        height={height}
-        rx={8}
-        fill={theme.nodeFill}
-        stroke={theme.nodeStroke}
-        strokeWidth={1}
-      />
       {asset ? (
         <svg
-          x={(width - ICON_SIZE) / 2}
-          y={14}
-          width={ICON_SIZE}
-          height={ICON_SIZE}
+          x={0}
+          y={0}
+          width={width}
+          height={height}
           viewBox={asset.viewBox}
           // Icon bodies are vendored SVG from the sync script, never user input.
           dangerouslySetInnerHTML={{ __html: asset.content }}
@@ -165,7 +153,7 @@ function Node({
       ) : null}
       <text
         x={width / 2}
-        y={height - 18}
+        y={height + LABEL_BAND - 6}
         textAnchor="middle"
         fill={theme.text}
         fontSize={12}
