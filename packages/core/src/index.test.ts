@@ -81,6 +81,16 @@ describe('icon resolver', () => {
   it('errors with near-miss suggestions instead of substituting an icon', () => {
     expect(() => createResolver(pack).resolve('ecss')).toThrow(/Did you mean: ecs/)
   })
+
+  it('names the loaded pack when nothing comes close', () => {
+    expect(() => createResolver(pack).resolve('bigquery')).toThrow(
+      /Not in the loaded icon pack: test/,
+    )
+  })
+
+  it('says so when no pack is registered at all', () => {
+    expect(() => createResolver().resolve('ecs')).toThrow(/No icon pack registered/)
+  })
 })
 
 const crossing = `

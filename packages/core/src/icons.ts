@@ -31,6 +31,7 @@ export function createResolver(...packs: IconPack[]): IconResolver {
   }
 
   const names = [...new Set([...icons.keys(), ...aliases.keys()])]
+  const providers = [...new Set(packs.map((pack) => pack.provider))]
 
   return {
     list: () => [...names].sort(),
@@ -40,14 +41,15 @@ export function createResolver(...packs: IconPack[]): IconResolver {
       if (asset) return asset
 
       const guesses = suggest(type, names)
-      throw new DiagramError(
-        `Unknown type '${type}'.`,
-        guesses.length > 0
-          ? `Did you mean: ${guesses.join(', ')}?`
-          : 'No icon pack registered for this provider — pass one via the `icons` option.',
-      )
+      throw new DiagramError(`Unknown type '${type}'.`, hint(guesses, providers))
     },
   }
+}
+
+function hint(guesses: string[], providers: string[]): string {
+  if (providers.length === 0) return 'No icon pack registered — pass one via the `icons` option.'
+  if (guesses.length > 0) return `Did you mean: ${guesses.join(', ')}?`
+  return `Not in the loaded icon pack: ${providers.join(', ')}.`
 }
 
 function suggest(input: string, candidates: string[], limit = 3): string[] {
