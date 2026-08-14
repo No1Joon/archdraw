@@ -1,14 +1,14 @@
 {
   "aws": {
-    "url": null,
-    "note": "Asset package URL from https://aws.amazon.com/architecture/icons/ — the filename carries a date and changes every release, so pin it here after each sync.",
+    "url": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+    "note": "Asset package URL from https://aws.amazon.com/architecture/icons/ — the filename carries a date and changes every release, so pin it here after each sync. Pinned: Q3 2026 (07312026).",
     "include": "_48\\.svg$",
     "stripPrefixes": ["Arch_", "Res_", "Arch-Category_", "Category_"],
     "stripSuffixes": ["_48"]
   },
   "gcp": {
-    "url": null,
-    "note": "Icon archive from https://cloud.google.com/icons.",
+    "url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+    "note": "Icon archive linked from https://cloud.google.com/icons. The page offers three: this one carries the full 216-product set the alias table needs, while core-products-icons.zip (19) and category-icons.zip (26) cover only brand and category marks.",
     "include": "\\.svg$",
     "stripPrefixes": [],
     "stripSuffixes": []
