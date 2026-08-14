@@ -115,6 +115,26 @@ describe('layout', () => {
   })
 })
 
+const labelled = (label: string) => ({
+  provider: 'test',
+  nodes: [
+    { id: 'a', type: 'ecs', label },
+    { id: 'b', type: 'rds', label },
+  ],
+})
+
+describe('label sizing', () => {
+  it('reserves more room for full-width labels than latin ones of equal length', async () => {
+    const { layout } = await import('./index.js')
+    // Same character count, so a width that ignores script would lay these out identically and
+    // let the CJK labels overlap their neighbours.
+    const latin = await layout(normalize(labelled('abcdefg')))
+    const hangul = await layout(normalize(labelled('가나다라마바사')))
+
+    expect(hangul.width ?? 0).toBeGreaterThan(latin.width ?? 0)
+  })
+})
+
 describe('renderToSvg', () => {
   it('renders a stable SVG', async () => {
     const svg = await renderToSvg(nested, { icons: pack })
