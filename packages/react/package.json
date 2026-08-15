@@ -1,8 +1,13 @@
 {
   "name": "@archdraw/react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React component for rendering archdraw diagrams in the browser.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/react"
+  },
   "type": "module",
   "sideEffects": false,
   "exports": {

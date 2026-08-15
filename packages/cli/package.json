@@ -1,8 +1,13 @@
 {
   "name": "archdraw",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Render cloud architecture diagrams from YAML or a prompt.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "bin": {
     "archdraw": "./dist/cli.mjs"

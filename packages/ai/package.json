@@ -1,8 +1,13 @@
 {
   "name": "@archdraw/ai",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Turn a natural-language prompt into a validated archdraw diagram.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/ai"
+  },
   "type": "module",
   "sideEffects": false,
   "exports": {

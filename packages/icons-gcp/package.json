@@ -1,8 +1,13 @@
 {
   "name": "@archdraw/icons-gcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Google Cloud icons packaged as an archdraw icon pack.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/icons-gcp"
+  },
   "type": "module",
   "sideEffects": false,
   "exports": {
