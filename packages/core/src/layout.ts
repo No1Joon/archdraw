@@ -7,6 +7,9 @@ export const ICON_SIZE = 64
 /** Space under each icon for its label. */
 export const LABEL_BAND = 22
 export const GROUP_HEADER = 30
+/** Left inset of a group's label, and its font size. */
+export const GROUP_LABEL_INSET = 16
+export const GROUP_LABEL_SIZE = 13
 /** Layout and render must use the same sizes. */
 export const NODE_LABEL_SIZE = 12
 export const EDGE_LABEL_SIZE = 11
@@ -86,6 +89,10 @@ export async function layout(ir: Ir): Promise<ElkNode> {
         id: node.id,
         labels: [{ text: node.label }],
         layoutOptions: {
+          // A minimum width, not a label: a sized label would take a layout cell and shove
+          // the children aside.
+          'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+          'elk.nodeSize.minimum': `(${GROUP_LABEL_INSET * 2 + labelWidth(node.label, GROUP_LABEL_SIZE)},0)`,
           'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
         },
         children: build(node.id),

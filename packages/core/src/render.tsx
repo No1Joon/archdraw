@@ -1,6 +1,13 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import type { IconResolver } from './icons.js'
-import { EDGE_LABEL_SIZE, GROUP_HEADER, LABEL_BAND, NODE_LABEL_SIZE } from './layout.js'
+import {
+  EDGE_LABEL_SIZE,
+  GROUP_HEADER,
+  GROUP_LABEL_INSET,
+  GROUP_LABEL_SIZE,
+  LABEL_BAND,
+  NODE_LABEL_SIZE,
+} from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
 
 export interface Theme {
@@ -92,10 +99,10 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
                 strokeDasharray="6 4"
               />
               <text
-                x={16}
+                x={GROUP_LABEL_INSET}
                 y={GROUP_HEADER - 8}
                 fill={theme.mutedText}
-                fontSize={13}
+                fontSize={GROUP_LABEL_SIZE}
                 fontWeight={600}
               >
                 {meta.label}
