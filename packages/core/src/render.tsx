@@ -175,9 +175,9 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
   const section = edge.sections?.[0]
   if (!section) return null
 
-  // Straight line only — ELK's bend points are dropped, never drawn.
-  const { startPoint: from, endPoint: to } = section
-  const d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`
+  // ELK's routed path, bends included — that route is what keeps edges off the icons.
+  const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const index = Number(edge.id.slice(1))
   const meta = ir.edges[index]
   const label = edge.labels?.[0]
@@ -192,11 +192,10 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
         strokeDasharray={meta?.style === 'dashed' ? '5 4' : undefined}
         markerEnd="url(#archdraw-arrow)"
       />
-      {/* ELK's slot follows the route it would have bent; the drawn line is straight. */}
       {meta?.label && label ? (
         <text
-          x={(from.x + to.x) / 2}
-          y={(from.y + to.y) / 2 - 6}
+          x={(label.x ?? 0) + (label.width ?? 0) / 2}
+          y={(label.y ?? 0) + EDGE_LABEL_SIZE}
           textAnchor="middle"
           fill={theme.mutedText}
           fontSize={EDGE_LABEL_SIZE}

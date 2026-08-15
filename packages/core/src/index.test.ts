@@ -143,14 +143,6 @@ describe('label sizing', () => {
 })
 
 describe('renderToSvg', () => {
-  it('draws every edge as one straight segment', async () => {
-    const svg = await renderToSvg(nested, { icons: pack })
-    const paths = [...svg.matchAll(/<path d="([^"]+)"[^>]*marker-end=/g)].map(([, d]) => d)
-
-    expect(paths.length).toBeGreaterThan(0)
-    for (const d of paths) expect(d).toMatch(/^M [\d.-]+ [\d.-]+ L [\d.-]+ [\d.-]+$/)
-  })
-
   it('renders a stable SVG', async () => {
     const svg = await renderToSvg(nested, { icons: pack })
     expect(svg).toMatchSnapshot()
