@@ -185,10 +185,11 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
         strokeDasharray={meta?.style === 'dashed' ? '5 4' : undefined}
         markerEnd="url(#archdraw-arrow)"
       />
+      {/* ELK's slot follows the route it would have bent; the drawn line is straight. */}
       {meta?.label && label ? (
         <text
-          x={(label.x ?? 0) + (label.width ?? 0) / 2}
-          y={(label.y ?? 0) + EDGE_LABEL_SIZE}
+          x={(from.x + to.x) / 2}
+          y={(from.y + to.y) / 2 - 6}
           textAnchor="middle"
           fill={theme.mutedText}
           fontSize={EDGE_LABEL_SIZE}
