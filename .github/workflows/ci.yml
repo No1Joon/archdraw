@@ -17,6 +17,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm typecheck
+      # Before typecheck: packages resolve each other through the built `dist/*.d.mts`.
       - run: pnpm build
+      - run: pnpm typecheck
       - run: pnpm test
