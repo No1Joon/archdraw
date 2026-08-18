@@ -1,5 +1,11 @@
 # archdraw
 
+## 0.2.0
+
+### Minor Changes
+
+- a0bcf47: Add `archdraw types` for icon vocabulary search, `-` for stdin input, and `--check` to validate without rendering. The `prompt` subcommand and `@archdraw/ai` are gone.
+
 ## 0.1.0
 
 ### Minor Changes
