@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
 import { extname } from 'node:path'
-import { createResolver, DiagramError, type IconPack, renderToSvg } from '@archdraw/core'
+import {
+  createResolver,
+  DiagramError,
+  type IconPack,
+  normalize,
+  parse,
+  renderToSvg,
+} from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
 import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
@@ -9,26 +16,83 @@ import { Command } from 'commander'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons }
 
+/** Long lists cost an agent context; make it narrow the query instead. */
+const LIST_LIMIT = 60
+
 const program = new Command()
   .name('archdraw')
   .description('Render cloud architecture diagrams from YAML.')
   .version('0.0.0')
 
+// A default command, not root options: a `-p` on the root shadows the same flag on `types`.
 program
-  .argument('<input>', 'diagram YAML or JSON file')
+  .command('render', { isDefault: true })
+  .description('Render a diagram file to SVG or PNG.')
+  .argument('<input>', "diagram YAML or JSON file, or '-' to read stdin")
   .option('-o, --out <file>', 'output path; .png renders a raster, anything else writes SVG')
   .option('-p, --provider <name>', 'icon pack to load', 'aws')
   .option('-s, --scale <n>', 'PNG scale factor', '2')
+  .option('--check', 'validate the diagram and write nothing')
   .action(async (input: string, options) => {
     await run(async () => {
-      const svg = await renderToSvg(readFileSync(input, 'utf8'), {
-        icons: iconsFor(options.provider),
-      })
-      write(svg, options.out, Number(options.scale))
+      const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
+      const icons = iconsFor(options.provider)
+      if (options.check) {
+        normalize(parse(source)).nodes.forEach((node) => {
+          if (node.type) icons.resolve(node.type)
+        })
+        console.error('ok')
+        return
+      }
+      write(await renderToSvg(source, { icons }), options.out, Number(options.scale))
     })
   })
 
-function iconsFor(provider: string) {
+program
+  .command('types')
+  .description('Search the icon type slugs and aliases a diagram may use.')
+  .argument('[query]', 'substring to match against slugs and aliases')
+  .option('-p, --provider <name>', 'icon pack to load', 'aws')
+  .action((query: string | undefined, options) => {
+    run(async () => {
+      const pack = packFor(options.provider)
+      const slugs = Object.keys(pack.icons).sort()
+      const aliases = Object.entries(pack.aliases).sort(([a], [b]) => a.localeCompare(b))
+
+      if (!query) {
+        console.error(
+          `${slugs.length} types and ${aliases.length} aliases in '${pack.provider}'. ` +
+            `Narrow with: archdraw types <query> -p ${options.provider}`,
+        )
+        return
+      }
+
+      const needle = query.toLowerCase()
+      const hits = [
+        ...aliases
+          .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
+          .map(([alias, slug]) => `${alias} -> ${slug}`),
+        ...slugs.filter((slug) => slug.includes(needle)),
+      ]
+
+      if (hits.length === 0) {
+        throw new Error(
+          `No type matches '${query}' in '${pack.provider}'. Try a shorter word, or -p ${
+            Object.keys(packs)
+              .filter((p) => p !== options.provider)
+              .join('/') || 'another pack'
+          }.`,
+        )
+      }
+
+      for (const hit of hits.slice(0, LIST_LIMIT)) console.log(hit)
+      if (hits.length > LIST_LIMIT) {
+        console.error(`... ${hits.length - LIST_LIMIT} more. Narrow the query.`)
+      }
+    })
+  })
+
+function packFor(provider: string): IconPack {
   const pack = packs[provider]
   if (!pack) {
     throw new Error(`Unknown provider '${provider}'. Known: ${Object.keys(packs).join(', ')}`)
@@ -38,7 +102,11 @@ function iconsFor(provider: string) {
       `The ${provider} icon pack is empty — run \`pnpm icons:sync ${provider}\` in the repo, or install a published @archdraw/icons-${provider}.`,
     )
   }
-  return createResolver(pack)
+  return pack
+}
+
+function iconsFor(provider: string) {
+  return createResolver(packFor(provider))
 }
 
 function write(svg: string, out: string | undefined, scale: number) {

@@ -14,6 +14,8 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
 - `pnpm icons:sync <aws|gcp> [--from <zip>]`: 공식 아이콘 배포본에서 아이콘 패키지 재생성
 - `pnpm changeset` → `pnpm release`: 버전 제안 후 npm 발행
 
+CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query>` 어휘 검색, `--check` 검증만. 주 사용자는 YAML 을 쓰는 AI CLI 다.
+
 ## Architecture
 
 패키지는 전부 `packages/` 아래, 발행명은 `@archdraw/*`(CLI 만 `archdraw`).
