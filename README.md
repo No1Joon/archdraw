@@ -15,12 +15,11 @@ npx archdraw diagram.yaml -o out.svg
 | `@archdraw/react` | `<Architecture />` 컴포넌트 |
 | `@archdraw/icons-aws` | AWS 공식 아이콘 + slug/alias 레지스트리 |
 | `@archdraw/icons-gcp` | Google Cloud 공식 아이콘 + slug/alias 레지스트리 |
-| `@archdraw/ai` | 자연어 프롬프트 → 검증된 DSL (Anthropic SDK, 옵셔널) |
 | `archdraw` | CLI — SVG·PNG 내보내기 |
 
 ## 입력
 
-사람이 쓰는 중첩 형과 `@archdraw/ai` 가 생성하는 평면 형을 모두 받아 내부에서 평면 IR 로 정규화한다.
+사람이 쓰는 중첩 형과 생성기가 뱉는 평면 형을 모두 받아 내부에서 평면 IR 로 정규화한다.
 
 ```yaml
 provider: aws

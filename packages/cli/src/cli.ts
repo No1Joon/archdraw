@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
 import { extname } from 'node:path'
-import { fromPrompt } from '@archdraw/ai'
 import { createResolver, DiagramError, type IconPack, renderToSvg } from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
 import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
-import { stringify } from 'yaml'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons }
 
 const program = new Command()
   .name('archdraw')
-  .description('Render cloud architecture diagrams from YAML or a prompt.')
+  .description('Render cloud architecture diagrams from YAML.')
   .version('0.0.0')
 
 program
@@ -27,31 +25,6 @@ program
         icons: iconsFor(options.provider),
       })
       write(svg, options.out, Number(options.scale))
-    })
-  })
-
-program
-  .command('prompt')
-  .description('Describe a system in words and render the result.')
-  .argument('<description>', 'what to draw')
-  .option('-o, --out <file>', 'output path; .png renders a raster, anything else writes SVG')
-  .option('-p, --provider <name>', 'icon pack to load', 'aws')
-  .option('-m, --model <id>', 'Claude model id')
-  .option('--save <file>', 'also write the generated diagram document as YAML')
-  .action(async (description: string, options) => {
-    await run(async () => {
-      if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY is not set.')
-      }
-      const icons = iconsFor(options.provider)
-      const result = await fromPrompt(description, {
-        icons,
-        provider: options.provider,
-        model: options.model,
-      })
-      if (options.save) writeFileSync(options.save, stringify(result.document))
-      const svg = await renderToSvg(result.document, { icons })
-      write(svg, options.out, 2)
     })
   })
 

@@ -23,7 +23,6 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
 - `packages/icons-aws`·`packages/icons-gcp`: 벤더 SVG + slug/alias 레지스트리. **의존성 0** —
   `IconPack` 타입을 core 에서 import 하지 않고 각자 `src/types.ts` 에 구조적으로 복제해 둔다.
 - `packages/react`: `<Architecture />` — core 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층.
-- `packages/ai`: 프롬프트 → 검증된 문서. core 에 의존하지만 반대 방향은 없다.
 - `packages/cli`: 두 아이콘 팩을 모두 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.
 - `scripts/sync-icons.ts`: **네트워크를 타는 유일한 코드.** 빌드·CI 는 커밋된 SVG 만 읽는다.
 
@@ -36,7 +35,6 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
 ## Environment
 
 - Node 22+, pnpm 10. `pnpm icons:sync` 는 `unzip` 을 쓴다.
-- `@archdraw/ai` 와 `archdraw prompt` 는 `ANTHROPIC_API_KEY` 를 읽는다.
 
 ## References
 

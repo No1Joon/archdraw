@@ -56,7 +56,7 @@ export const DiagramSchema = z
   })
   .strict()
 
-/** Strict flat schema — the contract between `@archdraw/ai` and `@archdraw/core`. */
+/** Strict flat schema — the form a generator emits. */
 export const FlatDiagramSchema = z
   .object({
     ...Base,
