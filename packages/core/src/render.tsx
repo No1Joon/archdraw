@@ -14,6 +14,8 @@ export interface Theme {
   background: string
   groupStroke: string
   groupFill: string
+  boxFill: string
+  boxStroke: string
   text: string
   mutedText: string
   edge: string
@@ -24,6 +26,8 @@ export const defaultTheme: Theme = {
   background: '#ffffff',
   groupStroke: '#8c9bab',
   groupFill: '#f6f8fa',
+  boxFill: '#ffffff',
+  boxStroke: '#c7ced6',
   text: '#12181f',
   mutedText: '#5b6675',
   edge: '#5b6675',
@@ -146,19 +150,43 @@ function Node({
   const height = node.height ?? 0
   const asset = meta.type ? icons.resolve(meta.type) : undefined
 
-  return (
-    <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
-      {asset ? (
-        <svg
-          x={0}
-          y={0}
+  // No icon: draw the label in a box so third parties read as components, not as blanks.
+  if (!asset) {
+    return (
+      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+        <rect
           width={width}
           height={height}
-          viewBox={asset.viewBox}
-          // Vendored SVG from the sync script, never user input.
-          dangerouslySetInnerHTML={{ __html: asset.content }}
+          rx={6}
+          fill={theme.boxFill}
+          stroke={theme.boxStroke}
+          strokeWidth={1}
         />
-      ) : null}
+        <text
+          x={width / 2}
+          y={height / 2 + 4}
+          textAnchor="middle"
+          fill={theme.text}
+          fontSize={NODE_LABEL_SIZE}
+          fontWeight={500}
+        >
+          {meta.label}
+        </text>
+      </g>
+    )
+  }
+
+  return (
+    <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+      <svg
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        viewBox={asset.viewBox}
+        // Vendored SVG from the sync script, never user input.
+        dangerouslySetInnerHTML={{ __html: asset.content }}
+      />
       <text
         x={width / 2}
         y={height + LABEL_BAND - 6}

@@ -56,12 +56,6 @@ export function normalize(input: unknown): Ir {
         'Groups are containers — move the service onto a child node.',
       )
     }
-    if (!isGroup && entry.type === undefined) {
-      throw new DiagramError(
-        `Node '${entry.id}' has no type.`,
-        'Leaf nodes need a service slug (e.g. type: ecs); containers need kind (e.g. kind: vpc).',
-      )
-    }
 
     nodes.push({
       id: entry.id,

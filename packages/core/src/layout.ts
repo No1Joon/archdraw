@@ -6,6 +6,9 @@ import type { Ir } from './normalize.js'
 export const ICON_SIZE = 64
 /** Space under each icon for its label. */
 export const LABEL_BAND = 22
+/** A node with no icon is a labelled box instead — third parties and self-hosted parts. */
+export const BOX_HEIGHT = 40
+export const BOX_PADDING = 14
 export const GROUP_HEADER = 30
 /** Left inset of a group's label, and its font size. */
 export const GROUP_LABEL_INSET = 16
@@ -71,6 +74,13 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   const build = (parent: string | null): ElkNode[] =>
     (childrenOf.get(parent) ?? []).map((node): ElkNode => {
       if (!node.isGroup) {
+        if (!node.type) {
+          return {
+            id: node.id,
+            width: Math.max(ICON_SIZE, labelWidth(node.label, NODE_LABEL_SIZE) + BOX_PADDING * 2),
+            height: BOX_HEIGHT,
+          }
+        }
         return {
           id: node.id,
           width: ICON_SIZE,

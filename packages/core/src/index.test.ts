@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
-import { renderToSvg } from './index.js'
+import { parse as parseYaml, renderToSvg } from './index.js'
 import { DiagramError, normalize } from './normalize.js'
 
 const pack: IconPack = {
@@ -139,6 +139,32 @@ describe('label sizing', () => {
     const hangul = await layout(normalize(labelled('가나다라마바사')))
 
     expect(hangul.width ?? 0).toBeGreaterThan(latin.width ?? 0)
+  })
+})
+
+const untyped = `
+provider: test
+nodes:
+  - { id: api, type: ecs, label: API }
+  - { id: atlas, label: MongoDB Atlas }
+edges:
+  - { from: api, to: atlas }
+`
+
+describe('nodes without a type', () => {
+  it('are allowed — not every component has a vendor icon', () => {
+    expect(() => normalize(parseYaml(untyped))).not.toThrow()
+  })
+
+  it('still rejects a misspelled key rather than treating it as untyped', () => {
+    expect(() => normalize({ nodes: [{ id: 'a', typ: 'ecs' }] })).toThrow(/Unrecognized key/)
+  })
+
+  it('renders as a labelled box, and a typed one keeps its icon', async () => {
+    const svg = await renderToSvg(untyped, { icons: pack })
+    expect(svg).toContain('MongoDB Atlas')
+    // The icon body only comes from the typed node.
+    expect(svg.match(/<rect width="48" height="48"\/>/g) ?? []).toHaveLength(1)
   })
 })
 
