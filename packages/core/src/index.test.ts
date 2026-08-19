@@ -205,6 +205,34 @@ describe('multi-line labels', () => {
   })
 })
 
+describe('card shape', () => {
+  it('puts the label beside the mark instead of under it', async () => {
+    const icon = await renderToSvg(
+      { provider: 'test', nodes: [{ id: 'a', type: 'ecs', label: 'API' }] },
+      { icons: pack },
+    )
+    const card = await renderToSvg(
+      { provider: 'test', shape: 'card', nodes: [{ id: 'a', type: 'ecs', label: 'API' }] },
+      { icons: pack },
+    )
+    // A card is wider than tall; the icon form stacks and is not.
+    expect(card).not.toBe(icon)
+    expect(/<text x="(\d+)"/.exec(card)?.[1]).not.toBe('32')
+  })
+
+  it('lets a node override the diagram default', () => {
+    const ir = normalize({
+      provider: 'test',
+      shape: 'card',
+      nodes: [
+        { id: 'a', type: 'ecs' },
+        { id: 'b', type: 'rds', shape: 'icon' },
+      ],
+    })
+    expect(ir.nodes.map((n) => n.shape)).toEqual(['card', 'icon'])
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')
@@ -218,6 +246,7 @@ describe('toJsonSchema', () => {
       'groups',
       'nodes',
       'provider',
+      'shape',
       'title',
     ])
     expect(schema.properties.direction?.enum).toEqual(['RIGHT', 'DOWN'])

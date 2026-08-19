@@ -9,6 +9,7 @@
 | `provider` | `aws` \| `gcp` \| `brands` | `aws` | 아이콘 팩. CLI 의 `-p` 가 우선하고 `-p aws,brands` 로 여러 개를 건다 |
 | `title` | string | — | SVG `<title>` 과 접근성 라벨 |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 흐름 방향. 다이어그램 전체에 적용된다(그룹별 지정은 불가) |
+| `shape` | `icon` \| `card` | `icon` | 노드 기본 표현. `icon` 은 마크 아래 이름(AWS 관례), `card` 는 마크 옆 이름(GCP 관례) |
 | `nodes` | Node[] | `[]` | 노드 목록 |
 | `groups` | Node[] | `[]` | `nodes` 의 별칭. 최상위가 전부 컨테이너일 때 읽기 좋다 |
 | `edges` | Edge[] | `[]` | 연결 |
@@ -22,6 +23,7 @@
 | `type` | string | — | 서비스 slug 또는 별칭(`ecs`, `s3`). 리프면 아이콘, 컨테이너면 헤더 배지로 그린다 |
 | `kind` | string | — | 컨테이너 표시(`vpc`, `region`, `account`...). `type` 을 함께 줘 헤더에 아이콘을 붙일 수 있다 |
 | `parent` | string \| null | — | 평면 형에서 상위 컨테이너 id |
+| `shape` | `icon` \| `card` | — | 이 노드의 표현. 다이어그램 기본값을 덮어쓴다 |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
 
 여러 줄 라벨은 참조 아키텍처가 이름 아래 식별자를 적는 방식과 같다.

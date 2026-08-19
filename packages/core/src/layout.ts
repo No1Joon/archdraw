@@ -8,6 +8,10 @@ export const ICON_SIZE = 64
 export const LABEL_BAND = 22
 /** Extra space each additional label line takes. */
 export const LINE_HEIGHT = 14
+/** GCP draws a service as a card: mark on the left, name beside it. */
+export const CARD_ICON = 28
+export const CARD_PADDING = 12
+export const CARD_HEIGHT = 52
 /** A node with no icon is a labelled box instead — third parties and self-hosted parts. */
 export const BOX_HEIGHT = 40
 export const BOX_PADDING = 14
@@ -87,6 +91,14 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   const build = (parent: string | null): ElkNode[] =>
     (childrenOf.get(parent) ?? []).map((node): ElkNode => {
       if (!node.isGroup) {
+        if (node.type && node.shape === 'card') {
+          const lines = labelLines(node.label)
+          return {
+            id: node.id,
+            width: CARD_PADDING * 3 + CARD_ICON + labelWidth(node.label, NODE_LABEL_SIZE),
+            height: Math.max(CARD_HEIGHT, CARD_PADDING * 2 + lines.length * LINE_HEIGHT),
+          }
+        }
         if (!node.type) {
           return {
             id: node.id,

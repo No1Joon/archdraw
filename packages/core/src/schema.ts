@@ -16,6 +16,8 @@ export const FlatNodeSchema = z
     type: z.string().optional(),
     /** id of the containing group, or null/omitted for top level. */
     parent: z.string().nullish(),
+    /** `icon` puts the label under the mark (AWS style); `card` puts it beside (GCP style). */
+    shape: z.enum(['icon', 'card']).optional(),
   })
   .strict()
 
@@ -43,6 +45,8 @@ const Base = {
   provider: z.string().default('aws'),
   title: z.string().optional(),
   direction: z.enum(['RIGHT', 'DOWN']).default('RIGHT'),
+  /** Default node shape; a node's own `shape` wins. */
+  shape: z.enum(['icon', 'card']).default('icon'),
   edges: z.array(EdgeSchema).default([]),
 }
 

@@ -1,6 +1,8 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import type { IconResolver } from './icons.js'
 import {
+  CARD_ICON,
+  CARD_PADDING,
   EDGE_LABEL_SIZE,
   GROUP_HEADER,
   GROUP_ICON,
@@ -164,6 +166,45 @@ function Node({
   const width = node.width ?? 0
   const height = node.height ?? 0
   const asset = meta.type ? icons.resolve(meta.type) : undefined
+
+  if (asset && meta.shape === 'card') {
+    const lines = labelLines(meta.label)
+    const top = height / 2 - ((lines.length - 1) * LINE_HEIGHT) / 2 + 4
+    return (
+      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+        <rect
+          width={width}
+          height={height}
+          rx={6}
+          fill={theme.boxFill}
+          stroke={theme.boxStroke}
+          strokeWidth={1}
+        />
+        <svg
+          x={CARD_PADDING}
+          y={(height - CARD_ICON) / 2}
+          width={CARD_ICON}
+          height={CARD_ICON}
+          viewBox={asset.viewBox}
+          // Vendored SVG from the sync script, never user input.
+          dangerouslySetInnerHTML={{ __html: asset.content }}
+        />
+        <text
+          x={CARD_PADDING * 2 + CARD_ICON}
+          y={top}
+          fill={theme.text}
+          fontSize={NODE_LABEL_SIZE}
+          fontWeight={500}
+        >
+          {lines.map((line, index) => (
+            <tspan key={line} x={CARD_PADDING * 2 + CARD_ICON} dy={index === 0 ? 0 : LINE_HEIGHT}>
+              {line}
+            </tspan>
+          ))}
+        </text>
+      </g>
+    )
+  }
 
   // No icon: draw the label in a box so third parties read as components, not as blanks.
   if (!asset) {
