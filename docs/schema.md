@@ -18,11 +18,17 @@
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
 | `id` | string | ✓ | **`A-Z a-z 0-9 - _` 만.** 점·공백·한글은 거부된다 |
-| `label` | string | — | 표시 이름. 한글 가능. 생략하면 `id` 를 쓴다 |
+| `label` | string | — | 표시 이름. 한글 가능. 생략하면 `id` 를 쓴다. `\n` 으로 줄을 나누면 이름 아래에 식별자·URL 을 붙일 수 있다 |
 | `type` | string | — | 서비스 slug 또는 별칭(`ecs`, `s3`). 리프면 아이콘, 컨테이너면 헤더 배지로 그린다 |
 | `kind` | string | — | 컨테이너 표시(`vpc`, `region`, `account`...). `type` 을 함께 줘 헤더에 아이콘을 붙일 수 있다 |
 | `parent` | string \| null | — | 평면 형에서 상위 컨테이너 id |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
+
+여러 줄 라벨은 참조 아키텍처가 이름 아래 식별자를 적는 방식과 같다.
+
+```yaml
+- { id: cdn, type: cloudfront, label: "CloudFront\n(E3B54WIT00QZZG)\n(portal.example.com)" }
+```
 
 `type` 도 `kind` 도 없으면 **라벨 박스**로 그려진다 — 벤더 아이콘이 없는 서드파티·자체호스팅 구성요소를 표현할 때 쓴다.
 

@@ -6,6 +6,8 @@ import type { Ir } from './normalize.js'
 export const ICON_SIZE = 64
 /** Space under each icon for its label. */
 export const LABEL_BAND = 22
+/** Extra space each additional label line takes. */
+export const LINE_HEIGHT = 14
 /** A node with no icon is a labelled box instead — third parties and self-hosted parts. */
 export const BOX_HEIGHT = 40
 export const BOX_PADDING = 14
@@ -21,11 +23,20 @@ export const EDGE_LABEL_SIZE = 11
 
 /** Estimate — core has no font engine. CJK glyphs are full-width. */
 const CJK = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
-function labelWidth(text: string, fontSize: number): number {
+function lineWidth(text: string, fontSize: number): number {
   let width = 0
   for (const character of text) width += (CJK.test(character) ? 1.03 : 0.53) * fontSize
   // Whole pixels keep float noise out of the rendered dimensions.
   return Math.ceil(width)
+}
+
+/** A label may hold several lines; the widest one decides the space it needs. */
+function labelWidth(text: string, fontSize: number): number {
+  return Math.max(...text.split('\n').map((line) => lineWidth(line, fontSize)))
+}
+
+export function labelLines(text: string): string[] {
+  return text.split('\n')
 }
 
 const elk = new ELK()
@@ -80,7 +91,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
           return {
             id: node.id,
             width: Math.max(ICON_SIZE, labelWidth(node.label, NODE_LABEL_SIZE) + BOX_PADDING * 2),
-            height: BOX_HEIGHT,
+            height: BOX_HEIGHT + (labelLines(node.label).length - 1) * LINE_HEIGHT,
           }
         }
         return {
@@ -91,7 +102,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
             {
               text: node.label,
               width: labelWidth(node.label, NODE_LABEL_SIZE),
-              height: LABEL_BAND,
+              height: LABEL_BAND + (labelLines(node.label).length - 1) * LINE_HEIGHT,
             },
           ],
           layoutOptions: { 'elk.nodeLabels.placement': '[OUTSIDE, V_BOTTOM, H_CENTER]' },

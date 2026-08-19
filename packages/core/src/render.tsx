@@ -7,6 +7,8 @@ import {
   GROUP_LABEL_INSET,
   GROUP_LABEL_SIZE,
   LABEL_BAND,
+  LINE_HEIGHT,
+  labelLines,
   NODE_LABEL_SIZE,
 } from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
@@ -175,16 +177,13 @@ function Node({
           stroke={theme.boxStroke}
           strokeWidth={1}
         />
-        <text
+        <Label
           x={width / 2}
-          y={height / 2 + 4}
-          textAnchor="middle"
+          y={height / 2 + 4 - ((labelLines(meta.label).length - 1) * LINE_HEIGHT) / 2}
+          text={meta.label}
           fill={theme.text}
-          fontSize={NODE_LABEL_SIZE}
-          fontWeight={500}
-        >
-          {meta.label}
-        </text>
+          size={NODE_LABEL_SIZE}
+        />
       </g>
     )
   }
@@ -200,17 +199,40 @@ function Node({
         // Vendored SVG from the sync script, never user input.
         dangerouslySetInnerHTML={{ __html: asset.content }}
       />
-      <text
+      <Label
         x={width / 2}
         y={height + LABEL_BAND - 6}
-        textAnchor="middle"
+        text={meta.label}
         fill={theme.text}
-        fontSize={NODE_LABEL_SIZE}
-        fontWeight={500}
-      >
-        {meta.label}
-      </text>
+        size={NODE_LABEL_SIZE}
+      />
     </g>
+  )
+}
+
+/** Lines after the first sit below, the way reference architectures carry an id under a name. */
+function Label({
+  x,
+  y,
+  text,
+  fill,
+  size,
+}: {
+  x: number
+  y: number
+  text: string
+  fill: string
+  size: number
+}) {
+  const lines = labelLines(text)
+  return (
+    <text x={x} y={y} textAnchor="middle" fill={fill} fontSize={size} fontWeight={500}>
+      {lines.map((line, index) => (
+        <tspan key={line} x={x} dy={index === 0 ? 0 : LINE_HEIGHT}>
+          {line}
+        </tspan>
+      ))}
+    </text>
   )
 }
 

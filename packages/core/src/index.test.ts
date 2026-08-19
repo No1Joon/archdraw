@@ -185,6 +185,26 @@ describe('container icons', () => {
   })
 })
 
+describe('multi-line labels', () => {
+  it('splits on newlines and reserves room for the extra lines', async () => {
+    const { layout } = await import('./index.js')
+    const one = await layout(normalize({ nodes: [{ id: 'a', type: 'ecs', label: 'name' }] }))
+    const three = await layout(
+      normalize({ nodes: [{ id: 'a', type: 'ecs', label: 'name\n(id)\n(url)' }] }),
+    )
+
+    expect(three.height ?? 0).toBeGreaterThan(one.height ?? 0)
+  })
+
+  it('renders each line as its own tspan', async () => {
+    const svg = await renderToSvg(
+      { provider: 'test', nodes: [{ id: 'a', type: 'ecs', label: 'name\n(id)' }] },
+      { icons: pack },
+    )
+    expect((svg.match(/<tspan/g) ?? []).length).toBe(2)
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')
