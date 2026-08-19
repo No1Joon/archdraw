@@ -1,5 +1,17 @@
 # archdraw
 
+## 0.3.0
+
+### Minor Changes
+
+- 13ee39f: Export the input contract as JSON Schema (`toJsonSchema`, `archdraw schema`), derived from the zod definitions so it cannot drift from what is enforced.
+
+### Patch Changes
+
+- Updated dependencies [13ee39f]
+- Updated dependencies [9086e92]
+  - @archdraw/core@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
