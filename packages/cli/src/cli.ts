@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { extname } from 'node:path'
 import {
   createResolver,
@@ -23,7 +24,7 @@ const LIST_LIMIT = 60
 const program = new Command()
   .name('archdraw')
   .description('Render cloud architecture diagrams from YAML.')
-  .version('0.0.0')
+  .version(createRequire(import.meta.url)('../package.json').version)
 
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
 program
