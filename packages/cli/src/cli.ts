@@ -8,6 +8,7 @@ import {
   normalize,
   parse,
   renderToSvg,
+  toJsonSchema,
 } from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
 import { gcpIcons } from '@archdraw/icons-gcp'
@@ -89,6 +90,16 @@ program
       if (hits.length > LIST_LIMIT) {
         console.error(`... ${hits.length - LIST_LIMIT} more. Narrow the query.`)
       }
+    })
+  })
+
+program
+  .command('schema')
+  .description('Print the diagram input contract as JSON Schema.')
+  .option('--flat', 'the flat form only, without the nested `children` shape')
+  .action((options) => {
+    run(async () => {
+      console.log(JSON.stringify(toJsonSchema(options.flat ? 'flat' : 'input'), null, 2))
     })
   })
 

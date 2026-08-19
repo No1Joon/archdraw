@@ -168,6 +168,25 @@ describe('nodes without a type', () => {
   })
 })
 
+describe('toJsonSchema', () => {
+  it('carries the same field set the zod schema enforces', async () => {
+    const { toJsonSchema } = await import('./index.js')
+    const schema = toJsonSchema() as {
+      properties: Record<string, { enum?: string[] }>
+    }
+
+    expect(Object.keys(schema.properties).sort()).toEqual([
+      'direction',
+      'edges',
+      'groups',
+      'nodes',
+      'provider',
+      'title',
+    ])
+    expect(schema.properties.direction?.enum).toEqual(['RIGHT', 'DOWN'])
+  })
+})
+
 describe('renderToSvg', () => {
   it('renders a stable SVG', async () => {
     const svg = await renderToSvg(nested, { icons: pack })

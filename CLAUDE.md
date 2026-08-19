@@ -40,5 +40,7 @@ CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query
 
 ## References
 
-- `README.md` — 패키지 목록과 입력 포맷 예시
+- `README.md` — 진입점. `docs/` 로 연결
+- `docs/schema.md` — 입력 계약(필드·두 형태·거부 규칙). `archdraw schema` 가 같은 계약을 JSON Schema 로 낸다
+- `docs/agents.md` — 에이전트 사용법
 - `scripts/icon-sources.json` — 프로바이더별 아이콘 배포본 URL·슬러그 규칙

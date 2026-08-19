@@ -64,6 +64,16 @@ export const FlatDiagramSchema = z
   })
   .strict()
 
+/**
+ * The input contract as JSON Schema, derived from the zod schemas above so the two cannot drift.
+ * `archdraw schema` prints it; agents read it instead of guessing the shape.
+ */
+export function toJsonSchema(form: 'input' | 'flat' = 'input'): Record<string, unknown> {
+  return z.toJSONSchema(form === 'flat' ? FlatDiagramSchema : DiagramSchema, {
+    io: 'input',
+  }) as Record<string, unknown>
+}
+
 export type Diagram = z.infer<typeof DiagramSchema>
 export type FlatDiagram = z.infer<typeof FlatDiagramSchema>
 export type Edge = z.infer<typeof EdgeSchema>

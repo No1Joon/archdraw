@@ -37,6 +37,22 @@ describe('archdraw types', () => {
   })
 })
 
+describe('archdraw schema', () => {
+  it('prints the input contract as JSON Schema', () => {
+    const { code, stdout } = run(['schema'])
+    const schema = JSON.parse(stdout)
+
+    expect(code).toBe(0)
+    expect(Object.keys(schema.properties)).toEqual(
+      expect.arrayContaining(['provider', 'direction', 'nodes', 'edges']),
+    )
+  })
+
+  it('--flat drops the nested children shape', () => {
+    expect(JSON.stringify(JSON.parse(run(['schema', '--flat']).stdout))).not.toContain('children')
+  })
+})
+
 describe('archdraw render', () => {
   it('reads stdin when the input is -', () => {
     const { code, stdout } = run(['-'], diagram)

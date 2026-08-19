@@ -20,6 +20,7 @@ export {
   FlatDiagramSchema,
   FlatNodeSchema,
   NodeEntrySchema,
+  toJsonSchema,
 } from './schema.js'
 
 export interface RenderOptions {
