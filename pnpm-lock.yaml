@@ -41,6 +41,9 @@ importers:
       '@archdraw/icons-aws':
         specifier: workspace:*
         version: link:../icons-aws
+      '@archdraw/icons-brands':
+        specifier: workspace:*
+        version: link:../icons-brands
       '@archdraw/icons-gcp':
         specifier: workspace:*
         version: link:../icons-gcp
@@ -83,6 +86,8 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/icons-aws: {}
+
+  packages/icons-brands: {}
 
   packages/icons-gcp: {}
 

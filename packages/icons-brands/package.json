@@ -1,0 +1,30 @@
+{
+  "name": "@archdraw/icons-brands",
+  "version": "0.0.0",
+  "description": "Brand and OSS icons (Simple Icons) with a slug/alias registry.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/icons-brands"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

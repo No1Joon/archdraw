@@ -12,5 +12,13 @@
     "include": "\\.svg$",
     "stripPrefixes": [],
     "stripSuffixes": []
+  },
+  "brands": {
+    "url": "https://github.com/simple-icons/simple-icons/archive/refs/tags/16.28.0.zip",
+    "note": "Simple Icons release archive (https://simple-icons.org). CC0 SVG data; the marks stay their owners'. Bump the tag here after each sync.",
+    "include": "/icons/[^/]+\\.svg$",
+    "stripPrefixes": [],
+    "stripSuffixes": [],
+    "colorData": "data/simple-icons.json"
   }
 }

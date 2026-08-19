@@ -12,11 +12,12 @@ import {
   toJsonSchema,
 } from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
+import { brandIcons } from '@archdraw/icons-brands'
 import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
 
-const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons }
+const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
 
 /** Long lists cost an agent context; make it narrow the query instead. */
 const LIST_LIMIT = 60
@@ -32,7 +33,7 @@ program
   .description('Render a diagram file to SVG or PNG.')
   .argument('<input>', "diagram YAML or JSON file, or '-' to read stdin")
   .option('-o, --out <file>', 'output path; .png renders a raster, anything else writes SVG')
-  .option('-p, --provider <name>', 'icon pack to load', 'aws')
+  .option('-p, --provider <names>', 'icon packs to load, comma separated', 'aws')
   .option('-s, --scale <n>', 'PNG scale factor', '2')
   .option('--check', 'validate the diagram and write nothing')
   .action(async (input: string, options) => {
@@ -54,16 +55,18 @@ program
   .command('types')
   .description('Search the icon type slugs and aliases a diagram may use.')
   .argument('[query]', 'substring to match against slugs and aliases')
-  .option('-p, --provider <name>', 'icon pack to load', 'aws')
+  .option('-p, --provider <names>', 'icon packs to load, comma separated', 'aws')
   .action((query: string | undefined, options) => {
     run(async () => {
-      const pack = packFor(options.provider)
-      const slugs = Object.keys(pack.icons).sort()
-      const aliases = Object.entries(pack.aliases).sort(([a], [b]) => a.localeCompare(b))
+      const selected = packsFor(options.provider)
+      const slugs = selected.flatMap((pack) => Object.keys(pack.icons)).sort()
+      const aliases = selected
+        .flatMap((pack) => Object.entries(pack.aliases))
+        .sort(([a], [b]) => a.localeCompare(b))
 
       if (!query) {
         console.error(
-          `${slugs.length} types and ${aliases.length} aliases in '${pack.provider}'. ` +
+          `${slugs.length} types and ${aliases.length} aliases in '${options.provider}'. ` +
             `Narrow with: archdraw types <query> -p ${options.provider}`,
         )
         return
@@ -79,11 +82,8 @@ program
 
       if (hits.length === 0) {
         throw new Error(
-          `No type matches '${query}' in '${pack.provider}'. Try a shorter word, or -p ${
-            Object.keys(packs)
-              .filter((p) => p !== options.provider)
-              .join('/') || 'another pack'
-          }.`,
+          `No type matches '${query}' in '${options.provider}'. ` +
+            `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`,
         )
       }
 
@@ -104,21 +104,24 @@ program
     })
   })
 
-function packFor(provider: string): IconPack {
-  const pack = packs[provider]
-  if (!pack) {
-    throw new Error(`Unknown provider '${provider}'. Known: ${Object.keys(packs).join(', ')}`)
-  }
-  if (Object.keys(pack.icons).length === 0) {
-    throw new Error(
-      `The ${provider} icon pack is empty — run \`pnpm icons:sync ${provider}\` in the repo, or install a published @archdraw/icons-${provider}.`,
-    )
-  }
-  return pack
+/** `-p aws,brands` — one diagram often spans a cloud and the software running on it. */
+function packsFor(provider: string): IconPack[] {
+  return provider.split(',').map((name) => {
+    const pack = packs[name.trim()]
+    if (!pack) {
+      throw new Error(`Unknown provider '${name.trim()}'. Known: ${Object.keys(packs).join(', ')}`)
+    }
+    if (Object.keys(pack.icons).length === 0) {
+      throw new Error(
+        `The ${name.trim()} icon pack is empty — run \`pnpm icons:sync ${name.trim()}\` in the repo.`,
+      )
+    }
+    return pack
+  })
 }
 
 function iconsFor(provider: string) {
-  return createResolver(packFor(provider))
+  return createResolver(...packsFor(provider))
 }
 
 function write(svg: string, out: string | undefined, scale: number) {

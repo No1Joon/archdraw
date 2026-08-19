@@ -8,6 +8,7 @@ archdraw 는 LLM 을 호출하지 않는다. **에이전트가 YAML 을 쓰고 a
 # 1. 쓸 수 있는 type 을 찾는다 — 추측하지 않는다
 npx archdraw types postgres
 npx archdraw types run -p gcp
+npx archdraw types redis -p aws,brands   # 팩을 여러 개 걸면 둘 다 나온다
 
 # 2. 렌더 없이 검증한다 — 빠르고, 실패하면 exit 1
 cat diagram.yaml | npx archdraw - --check
@@ -37,9 +38,20 @@ Unknown type 'lambdaa'.
 
 해석되지 않는 `type` 은 **절대 비슷한 아이콘으로 대체되지 않는다.** 틀린 아이콘이 맞는 것처럼 렌더되면 다이어그램이 거짓말을 하기 때문이다.
 
+## 팩 고르기
+
+| 팩 | 무엇이 있나 |
+|---|---|
+| `aws` · `gcp` | 클라우드 공식 서비스 아이콘 |
+| `brands` | 브랜드·OSS 마크 — Redis·nginx·PostgreSQL·Docker·Cloudflare 등 |
+
+`-p aws,brands` 처럼 콤마로 여러 개를 건다. 하나의 다이어그램이 클라우드와 그 위에서 도는 소프트웨어를 함께 담는 일이 흔하다.
+
+**같은 것을 가리키는 두 아이콘을 구분한다** — `redis`(Redis 자체)와 `amazon-elasticache`(AWS 관리형)는 다른 것이다. 자체호스팅에 관리형 아이콘을 붙이면 그림이 거짓말을 한다.
+
 ## 아이콘이 없는 구성요소
 
-`type` 을 생략하면 라벨 박스로 그려진다. MongoDB Atlas·Cloudflare·nginx 처럼 벤더 아이콘이 없는 것들을 여기에 쓴다. 억지로 비슷한 아이콘을 붙이지 않는다.
+`type` 을 생략하면 라벨 박스로 그려진다. 세 팩 어디에도 없는 사내 서비스 같은 것을 여기에 쓴다. 억지로 비슷한 아이콘을 붙이지 않는다.
 
 ```yaml
 nodes:

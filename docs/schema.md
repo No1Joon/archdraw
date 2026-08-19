@@ -6,7 +6,7 @@
 
 | 필드 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `provider` | `aws` \| `gcp` | `aws` | 아이콘 팩. CLI 는 `-p` 가 우선한다 |
+| `provider` | `aws` \| `gcp` \| `brands` | `aws` | 아이콘 팩. CLI 의 `-p` 가 우선하고 `-p aws,brands` 로 여러 개를 건다 |
 | `title` | string | — | SVG `<title>` 과 접근성 라벨 |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 흐름 방향. 다이어그램 전체에 적용된다(그룹별 지정은 불가) |
 | `nodes` | Node[] | `[]` | 노드 목록 |

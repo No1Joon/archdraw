@@ -22,7 +22,7 @@ CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query
 
 - `packages/core`: 파이프라인 전부 — 파싱·검증(zod) → 평면 IR → ELK 레이아웃 → React 로 SVG.
   브라우저와 Node 가 같은 코드를 쓰고 DOM 을 타지 않는다. **아이콘 자산을 갖지 않고** `IconResolver` 인터페이스만 노출한다.
-- `packages/icons-aws`·`packages/icons-gcp`: 벤더 SVG + slug/alias 레지스트리. **의존성 0** —
+- `packages/icons-aws`·`packages/icons-gcp`·`packages/icons-brands`: 벤더 SVG + slug/alias 레지스트리. **의존성 0** —
   `IconPack` 타입을 core 에서 import 하지 않고 각자 `src/types.ts` 에 구조적으로 복제해 둔다.
 - `packages/react`: `<Architecture />` — core 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층.
 - `packages/cli`: 두 아이콘 팩을 모두 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.

@@ -30,6 +30,13 @@ describe('archdraw types', () => {
     expect(stdout).not.toContain('amazon-')
   })
 
+  it('merges packs when -p lists several', () => {
+    const { stdout } = run(['types', 'redis', '-p', 'aws,brands'])
+    // The self-hosted mark and the managed service are different things.
+    expect(stdout).toContain('redis -> redis')
+    expect(stdout).toContain('amazon-elasticache')
+  })
+
   it('fails with a hint when nothing matches', () => {
     const { code, stderr } = run(['types', 'zzzz'])
     expect(code).toBe(1)

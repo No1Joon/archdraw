@@ -6,7 +6,15 @@
  *   pnpm icons:sync aws --from ./assets.zip  # or a local download
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve, sep } from 'node:path'
@@ -22,6 +30,8 @@ interface Source {
   include: string
   stripPrefixes: string[]
   stripSuffixes: string[]
+  /** Archive path to a `[{ title, hex }]` list. Monochrome sets need it to gain brand colour. */
+  colorData?: string
 }
 
 async function main() {
@@ -62,6 +72,8 @@ async function main() {
     rmSync(svgDir, { recursive: true, force: true })
     mkdirSync(svgDir, { recursive: true })
 
+    const colors = source.colorData ? readColors(join(work, 'extracted'), source.colorData) : null
+
     const assets = new Map<string, { viewBox: string; content: string }>()
     for (const file of files) {
       const slug = slugify(basename(file, '.svg'), source)
@@ -76,10 +88,19 @@ async function main() {
       }).data
 
       const viewBox = /viewBox="([^"]+)"/.exec(optimized)?.[1]
-      const content = /<svg[^>]*>([\s\S]*)<\/svg>/.exec(optimized)?.[1]
+      let content = /<svg[^>]*>([\s\S]*)<\/svg>/.exec(optimized)?.[1]
       if (!viewBox || !content) {
         console.warn(`  skipped ${basename(file)} — no viewBox or empty body`)
         continue
+      }
+      if (colors) {
+        const title = /<title>([^<]*)<\/title>/.exec(content)?.[1]
+        const hex = title ? colors.get(decodeEntities(title)) : undefined
+        if (!hex) {
+          console.warn(`  no brand colour for ${basename(file)} — left monochrome`)
+        } else {
+          content = content.replace(/<path /g, `<path fill="#${hex}" `)
+        }
       }
 
       writeFileSync(join(svgDir, `${slug}.svg`), optimized)
@@ -114,6 +135,31 @@ async function main() {
   } finally {
     rmSync(work, { recursive: true, force: true })
   }
+}
+
+/** SVGO escapes `&` and friends in titles; the colour table holds the raw text. */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    )
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+}
+
+/** Title -> brand hex, keyed by the `<title>` each icon already carries. */
+function readColors(root: string, relative: string): Map<string, string> {
+  const [dir] = readdirSync(root)
+  const path = join(root, dir ?? '', relative)
+  const parsed = JSON.parse(readFileSync(path, 'utf8')) as
+    | { title: string; hex: string }[]
+    | { icons: { title: string; hex: string }[] }
+  const list = Array.isArray(parsed) ? parsed : parsed.icons
+  return new Map(list.map((icon) => [icon.title, icon.hex]))
 }
 
 /** AppleDouble twins (`._name.svg`) match the include pattern but hold xattrs, not SVG. */

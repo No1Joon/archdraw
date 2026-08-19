@@ -1,6 +1,6 @@
 # archdraw
 
-YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 CLI·라이브러리. AWS 747 · GCP 216 개의 공식 아이콘을 쓴다.
+YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 CLI·라이브러리. AWS 747 · GCP 216 · 브랜드/OSS 3,453 개의 아이콘을 쓴다.
 
 **AI CLI 가 쓰라고 만들었다** — archdraw 는 LLM 을 호출하지 않고, 에이전트가 YAML 을 쓰면 archdraw 가 그린다.
 
@@ -29,9 +29,9 @@ YAML
 ## CLI
 
 ```bash
-archdraw <input> [-o out] [-p aws|gcp] [-s 2]   # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
-archdraw <input> --check                        # 검증만. 실패 시 exit 1
-archdraw types <query> [-p aws|gcp]             # 쓸 수 있는 type 검색
+archdraw <input> [-o out] [-p aws,brands] [-s 2]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
+archdraw <input> --check                         # 검증만. 실패 시 exit 1
+archdraw types <query> [-p aws,brands]           # 쓸 수 있는 type 검색
 archdraw schema [--flat]                        # 입력 계약을 JSON Schema 로
 ```
 
@@ -49,7 +49,8 @@ Unknown type 'lambdaa'.
 | `archdraw` | CLI. 두 아이콘 팩을 번들해 `npx` 로 바로 동작한다 |
 | `@archdraw/core` | 파싱·검증·ELK 레이아웃·SVG 렌더. 아이콘 자산 없음 |
 | `@archdraw/react` | `<Architecture />` 컴포넌트 |
-| `@archdraw/icons-aws` · `@archdraw/icons-gcp` | 공식 아이콘 + slug/alias 레지스트리. 의존성 0 |
+| `@archdraw/icons-aws` · `@archdraw/icons-gcp` | 클라우드 공식 아이콘 + slug/alias 레지스트리. 의존성 0 |
+| `@archdraw/icons-brands` | 브랜드·OSS 아이콘(Simple Icons, CC0). Redis·nginx·MongoDB 등 |
 
 ## 개발
 

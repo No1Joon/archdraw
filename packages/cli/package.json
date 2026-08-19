@@ -22,6 +22,7 @@
   "dependencies": {
     "@archdraw/core": "workspace:*",
     "@archdraw/icons-aws": "workspace:*",
+    "@archdraw/icons-brands": "workspace:*",
     "@archdraw/icons-gcp": "workspace:*",
     "@resvg/resvg-js": "2.6.2",
     "commander": "15.0.0",
