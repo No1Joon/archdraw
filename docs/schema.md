@@ -19,8 +19,8 @@
 |---|---|---|---|
 | `id` | string | ✓ | **`A-Z a-z 0-9 - _` 만.** 점·공백·한글은 거부된다 |
 | `label` | string | — | 표시 이름. 한글 가능. 생략하면 `id` 를 쓴다 |
-| `type` | string | — | 서비스 slug 또는 별칭(`ecs`, `s3`). 있으면 아이콘으로 그린다 |
-| `kind` | string | — | 컨테이너 표시(`vpc`, `region`, `account`...). `type` 과 동시 사용 불가 |
+| `type` | string | — | 서비스 slug 또는 별칭(`ecs`, `s3`). 리프면 아이콘, 컨테이너면 헤더 배지로 그린다 |
+| `kind` | string | — | 컨테이너 표시(`vpc`, `region`, `account`...). `type` 을 함께 줘 헤더에 아이콘을 붙일 수 있다 |
 | `parent` | string \| null | — | 평면 형에서 상위 컨테이너 id |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
 
@@ -74,7 +74,6 @@ edges:
 |---|---|
 | 없는 slug | `Unknown type 'lambdaa'.` + 유사 후보 |
 | 오타 키 | `Unrecognized key: "typ"` |
-| 그룹에 `type` | `Node 'a' is a group but also declares type` |
 | 끊긴 엣지 | `Edge a -> ghost references unknown node 'ghost'` |
 | 중복 id | `Duplicate id` |
 | id 문자 위반 | `id must be alphanumeric with - or _` |

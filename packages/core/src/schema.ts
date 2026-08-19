@@ -10,9 +10,9 @@ export const FlatNodeSchema = z
   .object({
     id: Id,
     label: z.string().optional(),
-    /** Present on containers (VPC, subnet, account, ...). Mutually exclusive with `type`. */
+    /** Present on containers (VPC, subnet, account, ...). May carry `type` for a header icon. */
     kind: z.string().optional(),
-    /** Provider service slug or alias, e.g. `ecs`, `s3`. Required on leaf nodes. */
+    /** Provider service slug or alias, e.g. `ecs`, `s3`. Optional — without it a node is a labelled box. */
     type: z.string().optional(),
     /** id of the containing group, or null/omitted for top level. */
     parent: z.string().nullish(),

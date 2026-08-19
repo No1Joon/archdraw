@@ -49,10 +49,8 @@ describe('normalize', () => {
     expect(normalize(parse(nested))).toEqual(normalize(parse(flat)))
   })
 
-  it('rejects a group that also declares a type', () => {
-    expect(() => normalize({ nodes: [{ id: 'a', kind: 'vpc', type: 'ecs' }] })).toThrow(
-      DiagramError,
-    )
+  it('lets a container carry a type for its header icon', () => {
+    expect(() => normalize({ nodes: [{ id: 'a', kind: 'vpc', type: 'ecs' }] })).not.toThrow()
   })
 
   it('rejects an edge pointing at a node that does not exist', () => {
@@ -164,6 +162,25 @@ describe('nodes without a type', () => {
     const svg = await renderToSvg(untyped, { icons: pack })
     expect(svg).toContain('MongoDB Atlas')
     // The icon body only comes from the typed node.
+    expect(svg.match(/<rect width="48" height="48"\/>/g) ?? []).toHaveLength(1)
+  })
+})
+
+const badged = `
+provider: test
+nodes:
+  - id: box
+    kind: instance
+    type: ecs
+    label: host
+    children:
+      - { id: proc, label: process }
+`
+
+describe('container icons', () => {
+  it('draws the container icon once, beside its label', async () => {
+    const svg = await renderToSvg(badged, { icons: pack })
+    expect(svg).toContain('host')
     expect(svg.match(/<rect width="48" height="48"\/>/g) ?? []).toHaveLength(1)
   })
 })

@@ -50,13 +50,6 @@ export function normalize(input: unknown): Ir {
     seen.add(entry.id)
 
     const isGroup = entry.kind !== undefined || (entry.children?.length ?? 0) > 0
-    if (isGroup && entry.type !== undefined) {
-      throw new DiagramError(
-        `Node '${entry.id}' is a group but also declares type '${entry.type}'.`,
-        'Groups are containers — move the service onto a child node.',
-      )
-    }
-
     nodes.push({
       id: entry.id,
       label: entry.label ?? entry.id,

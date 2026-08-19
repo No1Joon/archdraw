@@ -3,6 +3,7 @@ import type { IconResolver } from './icons.js'
 import {
   EDGE_LABEL_SIZE,
   GROUP_HEADER,
+  GROUP_ICON,
   GROUP_LABEL_INSET,
   GROUP_LABEL_SIZE,
   LABEL_BAND,
@@ -93,6 +94,7 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
       {node.children?.map((child) => {
         const meta = byId.get(child.id)
         if (meta?.isGroup) {
+          const badge = meta.type ? icons.resolve(meta.type) : undefined
           return (
             <g key={child.id} transform={`translate(${child.x ?? 0}, ${child.y ?? 0})`}>
               <rect
@@ -104,8 +106,19 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
                 strokeWidth={1}
                 strokeDasharray="6 4"
               />
+              {badge ? (
+                <svg
+                  x={GROUP_LABEL_INSET}
+                  y={(GROUP_HEADER - GROUP_ICON) / 2}
+                  width={GROUP_ICON}
+                  height={GROUP_ICON}
+                  viewBox={badge.viewBox}
+                  // Vendored SVG from the sync script, never user input.
+                  dangerouslySetInnerHTML={{ __html: badge.content }}
+                />
+              ) : null}
               <text
-                x={GROUP_LABEL_INSET}
+                x={GROUP_LABEL_INSET + (badge ? GROUP_ICON + 8 : 0)}
                 y={GROUP_HEADER - 8}
                 fill={theme.mutedText}
                 fontSize={GROUP_LABEL_SIZE}
