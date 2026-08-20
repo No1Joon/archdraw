@@ -8,6 +8,10 @@ export const ICON_SIZE = 64
 export const LABEL_BAND = 22
 /** Extra space each additional label line takes. */
 export const LINE_HEIGHT = 14
+/** An address sits above the mark, smaller and muted, so it reads apart from the name. */
+export const DOMAIN_SIZE = 11
+export const DOMAIN_BAND = 16
+
 /** GCP draws a service as a card: mark on the left, name beside it. */
 export const CARD_ICON = 28
 export const CARD_PADDING = 12
@@ -108,8 +112,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
         }
         return {
           id: node.id,
-          width: ICON_SIZE,
-          height: ICON_SIZE,
+          width: Math.max(ICON_SIZE, node.domain ? labelWidth(node.domain, DOMAIN_SIZE) : 0),
+          height: ICON_SIZE + (node.domain ? DOMAIN_BAND : 0),
           labels: [
             {
               text: node.label,

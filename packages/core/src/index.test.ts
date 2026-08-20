@@ -233,6 +233,22 @@ describe('card shape', () => {
   })
 })
 
+describe('domain', () => {
+  it('sits above the mark, apart from the service name', async () => {
+    const svg = await renderToSvg(
+      {
+        provider: 'test',
+        nodes: [{ id: 'a', type: 'ecs', label: 'API', domain: 'api.example.com' }],
+      },
+      { icons: pack },
+    )
+    const domainY = Number(/<text[^>]*font-size="11"[^>]*y="(\d+)"/.exec(svg)?.[1] ?? -1)
+    const labelY = Number(/<text[^>]*y="(\d+)"[^>]*font-size="12"/.exec(svg)?.[1] ?? -1)
+    expect(svg).toContain('api.example.com')
+    expect(domainY).toBeLessThan(labelY)
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')

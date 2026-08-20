@@ -3,6 +3,8 @@ import type { IconResolver } from './icons.js'
 import {
   CARD_ICON,
   CARD_PADDING,
+  DOMAIN_BAND,
+  DOMAIN_SIZE,
   EDGE_LABEL_SIZE,
   GROUP_HEADER,
   GROUP_ICON,
@@ -229,13 +231,26 @@ function Node({
     )
   }
 
+  const top = meta.domain ? DOMAIN_BAND : 0
+  const mark = height - top
   return (
     <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+      {meta.domain ? (
+        <text
+          x={width / 2}
+          y={DOMAIN_SIZE}
+          textAnchor="middle"
+          fill={theme.mutedText}
+          fontSize={DOMAIN_SIZE}
+        >
+          {meta.domain}
+        </text>
+      ) : null}
       <svg
-        x={0}
-        y={0}
-        width={width}
-        height={height}
+        x={(width - mark) / 2}
+        y={top}
+        width={mark}
+        height={mark}
         viewBox={asset.viewBox}
         // Vendored SVG from the sync script, never user input.
         dangerouslySetInnerHTML={{ __html: asset.content }}

@@ -10,6 +10,7 @@ export interface FlatNode {
   parent: string | null
   isGroup: boolean
   shape: 'icon' | 'card'
+  domain?: string
 }
 
 export interface Ir {
@@ -57,6 +58,7 @@ export function normalize(input: unknown): Ir {
       type: entry.type,
       kind: entry.kind,
       shape: entry.shape ?? parsed.data.shape,
+      domain: entry.domain,
       parent: entry.parent ?? parent,
       isGroup,
     })

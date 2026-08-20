@@ -18,6 +18,8 @@ export const FlatNodeSchema = z
     parent: z.string().nullish(),
     /** `icon` puts the label under the mark (AWS style); `card` puts it beside (GCP style). */
     shape: z.enum(['icon', 'card']).optional(),
+    /** Address this node answers on. Drawn above the mark, apart from the service name. */
+    domain: z.string().optional(),
   })
   .strict()
 
