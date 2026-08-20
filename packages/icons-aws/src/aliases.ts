@@ -1,6 +1,7 @@
 /** Hand-maintained short names. Values must exist in `generated.ts`; sync fails otherwise. */
 export const aliases: Record<string, string> = {
   alb: 'elastic-load-balancing',
+  browser: 'client',
   apigw: 'amazon-api-gateway',
   cloudfront: 'amazon-cloudfront',
   cloudwatch: 'amazon-cloudwatch',
@@ -14,6 +15,7 @@ export const aliases: Record<string, string> = {
   fargate: 'aws-fargate',
   iam: 'aws-identity-and-access-management',
   lambda: 'aws-lambda',
+  mobile: 'mobile-client',
   nlb: 'elastic-load-balancing',
   rds: 'amazon-rds',
   route53: 'amazon-route-53',

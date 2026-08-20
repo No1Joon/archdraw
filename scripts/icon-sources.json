@@ -1,10 +1,10 @@
 {
   "aws": {
     "url": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
-    "note": "Asset package URL from https://aws.amazon.com/architecture/icons/ — the filename carries a date and changes every release, so pin it here after each sync. Pinned: Q3 2026 (07312026).",
-    "include": "_48\\.svg$",
+    "note": "Asset package URL from https://aws.amazon.com/architecture/icons/ — the filename carries a date and changes every release, so pin it here after each sync. Pinned: Q3 2026 (07312026). Resource general icons live under Res_48_Light, so the pattern takes both `_48.svg` and `_48_Light.svg`.",
+    "include": "_48(_Light)?\\.svg$",
     "stripPrefixes": ["Arch_", "Res_", "Arch-Category_", "Category_"],
-    "stripSuffixes": ["_48"]
+    "stripSuffixes": ["_48_Light", "_48"]
   },
   "gcp": {
     "url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
