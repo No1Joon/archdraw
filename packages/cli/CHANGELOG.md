@@ -1,5 +1,24 @@
 # archdraw
 
+## 0.4.0
+
+### Minor Changes
+
+- af340b1: Add `@archdraw/icons-brands` — 3,453 brand and OSS marks from Simple Icons (CC0), coloured with each brand's official hex. The CLI now takes several packs at once (`-p aws,brands`), so a diagram can show both a managed service and the software it runs.
+
+### Patch Changes
+
+- c2fb6a2: `--version` now reports the package version instead of a hardcoded `0.0.0`.
+- Updated dependencies [e3147df]
+- Updated dependencies [af340b1]
+- Updated dependencies [25a0896]
+- Updated dependencies [2534735]
+- Updated dependencies [efa32d7]
+- Updated dependencies [44956b7]
+  - @archdraw/icons-aws@0.2.0
+  - @archdraw/icons-brands@0.1.0
+  - @archdraw/core@0.3.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,14 @@
 # @archdraw/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 25a0896: Add `shape: card` — the mark on the left with the name beside it, the way Google Cloud draws a service. `icon` (name under the mark, the AWS convention) stays the default, and a node may override the diagram's choice.
+- 2534735: Add `domain` — the address a node answers on, drawn above the mark so it reads apart from the service name instead of being crammed into the label.
+- efa32d7: A container may now carry `type` to show its service icon beside the group label, so a VPC or an instance can be labelled with the vendor mark the way reference architectures draw it.
+- 44956b7: A node label may hold several lines (`\n`), so a name can carry its identifier or URL underneath the way reference architectures draw it.
+
 ## 0.2.0
 
 ### Minor Changes
