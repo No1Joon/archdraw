@@ -25,7 +25,8 @@ CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query
 - `packages/icons-aws`·`packages/icons-gcp`·`packages/icons-brands`: 벤더 SVG + slug/alias 레지스트리. **의존성 0** —
   `IconPack` 타입을 core 에서 import 하지 않고 각자 `src/types.ts` 에 구조적으로 복제해 둔다.
 - `packages/react`: `<Architecture />` — core 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층.
-- `packages/cli`: 두 아이콘 팩을 모두 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.
+- `packages/cli`: 세 아이콘 팩과 PNG 래스터화용 폰트를 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.
+  `fonts/` 는 시스템 폰트를 쓰지 않기 위한 것이고 정적 폰트로 바꾸면 글자가 사라진다 — `packages/cli/fonts/README.md`.
 - `scripts/sync-icons.ts`: **네트워크를 타는 유일한 코드.** 빌드·CI 는 커밋된 SVG 만 읽는다.
 
 `packages/*/src/generated.ts` 는 `pnpm icons:sync` 산출물이므로 손으로 고치지 않는다.

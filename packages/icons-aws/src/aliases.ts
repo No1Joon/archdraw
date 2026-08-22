@@ -10,6 +10,7 @@ export const aliases: Record<string, string> = {
   ecr: 'amazon-elastic-container-registry',
   ecs: 'amazon-elastic-container-service',
   eks: 'amazon-elastic-kubernetes-service',
+  elasticache: 'amazon-elasticache',
   elb: 'elastic-load-balancing',
   eventbridge: 'amazon-eventbridge',
   fargate: 'aws-fargate',

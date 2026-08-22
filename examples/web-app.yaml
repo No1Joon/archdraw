@@ -1,0 +1,52 @@
+provider: aws
+title: web-app
+groups:
+  - id: clients
+    label: Clients
+    kind: group
+    children:
+      - { id: browser, type: client, label: Browser }
+      - { id: mobile, type: mobile-client, label: Mobile }
+
+  - id: edge
+    label: Edge
+    kind: group
+    children:
+      - { id: cdn, type: cloudfront, label: CloudFront, domain: app.example.com }
+      - { id: static, type: s3, label: "S3\n(static assets)" }
+
+  - id: vpc
+    label: VPC
+    kind: vpc
+    type: vpc
+    children:
+      - id: public
+        label: Public subnet
+        kind: subnet
+        children:
+          - { id: alb, type: alb, label: "Application\nLoad Balancer" }
+      - id: private
+        label: Private subnet
+        kind: subnet
+        children:
+          - { id: api, type: ecs, label: "ECS\n(api)" }
+          - { id: db, type: rds, label: "RDS\n(postgres)" }
+          - { id: cache, type: elasticache, label: ElastiCache }
+
+  - id: external
+    label: External
+    kind: group
+    children:
+      - { id: stripe, type: stripe, label: Stripe }
+      - { id: sentry, type: sentry, label: Sentry }
+
+edges:
+  - { from: browser, to: cdn, label: https }
+  - { from: mobile, to: alb, label: REST }
+  - { from: cdn, to: static }
+  - { from: cdn, to: alb, label: /api/* }
+  - { from: alb, to: api }
+  - { from: api, to: db, label: SQL }
+  - { from: api, to: cache }
+  - { from: api, to: stripe, style: dashed }
+  - { from: api, to: sentry, style: dashed }
