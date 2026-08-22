@@ -1,6 +1,6 @@
 {
   "name": "archdraw",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Render cloud architecture diagrams from YAML. Built for AI CLIs and humans.",
   "license": "MIT",
   "repository": {

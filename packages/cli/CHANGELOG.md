@@ -1,5 +1,21 @@
 # archdraw
 
+## 0.5.0
+
+### Minor Changes
+
+- b4e5d0e: Bundle Noto Sans KR and rasterise PNGs with it alone. resvg drew text with whatever the machine happened to have installed, so a diagram with Korean labels came out with the labels missing on any host without the family — silently, since a font it cannot resolve makes resvg draw nothing rather than fail. The same input now yields the same PNG anywhere.
+
+### Patch Changes
+
+- ace7fb0: Give every package a README. npm renders the README that ships inside the package, so each one showed `ERROR: No README data found!` on its registry page.
+- Updated dependencies [ace7fb0]
+- Updated dependencies [ace7fb0]
+  - @archdraw/icons-aws@0.2.1
+  - @archdraw/core@0.3.1
+  - @archdraw/icons-gcp@0.1.1
+  - @archdraw/icons-brands@0.1.1
+
 ## 0.4.0
 
 ### Minor Changes
