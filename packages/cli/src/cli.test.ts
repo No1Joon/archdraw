@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -78,5 +79,30 @@ describe('archdraw render', () => {
     const { code, stderr } = run(['-', '--check'], 'nodes:\n  - { id: a, type: lambdaa }\n')
     expect(code).toBe(1)
     expect(stderr).toMatch(/Did you mean: lambda/)
+  })
+})
+
+describe('PNG text', () => {
+  // A missing font family makes resvg draw nothing at all. Comparing two labels of equal
+  // length in the same script holds the layout fixed, so only the glyphs can differ —
+  // a blank render makes the two identical.
+  const png = (label: string) => {
+    const out = join(tmpdir(), `archdraw-font-${encodeURIComponent(label)}.png`)
+    const { code, stderr } = run(
+      ['-', '-o', out],
+      `nodes:\n  - { id: a, type: ecs, label: "${label}" }\n`,
+    )
+    if (code !== 0) throw new Error(stderr)
+    const bytes = readFileSync(out)
+    rmSync(out, { force: true })
+    return bytes
+  }
+
+  it('draws Hangul labels rather than leaving them blank', () => {
+    expect(png('가가가').equals(png('나나나'))).toBe(false)
+  })
+
+  it('draws latin labels rather than leaving them blank', () => {
+    expect(png('IIII').equals(png('WWWW'))).toBe(false)
   })
 })

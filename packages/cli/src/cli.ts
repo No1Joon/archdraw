@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { extname } from 'node:path'
+import { dirname, extname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   createResolver,
   DiagramError,
@@ -18,6 +19,10 @@ import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
+
+// Bundled so a PNG carries the same glyphs everywhere; system fonts differ per machine and
+// resvg draws nothing at all for a family it cannot resolve.
+const FONT = join(dirname(fileURLToPath(import.meta.url)), '..', 'fonts', 'NotoSansKR.ttf')
 
 /** Long lists cost an agent context; make it narrow the query instead. */
 const LIST_LIMIT = 60
@@ -130,8 +135,12 @@ function write(svg: string, out: string | undefined, scale: number) {
     return
   }
   if (extname(out).toLowerCase() === '.png') {
-    // resvg rasterises with system fonts; a missing family renders blank labels.
-    const png = new Resvg(svg, { fitTo: { mode: 'zoom', value: scale } }).render().asPng()
+    const png = new Resvg(svg, {
+      fitTo: { mode: 'zoom', value: scale },
+      font: { loadSystemFonts: false, fontFiles: [FONT], defaultFontFamily: 'Noto Sans KR' },
+    })
+      .render()
+      .asPng()
     writeFileSync(out, png)
   } else {
     writeFileSync(out, svg)

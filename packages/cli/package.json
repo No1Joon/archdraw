@@ -13,7 +13,8 @@
     "archdraw": "./dist/cli.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "fonts"
   ],
   "scripts": {
     "build": "tsdown src/cli.ts --format esm --clean",
