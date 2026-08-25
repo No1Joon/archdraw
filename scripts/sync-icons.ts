@@ -102,6 +102,9 @@ async function main() {
           content = content.replace(/<path /g, `<path fill="#${hex}" `)
         }
       }
+      // After the colour lookup, which reads the brand name from it. A vendor title becomes a
+      // tooltip on the icon and competes with the diagram's own accessible name.
+      content = content.replace(/<title>[\s\S]*?<\/title>/g, '')
 
       writeFileSync(join(svgDir, `${slug}.svg`), optimized)
       assets.set(slug, { viewBox, content: content.trim() })
