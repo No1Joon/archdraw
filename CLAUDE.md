@@ -27,7 +27,8 @@ CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query
 - `packages/react`: `<Architecture />` — core 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층.
 - `packages/cli`: 세 아이콘 팩과 PNG 래스터화용 폰트를 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.
   `fonts/` 는 시스템 폰트를 쓰지 않기 위한 것이고 정적 폰트로 바꾸면 글자가 사라진다 — `packages/cli/fonts/README.md`.
-- `scripts/sync-icons.ts`: **네트워크를 타는 유일한 코드.** 빌드·CI 는 커밋된 SVG 만 읽는다.
+- `scripts/sync-icons.ts`: 아이콘 배포본을 받는 유일한 코드. 빌드·테스트는 커밋된 SVG 만 읽는다.
+- `scripts/smoke-published.sh`: 발행 뒤 registry 에서 CLI 를 설치해 렌더까지 확인한다. 워크스페이스 검사는 전부 통과해도 registry 반영 지연으로 설치가 깨질 수 있다.
 
 `packages/*/src/generated.ts` 는 `pnpm icons:sync` 산출물이므로 손으로 고치지 않는다.
 

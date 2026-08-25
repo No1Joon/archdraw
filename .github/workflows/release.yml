@@ -29,6 +29,7 @@ jobs:
 
       # With changesets pending it opens a version PR; with none it publishes.
       - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
+        id: changesets
         with:
           version: pnpm changeset version
           publish: pnpm release
@@ -38,3 +39,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # pnpm has no OIDC token exchange, so the publish needs a token (pnpm/pnpm#9812).
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Every check above ran against the workspace. This one installs what the registry
+      # actually serves, which is where a release breaks without the build going red.
+      - name: Smoke-test the published CLI
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          version=$(jq -r '.[] | select(.name == "archdraw") | .version' <<<'${{ steps.changesets.outputs.publishedPackages }}')
+          if [ -z "$version" ]; then
+            echo "archdraw was not part of this release — nothing to smoke-test"
+            exit 0
+          fi
+          scripts/smoke-published.sh "$version"
