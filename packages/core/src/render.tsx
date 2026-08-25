@@ -13,7 +13,10 @@ import {
   LABEL_BAND,
   LINE_HEIGHT,
   labelLines,
+  labelWidth,
   NODE_LABEL_SIZE,
+  TITLE_BAND,
+  TITLE_SIZE,
 } from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
 
@@ -51,8 +54,10 @@ export interface DiagramProps {
 
 export function Diagram({ root, ir, icons, theme = defaultTheme }: DiagramProps) {
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
-  const width = root.width ?? 0
-  const height = root.height ?? 0
+  // The title sits above the graph rather than inside it, so ELK's box is left untouched.
+  const band = ir.title ? TITLE_BAND : 0
+  const width = Math.max(root.width ?? 0, ir.title ? labelWidth(ir.title, TITLE_SIZE) + 48 : 0)
+  const height = (root.height ?? 0) + band
 
   return (
     <svg
@@ -81,7 +86,14 @@ export function Diagram({ root, ir, icons, theme = defaultTheme }: DiagramProps)
         </marker>
       </defs>
       <rect width={width} height={height} fill={theme.background} />
-      <Container node={root} byId={byId} icons={icons} theme={theme} ir={ir} />
+      {ir.title ? (
+        <text x={24} y={TITLE_SIZE + 14} fill={theme.text} fontSize={TITLE_SIZE} fontWeight={600}>
+          {ir.title}
+        </text>
+      ) : null}
+      <g transform={`translate(0, ${band})`}>
+        <Container node={root} byId={byId} icons={icons} theme={theme} ir={ir} />
+      </g>
     </svg>
   )
 }

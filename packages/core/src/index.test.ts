@@ -249,6 +249,34 @@ describe('domain', () => {
   })
 })
 
+describe('title', () => {
+  it('is drawn above the graph, not just in the accessible name', async () => {
+    const svg = await renderToSvg(
+      { provider: 'test', title: 'Production', nodes: [{ id: 'a', type: 'ecs' }] },
+      { icons: pack },
+    )
+    expect(svg).toContain('>Production</text>')
+  })
+
+  it('leaves the canvas alone when absent', async () => {
+    const doc = { provider: 'test', nodes: [{ id: 'a', type: 'ecs' }] }
+    const bare = await renderToSvg(doc, { icons: pack })
+    const titled = await renderToSvg({ ...doc, title: 'Production' }, { icons: pack })
+    const heightOf = (svg: string) => Number(/height="(\d+)"/.exec(svg)?.[1])
+
+    expect(heightOf(titled)).toBeGreaterThan(heightOf(bare))
+  })
+
+  it('widens the canvas for a title longer than the graph', async () => {
+    const doc = { provider: 'test', nodes: [{ id: 'a', type: 'ecs' }] }
+    const widthOf = (svg: string) => Number(/width="(\d+)"/.exec(svg)?.[1])
+    const bare = await renderToSvg(doc, { icons: pack })
+    const long = await renderToSvg({ ...doc, title: 'A'.repeat(80) }, { icons: pack })
+
+    expect(widthOf(long)).toBeGreaterThan(widthOf(bare))
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')

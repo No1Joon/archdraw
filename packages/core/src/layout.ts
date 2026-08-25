@@ -25,6 +25,9 @@ export const GROUP_LABEL_INSET = 16
 export const GROUP_LABEL_SIZE = 13
 /** A group may carry its own icon in the header, beside the label. */
 export const GROUP_ICON = 18
+/** A diagram's own name, drawn above the graph. */
+export const TITLE_SIZE = 18
+export const TITLE_BAND = 44
 /** Layout and render must use the same sizes. */
 export const NODE_LABEL_SIZE = 12
 export const EDGE_LABEL_SIZE = 11
@@ -39,7 +42,7 @@ function lineWidth(text: string, fontSize: number): number {
 }
 
 /** A label may hold several lines; the widest one decides the space it needs. */
-function labelWidth(text: string, fontSize: number): number {
+export function labelWidth(text: string, fontSize: number): number {
   return Math.max(...text.split('\n').map((line) => lineWidth(line, fontSize)))
 }
 
