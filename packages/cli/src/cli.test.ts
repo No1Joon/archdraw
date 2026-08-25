@@ -106,3 +106,30 @@ describe('PNG text', () => {
     expect(png('IIII').equals(png('WWWW'))).toBe(false)
   })
 })
+
+describe('icon packs together', () => {
+  // Packs merge in `-p` order, so an alias that names another pack's slug silently changes
+  // meaning with the order — exactly the wrong-icon substitution the packs exist to prevent.
+  it('never lets one pack’s alias shadow another pack’s slug', async () => {
+    const [aws, gcp, brands] = await Promise.all([
+      import('@archdraw/icons-aws'),
+      import('@archdraw/icons-gcp'),
+      import('@archdraw/icons-brands'),
+    ])
+    const packs = [aws.awsIcons, gcp.gcpIcons, brands.brandIcons]
+    const shadows = packs.flatMap((pack) =>
+      Object.keys(pack.aliases).flatMap((alias) =>
+        packs
+          .filter((other) => other !== pack && other.icons[alias])
+          .map((other) => `${pack.provider}:${alias} shadows ${other.provider} slug '${alias}'`),
+      ),
+    )
+    expect(shadows).toEqual([])
+  })
+
+  it('keeps self-hosted software distinct from the managed service', () => {
+    const { stdout } = run(['types', 'redis', '-p', 'gcp,brands'])
+    expect(stdout).toContain('redis')
+    expect(stdout).not.toContain('memorystore')
+  })
+})
