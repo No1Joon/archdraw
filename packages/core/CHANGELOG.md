@@ -1,5 +1,15 @@
 # @archdraw/core
 
+## 0.4.0
+
+### Minor Changes
+
+- cdf4a60: Draw a diagram's `title` above the graph. It only ever reached the SVG's accessible name, so an exported PNG carried no heading at all. The band is added to the canvas rather than to ELK's box, and a title wider than the graph widens the canvas.
+
+### Patch Changes
+
+- ace7fb0: Give every package a README. npm renders the README that ships inside the package, so each one showed `ERROR: No README data found!` on its registry page.
+
 ## 0.3.0
 
 ### Minor Changes
