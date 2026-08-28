@@ -1,0 +1,97 @@
+# 중간 — 모놀리스를 컨테이너로 쪼개고 비동기 작업과 캐시를 분리한 단계. 멀티 AZ.
+provider: aws
+title: growth — multi-AZ services
+direction: RIGHT
+
+groups:
+  - id: clients
+    label: Clients
+    kind: group
+    children:
+      - { id: browser, type: client, label: Browser }
+      - { id: mobile, type: mobile-client, label: Mobile }
+
+  - id: edge
+    label: Edge
+    kind: group
+    children:
+      - { id: dns, type: route53, label: Route 53 }
+      - { id: waf, type: aws-waf, label: WAF }
+      - { id: cdn, type: cloudfront, label: CloudFront, domain: app.example.com }
+      - { id: static, type: s3, label: "S3\n(static assets)" }
+
+  - id: vpc
+    label: VPC — 2 AZ
+    kind: vpc
+    type: vpc
+    children:
+      - id: public
+        label: Public subnets
+        kind: subnet
+        children:
+          - { id: alb, type: alb, label: "Application\nLoad Balancer" }
+
+      - id: private-app
+        label: Private subnets — app
+        kind: subnet
+        children:
+          - { id: api, type: ecs, label: "ECS Fargate\n(api)" }
+          - { id: web, type: ecs, label: "ECS Fargate\n(web)" }
+          - { id: worker, type: ecs, label: "ECS Fargate\n(worker)" }
+
+      - id: private-data
+        label: Private subnets — data
+        kind: subnet
+        children:
+          - { id: db, type: rds, label: "RDS\n(postgres, multi-AZ)" }
+          - { id: replica, type: rds, label: "RDS\n(read replica)" }
+          - { id: cache, type: elasticache, label: "ElastiCache\n(redis)" }
+
+  - id: async
+    label: Async & media
+    kind: group
+    children:
+      - { id: queue, type: sqs, label: "SQS\n(jobs)" }
+      - { id: events, type: eventbridge, label: EventBridge }
+      - { id: thumb, type: lambda, label: "Lambda\n(thumbnails)" }
+      - { id: uploads, type: s3, label: "S3\n(uploads)" }
+
+  - id: platform
+    label: Platform
+    kind: group
+    children:
+      - { id: auth, type: amazon-cognito, label: Cognito }
+      - { id: secrets, type: secrets, label: Secrets Manager }
+
+  - id: external
+    label: External
+    kind: group
+    children:
+      - { id: stripe, type: stripe, label: Stripe }
+      - { id: sentry, type: sentry, label: Sentry }
+      - { id: datadog, type: datadog, label: Datadog }
+
+edges:
+  - { from: browser, to: dns, label: https }
+  - { from: mobile, to: dns }
+  - { from: dns, to: waf }
+  - { from: waf, to: cdn }
+  - { from: cdn, to: static }
+  - { from: cdn, to: alb, label: /api/* }
+  - { from: alb, to: web }
+  - { from: alb, to: api }
+  - { from: api, to: auth, style: dashed }
+  - { from: api, to: db, label: SQL }
+  - { from: api, to: replica, label: read }
+  - { from: api, to: cache }
+  - { from: api, to: queue, label: enqueue }
+  - { from: api, to: events }
+  - { from: queue, to: worker }
+  - { from: events, to: thumb }
+  - { from: worker, to: db }
+  - { from: thumb, to: uploads }
+  - { from: api, to: uploads, label: presign }
+  - { from: api, to: secrets, style: dashed }
+  - { from: api, to: stripe, style: dashed }
+  - { from: api, to: sentry, style: dashed }
+  - { from: api, to: datadog, style: dashed }

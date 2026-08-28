@@ -1,0 +1,39 @@
+# 초기 — 한 팀이 한 서비스를 굴리는 MVP. 단일 AZ, 관리형으로 붙일 수 있는 건 다 관리형.
+provider: aws
+title: startup — MVP
+direction: RIGHT
+
+groups:
+  - id: clients
+    label: Clients
+    kind: group
+    children:
+      - { id: browser, type: client, label: Browser }
+
+  - id: edge
+    label: Edge
+    kind: group
+    children:
+      - { id: dns, type: route53, label: "Route 53\n(app.example.com)" }
+
+  - id: vpc
+    label: VPC — single AZ
+    kind: vpc
+    type: vpc
+    children:
+      - { id: app, type: ec2, label: "EC2\n(monolith)" }
+      - { id: db, type: rds, label: "RDS\n(postgres)" }
+
+  - id: managed
+    label: Managed
+    kind: group
+    children:
+      - { id: uploads, type: s3, label: "S3\n(uploads)" }
+      - { id: stripe, type: stripe, label: Stripe }
+
+edges:
+  - { from: browser, to: dns, label: https }
+  - { from: dns, to: app }
+  - { from: app, to: db, label: SQL }
+  - { from: app, to: uploads, label: presign }
+  - { from: app, to: stripe, style: dashed }

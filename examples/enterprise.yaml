@@ -1,0 +1,139 @@
+# 대규모 — 계정으로 경계를 긋고 리전을 두 개 굴리는 단계. 워크로드·데이터·공용 서비스가 각자 계정을 갖는다.
+provider: aws
+title: enterprise — multi-account, multi-region
+direction: RIGHT
+
+groups:
+  - id: clients
+    label: Clients
+    kind: group
+    children:
+      - { id: browser, type: client, label: Browser }
+      - { id: mobile, type: mobile-client, label: Mobile }
+      - { id: partner, type: users, label: "Partner\n(server-to-server)" }
+
+  - id: edge
+    label: Global edge
+    kind: group
+    children:
+      - { id: dns, type: route53, label: "Route 53\n(latency routing)" }
+      - { id: waf, type: aws-waf, label: WAF }
+      - { id: cdn, type: cloudfront, label: CloudFront, domain: app.example.com }
+      - { id: apigw, type: apigw, label: "API Gateway\n(partner API)" }
+
+  - id: acct-prod-use1
+    label: Account — workload / us-east-1
+    kind: account
+    type: aws-organizations-account
+    children:
+      - id: eks-use1
+        label: EKS cluster
+        kind: cluster
+        type: eks
+        children:
+          - { id: gw-use1, type: nginx, label: "Ingress\n(nginx)" }
+          - { id: api-use1, type: fargate, label: "api\n(Fargate)" }
+          - { id: checkout-use1, type: fargate, label: "checkout\n(Fargate)" }
+          - { id: search-use1, type: fargate, label: "search\n(Fargate)" }
+      - id: data-use1
+        label: Data
+        kind: subnet
+        children:
+          - { id: aurora-use1, type: amazon-aurora, label: "Aurora Global\n(writer)" }
+          - { id: cache-use1, type: elasticache, label: "ElastiCache\n(redis)" }
+          - { id: msk, type: amazon-msk-amazon-msk-connect, label: "MSK\n(kafka)" }
+          - { id: os-use1, type: amazon-opensearch-service, label: OpenSearch }
+
+  - id: acct-prod-apne2
+    label: Account — workload / ap-northeast-2
+    kind: account
+    type: aws-organizations-account
+    children:
+      - id: eks-apne2
+        label: EKS cluster
+        kind: cluster
+        type: eks
+        children:
+          - { id: gw-apne2, type: nginx, label: "Ingress\n(nginx)" }
+          - { id: api-apne2, type: fargate, label: "api\n(Fargate)" }
+          - { id: checkout-apne2, type: fargate, label: "checkout\n(Fargate)" }
+      - id: data-apne2
+        label: Data
+        kind: subnet
+        children:
+          - { id: aurora-apne2, type: amazon-aurora, label: "Aurora Global\n(reader)" }
+          - { id: cache-apne2, type: elasticache, label: "ElastiCache\n(redis)" }
+
+  - id: acct-data
+    label: Account — data platform
+    kind: account
+    type: aws-organizations-account
+    children:
+      - { id: firehose, type: amazon-kinesis-data-streams, label: "Kinesis\n(events)" }
+      - { id: lake, type: s3, label: "S3\n(data lake)" }
+      - { id: glue, type: aws-glue, label: "Glue\n(ETL)" }
+      - { id: athena, type: amazon-athena, label: Athena }
+      - { id: warehouse, type: amazon-redshift, label: Redshift }
+      - { id: bi, type: grafana, label: "Grafana\n(BI)" }
+
+  - id: acct-shared
+    label: Account — shared services
+    kind: account
+    type: aws-organizations-account
+    children:
+      - { id: ecr, type: amazon-elastic-container-registry, label: ECR }
+      - { id: secrets, type: secrets, label: Secrets Manager }
+      - { id: cw, type: cloudwatch, label: CloudWatch }
+      - { id: cicd, type: githubactions, label: "GitHub Actions\n(deploy)" }
+
+  - id: external
+    label: External
+    kind: group
+    children:
+      - { id: stripe, type: stripe, label: Stripe }
+      - { id: sentry, type: sentry, label: Sentry }
+      - { id: datadog, type: datadog, label: Datadog }
+
+edges:
+  - { from: browser, to: dns, label: https }
+  - { from: mobile, to: dns }
+  - { from: partner, to: apigw, label: mTLS }
+  - { from: dns, to: waf }
+  - { from: waf, to: cdn }
+  - { from: cdn, to: gw-use1 }
+  - { from: cdn, to: gw-apne2 }
+  - { from: apigw, to: gw-use1 }
+
+  - { from: gw-use1, to: api-use1 }
+  - { from: gw-use1, to: checkout-use1 }
+  - { from: gw-use1, to: search-use1 }
+  - { from: api-use1, to: aurora-use1, label: SQL }
+  - { from: api-use1, to: cache-use1 }
+  - { from: search-use1, to: os-use1 }
+  - { from: checkout-use1, to: msk, label: publish }
+  - { from: checkout-use1, to: stripe, style: dashed }
+
+  - { from: gw-apne2, to: api-apne2 }
+  - { from: gw-apne2, to: checkout-apne2 }
+  - { from: api-apne2, to: aurora-apne2, label: read }
+  - { from: api-apne2, to: cache-apne2 }
+  - { from: aurora-use1, to: aurora-apne2, label: "global\nreplication" }
+  - { from: checkout-apne2, to: msk, label: publish }
+
+  - { from: msk, to: firehose }
+  - { from: firehose, to: lake }
+  - { from: lake, to: glue }
+  - { from: glue, to: warehouse }
+  - { from: lake, to: athena }
+  - { from: warehouse, to: bi }
+  - { from: athena, to: bi }
+
+  - { from: cicd, to: ecr, label: push }
+  - { from: ecr, to: eks-use1, style: dashed }
+  - { from: ecr, to: eks-apne2, style: dashed }
+  - { from: api-use1, to: secrets, style: dashed }
+  - { from: api-apne2, to: secrets, style: dashed }
+  - { from: eks-use1, to: cw, style: dashed }
+  - { from: eks-apne2, to: cw, style: dashed }
+  - { from: cw, to: datadog, style: dashed }
+  - { from: api-use1, to: sentry, style: dashed }

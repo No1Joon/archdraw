@@ -77,13 +77,39 @@ nodes:
 
 전체 필드는 [`docs/schema.md`](./docs/schema.md) 에 있다. 기계가 읽을 형태는 `npx archdraw schema` 가 JSON Schema 로 내며, zod 정의에서 파생하므로 문서와 어긋나지 않는다.
 
+## 예제
+
+규모가 달라져도 문법은 같다. 아래 그림은 전부 `examples/` 의 YAML 을 그대로 렌더한 것이다.
+
+```bash
+npx archdraw examples/startup.yaml -p aws,brands -o startup.png
+```
+
+### 초기 — [`examples/startup.yaml`](./examples/startup.yaml)
+
+단일 AZ. EC2 하나가 전부고 나머지는 관리형에 맡긴다.
+
+![startup 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/startup.png)
+
+### 중간 — [`examples/growth.yaml`](./examples/growth.yaml)
+
+멀티 AZ. 모놀리스를 ECS 서비스로 쪼개고 큐·캐시·읽기 복제본과 관측을 분리한다.
+
+![growth 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/growth.png)
+
+### 대규모 — [`examples/enterprise.yaml`](./examples/enterprise.yaml)
+
+계정으로 경계를 긋고 리전을 두 개 굴린다. EKS·Aurora Global·MSK 위에 데이터 플랫폼과 공용 서비스 계정이 붙는다.
+
+![enterprise 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/enterprise.png)
+
 ## 문서
 
 | | |
 |---|---|
 | [`docs/schema.md`](./docs/schema.md) | 입력 계약 — 전체 필드, 두 가지 입력 형태, 거부되는 것 |
 | [`docs/agents.md`](./docs/agents.md) | 에이전트 사용법 — 어휘 탐색 → 검증 → 렌더 |
-| [`examples/`](./examples) | 렌더되는 예제 YAML |
+| [`examples/`](./examples) | 위 [예제](#예제) 네 개의 원본 YAML |
 
 ## 패키지
 
