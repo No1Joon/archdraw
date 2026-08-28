@@ -9,7 +9,7 @@ concurrency: release-${{ github.ref }}
 permissions:
   contents: write
   pull-requests: write
-  # Signs npm provenance, which `.npmrc` turns on.
+  # Traded for a short-lived npm token at publish time, and signs provenance.
   id-token: write
 
 jobs:
@@ -37,8 +37,6 @@ jobs:
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # pnpm has no OIDC token exchange, so the publish needs a token (pnpm/pnpm#9812).
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Every check above ran against the workspace. This one installs what the registry
       # actually serves, which is where a release breaks without the build going red.
