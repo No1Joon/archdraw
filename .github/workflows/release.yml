@@ -23,9 +23,9 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
-      # `changeset publish` shells out to npm, and the OIDC exchange needs npm 11.5.1+.
-      # Node 22 ships npm 10, which just asks to be logged in.
-      - run: npm install -g npm@latest
+      # `changeset publish` shells out to npm: the OIDC exchange needs 11.5.1+, and Node 22
+      # ships 10. Pinned off `latest` because 12 breaks changesets' registry probe.
+      - run: npm install -g npm@11
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm test
