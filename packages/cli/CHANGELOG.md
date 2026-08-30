@@ -1,5 +1,16 @@
 # archdraw
 
+## 0.5.1
+
+### Patch Changes
+
+- 3989da2: Make English the default README and keep the Korean one alongside as `README.ko.md`. npm renders the README that ships inside the package, so every registry page was Korean-only.
+- Updated dependencies [3989da2]
+  - @archdraw/core@0.4.1
+  - @archdraw/icons-aws@0.2.2
+  - @archdraw/icons-gcp@0.2.1
+  - @archdraw/icons-brands@0.1.2
+
 ## 0.5.0
 
 ### Minor Changes
