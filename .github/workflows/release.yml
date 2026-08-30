@@ -29,10 +29,12 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
-      # What the registry serves before this run, so the smoke test below can tell
-      # whether `archdraw` was actually published.
+      # What the tree and the registry hold going in. The smoke test needs both to tell a
+      # publish from a version PR, since `changeset version` bumps the tree without publishing.
       - id: before
-        run: echo "cli=$(npm view archdraw version 2>/dev/null || echo none)" >>"$GITHUB_OUTPUT"
+        run: |
+          echo "tree=$(node -p "require('./packages/cli/package.json').version")" >>"$GITHUB_OUTPUT"
+          echo "registry=$(npm view archdraw version 2>/dev/null || echo none)" >>"$GITHUB_OUTPUT"
 
       # With changesets pending it opens a version PR; with none it publishes.
       - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
@@ -52,7 +54,11 @@ jobs:
       - name: Smoke-test the published CLI
         run: |
           version=$(node -p "require('./packages/cli/package.json').version")
-          if [ "$version" = "${{ steps.before.outputs.cli }}" ]; then
+          if [ "$version" != "${{ steps.before.outputs.tree }}" ]; then
+            echo "this run opened a version PR — nothing was published"
+            exit 0
+          fi
+          if [ "$version" = "${{ steps.before.outputs.registry }}" ]; then
             echo "archdraw was not part of this release — nothing to smoke-test"
             exit 0
           fi
