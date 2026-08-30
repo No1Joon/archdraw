@@ -1,5 +1,13 @@
 # @archdraw/react
 
+## 0.1.4
+
+### Patch Changes
+
+- 3989da2: Make English the default README and keep the Korean one alongside as `README.ko.md`. npm renders the README that ships inside the package, so every registry page was Korean-only.
+- Updated dependencies [3989da2]
+  - @archdraw/core@0.4.1
+
 ## 0.1.3
 
 ### Patch Changes
