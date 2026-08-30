@@ -12,7 +12,7 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
 - `pnpm typecheck`: 패키지별 `tsc --noEmit`
 - `pnpm lint` / `pnpm format`: Biome 검사 / 자동 수정
 - `pnpm icons:sync <aws|gcp> [--from <zip>]`: 공식 아이콘 배포본에서 아이콘 패키지 재생성
-- `pnpm changeset` → `pnpm release`: 버전 제안 후 npm 발행
+- `pnpm changeset`: 변경마다 changeset 추가. 발행은 CI 몫이라 `pnpm release` 를 손으로 돌리지 않는다
 
 CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query>` 어휘 검색, `--check` 검증만. 주 사용자는 YAML 을 쓰는 AI CLI 다.
 
@@ -31,6 +31,12 @@ CLI 표면은 셋뿐이다 — `archdraw <input>` 렌더, `archdraw types <query
 - `scripts/smoke-published.sh`: 발행 뒤 registry 에서 CLI 를 설치해 렌더까지 확인한다. 워크스페이스 검사는 전부 통과해도 registry 반영 지연으로 설치가 깨질 수 있다.
 
 `packages/*/src/generated.ts` 는 `pnpm icons:sync` 산출물이므로 손으로 고치지 않는다.
+
+## Release
+
+main 푸시 → Release 워크플로가 버전 PR 을 연다. 그 PR 을 머지하면 발행된다.
+npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발행자는 패키지 단위라 새 패키지를 추가하면 npmjs.com 에서 그 패키지에 한 번 등록해야 한다(`No1Joon` / `archdraw` / `release.yml` / `npm publish`).
+`release.yml` 의 npm 11 고정과 `registry-url` 부재는 OIDC 교환 조건이다 — 주석 참조.
 
 ## Skills
 
