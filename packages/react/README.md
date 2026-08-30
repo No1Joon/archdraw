@@ -1,6 +1,8 @@
 # @archdraw/react
 
-[archdraw](https://github.com/No1Joon/archdraw) 다이어그램을 브라우저에서 그리는 React 컴포넌트. `@archdraw/core` 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층이다.
+**English** · [한국어](./README.ko.md)
+
+The React component that draws an [archdraw](https://github.com/No1Joon/archdraw) diagram in the browser. A thin layer that runs `@archdraw/core`'s layout asynchronously and mounts the result.
 
 ```bash
 npm i @archdraw/react @archdraw/core @archdraw/icons-aws
@@ -27,18 +29,18 @@ export function Diagram() {
 
 | | |
 |---|---|
-| `source` | YAML·JSON 문자열이나 이미 파싱된 문서 |
-| `icons` | 아이콘 팩 하나, 팩 배열, 또는 직접 만든 `IconResolver` |
-| `theme` | 색·폰트. 생략하면 `defaultTheme` |
-| `fallback` | ELK 가 레이아웃하는 동안 그릴 것 |
-| `renderError` | 검증 실패 시 그릴 것. 기본은 오류 메시지 |
+| `source` | A YAML/JSON string or an already-parsed document |
+| `icons` | A single pack, an array of packs, or an `IconResolver` you built yourself |
+| `theme` | Colours and fonts. Defaults to `defaultTheme` |
+| `fallback` | What to draw while ELK lays out |
+| `renderError` | What to draw when validation fails. Defaults to the error message |
 
-레이아웃은 비동기라 첫 렌더에서 `fallback` 이 먼저 나온다. 다시 계산하는 것은 `source` 가 바뀔 때뿐이고, `icons` 와 `theme` 은 레이아웃에 영향을 주지 않으므로 다시 그리기만 한다.
+Layout is asynchronous, so the first render shows `fallback`. It only recomputes when `source` changes — `icons` and `theme` do not affect layout, so they merely redraw.
 
-## 서버에서 그리려면
+## Rendering on a server
 
-컴포넌트 없이 `@archdraw/core` 의 `renderToSvg()` 가 같은 SVG 문자열을 낸다. DOM 을 타지 않으므로 Node 에서도 그대로 돈다.
+Without the component, `@archdraw/core`'s `renderToSvg()` produces the same SVG string. It never touches the DOM, so it runs as-is under Node.
 
-## 라이선스
+## Licence
 
 MIT

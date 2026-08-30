@@ -1,4 +1,4 @@
-# 중간 — 모놀리스를 컨테이너로 쪼개고 비동기 작업과 캐시를 분리한 단계. 멀티 AZ.
+# Growing — the monolith split into containers, with async work and cache pulled out. Multi-AZ.
 provider: aws
 title: growth — multi-AZ services
 direction: RIGHT

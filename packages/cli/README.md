@@ -1,10 +1,12 @@
 # archdraw
 
-YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 CLI. AWS 793 · GCP 216 · 브랜드/OSS 3,453 개의 아이콘과 폰트를 번들해 `npx` 로 바로 동작한다.
+**English** · [한국어](./README.ko.md)
 
-**AI CLI 가 쓰라고 만들었다** — archdraw 는 LLM 을 호출하지 않는다. 에이전트가 YAML 을 쓰면 archdraw 가 그린다.
+A CLI that draws cloud architecture diagrams (SVG/PNG) from YAML. Bundles 793 AWS · 216 GCP · 3,453 brand/OSS icons plus a font, so `npx` works straight away.
 
-![web-app 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/web-app.png)
+**Built for AI CLIs** — archdraw never calls an LLM. The agent writes the YAML; archdraw draws it.
+
+![web-app example](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/web-app.png)
 
 ```bash
 cat <<'YAML' | npx archdraw - -o out.png
@@ -19,53 +21,53 @@ edges:
 YAML
 ```
 
-`type` 이 있는 노드는 벤더 아이콘으로, 없는 노드는 라벨 상자로 그려진다.
+A node with a `type` is drawn as a vendor icon; one without is drawn as a labelled box.
 
-## 명령
+## Commands
 
 ```bash
-archdraw <input> [-o out] [-p aws,brands] [-s 2]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
-archdraw <input> --check                          # 검증만. 실패 시 exit 1
-archdraw types <query> [-p aws,brands]            # 쓸 수 있는 type 검색
-archdraw schema [--flat]                          # 입력 계약을 JSON Schema 로
+archdraw <input> [-o out] [-p aws,brands] [-s 2]  # render. `-` reads stdin; without -o, writes stdout
+archdraw <input> --check                          # validate only. exits 1 on failure
+archdraw types <query> [-p aws,brands]            # search the types you can use
+archdraw schema [--flat]                          # print the input contract as JSON Schema
 ```
 
-| 옵션 | |
+| Option | |
 |---|---|
-| `-o, --out <file>` | 확장자가 `.png` 면 래스터, 그 외는 SVG. 생략하면 stdout |
-| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 기본 `aws` |
-| `-s, --scale <n>` | PNG 배율. 기본 `2` |
-| `--check` | 아무것도 쓰지 않고 검증만 |
+| `-o, --out <file>` | `.png` rasterises, anything else is SVG. Omit for stdout |
+| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to `aws` |
+| `-s, --scale <n>` | PNG scale factor. Defaults to `2` |
+| `--check` | Validate without writing anything |
 
-## 에이전트로 쓸 때
+## Using it from an agent
 
-`types` 로 어휘를 찾고, `--check` 로 검증한 뒤, 렌더한다.
+Find the vocabulary with `types`, validate with `--check`, then render.
 
 ```bash
-npx archdraw types redis -p aws,brands   # 쓸 수 있는 slug 확인
-npx archdraw diagram.yaml --check        # exit 1 이면 stderr 에 고칠 단서가 있다
+npx archdraw types redis -p aws,brands   # see which slugs exist
+npx archdraw diagram.yaml --check        # on exit 1, stderr carries the clue to fix
 npx archdraw diagram.yaml -o out.png
 ```
 
-해석되지 않는 `type` 은 조용히 대체되지 않고 후보와 함께 실패한다 — 잘못된 아이콘이 그려지는 것보다 낫다.
+A `type` that does not resolve fails with candidates rather than being silently substituted — better than drawing the wrong icon.
 
 ```
 Unknown type 'lambdaa'.
   Did you mean: lambda?
 ```
 
-기계가 읽을 입력 계약은 `npx archdraw schema` 가 JSON Schema 로 낸다.
+For the machine-readable input contract, `npx archdraw schema` emits JSON Schema.
 
-## PNG 폰트
+## PNG fonts
 
-번들한 Noto Sans KR 하나로만 래스터화하고 시스템 폰트는 쓰지 않는다 — 같은 입력이 어느 머신에서나 같은 PNG 를 낸다. 라틴·한글 전체가 들어 있고, 한글 외 CJK 와 이모지는 범위 밖이다.
+Rasterising uses the bundled Noto Sans KR alone and never a system font — the same input yields the same PNG on any machine. Latin and the full Hangul range are covered; CJK beyond Hangul and emoji are out of range.
 
-## 문서
+## Docs
 
-- [입력 계약](https://github.com/No1Joon/archdraw/blob/main/docs/schema.md) — 전체 필드, 두 가지 입력 형태, 거부되는 것
-- [에이전트 사용법](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md)
-- [저장소](https://github.com/No1Joon/archdraw)
+- [Input contract](https://github.com/No1Joon/archdraw/blob/main/docs/schema.md) — every field, both input shapes, what gets rejected
+- [Using it from an agent](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md)
+- [Repository](https://github.com/No1Joon/archdraw)
 
-## 라이선스
+## Licence
 
-코드는 MIT. 아이콘·폰트 자산은 각 소유자의 것이며 해당 약관을 따른다 — `NOTICE` 와 `fonts/OFL.txt` 참조.
+The code is MIT. Icon and font assets belong to their owners and follow their own terms — see `NOTICE` and `fonts/OFL.txt`.

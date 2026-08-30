@@ -1,4 +1,4 @@
-# 초기 — 한 팀이 한 서비스를 굴리는 MVP. 단일 AZ, 관리형으로 붙일 수 있는 건 다 관리형.
+# Early — an MVP: one team, one service. Single AZ, and managed wherever managed is an option.
 provider: aws
 title: startup — MVP
 direction: RIGHT

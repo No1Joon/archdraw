@@ -1,4 +1,4 @@
-# 대규모 — 계정으로 경계를 긋고 리전을 두 개 굴리는 단계. 워크로드·데이터·공용 서비스가 각자 계정을 갖는다.
+# Large — accounts draw the boundaries and two regions run in parallel. Workload, data and shared services each get their own account.
 provider: aws
 title: enterprise — multi-account, multi-region
 direction: RIGHT
