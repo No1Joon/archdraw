@@ -17,6 +17,8 @@ export interface Ir {
   provider: string
   title?: string
   direction: 'RIGHT' | 'DOWN'
+  /** Fold a long chain into several rows instead of letting the canvas run away. */
+  wrap: boolean
   nodes: FlatNode[]
   edges: Edge[]
 }
@@ -73,6 +75,23 @@ export function normalize(input: unknown): Ir {
       throw new DiagramError(`Node '${node.id}' has parent '${node.parent}', which does not exist.`)
     }
   }
+
+  // A node inside itself has no place in the tree the layout walks down from the root, so it
+  // would vanish from the picture. A diagram that quietly loses a node is worse than one that
+  // refuses to draw.
+  const parentOf = new Map(nodes.map((node) => [node.id, node.parent]))
+  for (const node of nodes) {
+    const path = [node.id]
+    for (let cursor = node.parent; cursor !== null; cursor = parentOf.get(cursor) ?? null) {
+      if (cursor === node.id) {
+        throw new DiagramError(
+          `Node '${node.id}' is inside itself: ${[...path, cursor].join(' -> ')}.`,
+          'A parent chain must end at the top level.',
+        )
+      }
+      path.push(cursor)
+    }
+  }
   for (const edge of doc.edges) {
     for (const end of [edge.from, edge.to] as const) {
       if (!seen.has(end)) {
@@ -85,6 +104,7 @@ export function normalize(input: unknown): Ir {
     provider: doc.provider,
     title: doc.title,
     direction: doc.direction,
+    wrap: doc.wrap,
     nodes,
     edges: doc.edges,
   }

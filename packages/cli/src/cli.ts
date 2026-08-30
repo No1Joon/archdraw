@@ -6,10 +6,13 @@ import { fileURLToPath } from 'node:url'
 import {
   createResolver,
   DiagramError,
+  darkTheme,
+  defaultTheme,
   type IconPack,
   normalize,
   parse,
   renderToSvg,
+  type Theme,
   toJsonSchema,
 } from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
@@ -19,6 +22,8 @@ import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
+
+const themes: Record<string, Theme> = { light: defaultTheme, dark: darkTheme }
 
 // Bundled so a PNG carries the same glyphs everywhere; system fonts differ per machine and
 // resvg draws nothing at all for a family it cannot resolve.
@@ -38,21 +43,29 @@ program
   .description('Render a diagram file to SVG or PNG.')
   .argument('<input>', "diagram YAML or JSON file, or '-' to read stdin")
   .option('-o, --out <file>', 'output path; .png renders a raster, anything else writes SVG')
-  .option('-p, --provider <names>', 'icon packs to load, comma separated', 'aws')
+  .option(
+    '-p, --provider <names>',
+    "icon packs to load, comma separated; defaults to the diagram's own `provider`",
+  )
   .option('-s, --scale <n>', 'PNG scale factor', '2')
+  .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
   .option('--check', 'validate the diagram and write nothing')
   .action(async (input: string, options) => {
     await run(async () => {
       const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
-      const icons = iconsFor(options.provider)
+      const document = parse(source)
+      const ir = normalize(document)
+      // The flag wins when given; otherwise the diagram says which packs it needs.
+      const icons = iconsFor(options.provider ?? ir.provider)
       if (options.check) {
-        normalize(parse(source)).nodes.forEach((node) => {
+        ir.nodes.forEach((node) => {
           if (node.type) icons.resolve(node.type)
         })
         console.error('ok')
         return
       }
-      write(await renderToSvg(source, { icons }), options.out, Number(options.scale))
+      const svg = await renderToSvg(document, { icons, theme: themeFor(options.theme) })
+      write(svg, options.out, scaleFor(options.scale))
     })
   })
 
@@ -127,6 +140,27 @@ function packsFor(provider: string): IconPack[] {
 
 function iconsFor(provider: string) {
   return createResolver(...packsFor(provider))
+}
+
+function themeFor(name: string): Theme {
+  const theme = themes[name]
+  if (!theme) {
+    throw new Error(`Unknown theme '${name}'. Known: ${Object.keys(themes).join(', ')}`)
+  }
+  return theme
+}
+
+/** resvg reports a zero target size from deep inside itself; say it here instead. */
+const MAX_SCALE = 10
+
+function scaleFor(input: string): number {
+  const scale = Number(input)
+  if (!Number.isFinite(scale) || scale <= 0 || scale > MAX_SCALE) {
+    throw new Error(
+      `Scale must be a number greater than 0 and at most ${MAX_SCALE}, got '${input}'.`,
+    )
+  }
+  return scale
 }
 
 function write(svg: string, out: string | undefined, scale: number) {

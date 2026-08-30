@@ -49,6 +49,8 @@ const Base = {
   direction: z.enum(['RIGHT', 'DOWN']).default('RIGHT'),
   /** Default node shape; a node's own `shape` wins. */
   shape: z.enum(['icon', 'card']).default('icon'),
+  /** Fold a long chain into several rows. Without it the canvas grows in one direction forever. */
+  wrap: z.boolean().default(false),
   edges: z.array(EdgeSchema).default([]),
 }
 

@@ -8,10 +8,11 @@
 
 | 필드 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `provider` | `aws` \| `gcp` \| `brands` | `aws` | 아이콘 팩. CLI 의 `-p` 가 우선하고 `-p aws,brands` 로 여러 개를 건다 |
+| `provider` | `aws` \| `gcp` \| `brands` | `aws` | 그릴 때 쓸 아이콘 팩. CLI 는 `-p` 가 없으면 이 값을 쓰고, `-p aws,brands` 로 여러 개를 건다 |
 | `title` | string | — | SVG `<title>` 과 접근성 라벨 |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 흐름 방향. 다이어그램 전체에 적용된다(그룹별 지정은 불가) |
 | `shape` | `icon` \| `card` | `icon` | 노드 기본 표현. `icon` 은 마크 아래 이름(AWS 관례), `card` 는 마크 옆 이름(GCP 관례) |
+| `wrap` | boolean | `false` | 긴 사슬을 여러 줄로 접는다. 끄면 200 노드 사슬이 폭 수만 픽셀짜리 띠가 된다 |
 | `nodes` | Node[] | `[]` | 노드 목록 |
 | `groups` | Node[] | `[]` | `nodes` 의 별칭. 최상위가 전부 컨테이너일 때 읽기 좋다 |
 | `edges` | Edge[] | `[]` | 연결 |

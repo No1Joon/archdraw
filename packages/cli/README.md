@@ -26,17 +26,18 @@ A node with a `type` is drawn as a vendor icon; one without is drawn as a labell
 ## Commands
 
 ```bash
-archdraw <input> [-o out] [-p aws,brands] [-s 2]  # render. `-` reads stdin; without -o, writes stdout
-archdraw <input> --check                          # validate only. exits 1 on failure
-archdraw types <query> [-p aws,brands]            # search the types you can use
-archdraw schema [--flat]                          # print the input contract as JSON Schema
+archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # render. `-` reads stdin; without -o, writes stdout
+archdraw <input> --check                                  # validate only. exits 1 on failure
+archdraw types <query> [-p aws,brands]                    # search the types you can use
+archdraw schema [--flat]                                  # print the input contract as JSON Schema
 ```
 
 | Option | |
 |---|---|
 | `-o, --out <file>` | `.png` rasterises, anything else is SVG. Omit for stdout |
-| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to `aws` |
-| `-s, --scale <n>` | PNG scale factor. Defaults to `2` |
+| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to the diagram's own `provider` |
+| `-s, --scale <n>` | PNG scale factor, between 0 and 10. Defaults to `2` |
+| `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |
 
 ## Using it from an agent

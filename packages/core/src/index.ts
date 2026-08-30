@@ -12,7 +12,7 @@ export { layout } from './layout.js'
 export type { FlatNode, Ir } from './normalize.js'
 export { DiagramError, normalize } from './normalize.js'
 export type { DiagramProps, Theme } from './render.js'
-export { Diagram, defaultTheme } from './render.js'
+export { Diagram, darkTheme, defaultTheme } from './render.js'
 export type { Diagram as DiagramInput, Edge, FlatDiagram, NodeEntry } from './schema.js'
 export {
   DiagramSchema,

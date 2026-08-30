@@ -82,6 +82,50 @@ describe('archdraw render', () => {
   })
 })
 
+describe('provider resolution', () => {
+  const gcp = 'provider: gcp\nnodes:\n  - { id: a, type: gke }\n'
+
+  it("loads the packs the diagram's own provider names", () => {
+    const { code, stderr } = run(['-', '--check'], gcp)
+    expect(code).toBe(0)
+    expect(stderr.trim()).toBe('ok')
+  })
+
+  it('lets -p override what the diagram asked for', () => {
+    const { code, stderr } = run(['-', '-p', 'aws', '--check'], gcp)
+    expect(code).toBe(1)
+    expect(stderr).toMatch(/Unknown type 'gke'/)
+  })
+})
+
+describe('--scale', () => {
+  it.each(['0', '-1', 'abc', '100'])('rejects %s before resvg sees it', (scale) => {
+    const { code, stderr } = run(['-', '-s', scale, '-o', join(tmpdir(), 'ad-scale.png')], diagram)
+    expect(code).toBe(1)
+    expect(stderr).toMatch(/Scale must be a number/)
+  })
+})
+
+describe('--theme', () => {
+  it('draws on a dark ground when asked', () => {
+    const { code, stdout } = run(['-', '--theme', 'dark'], diagram)
+    expect(code).toBe(0)
+    expect(stdout).toContain('#0d1117')
+  })
+
+  it('defaults to the light palette', () => {
+    const { stdout } = run(['-'], diagram)
+    expect(stdout).toContain('#ffffff')
+    expect(stdout).not.toContain('#0d1117')
+  })
+
+  it('names the themes it knows when given one it does not', () => {
+    const { code, stderr } = run(['-', '--theme', 'bogus'], diagram)
+    expect(code).toBe(1)
+    expect(stderr).toMatch(/Known: light, dark/)
+  })
+})
+
 describe('PNG text', () => {
   // A missing font family makes resvg draw nothing at all. Comparing two labels of equal
   // length in the same script holds the layout fixed, so only the glyphs can differ —

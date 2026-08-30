@@ -65,6 +65,7 @@ edges:
 
 ## Rules for a diagram that reads well
 
+- **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide. Wrapping folds it into rows.
 - **Group the top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways and makes the boundaries visible.
 - **`direction` is global.** It cannot vary per group. `RIGHT` usually suits a flow that runs in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.

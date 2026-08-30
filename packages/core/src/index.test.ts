@@ -71,6 +71,58 @@ describe('normalize', () => {
   })
 })
 
+describe('containment cycles', () => {
+  it('rejects a node that is its own parent', () => {
+    expect(() => normalize({ nodes: [{ id: 'a', kind: 'vpc', parent: 'a' }] })).toThrow(
+      /inside itself/,
+    )
+  })
+
+  it('rejects a longer parent cycle and names the path', () => {
+    expect(() =>
+      normalize({
+        nodes: [
+          { id: 'a', kind: 'vpc', parent: 'b' },
+          { id: 'b', kind: 'vpc', parent: 'a' },
+        ],
+      }),
+    ).toThrow(/a -> b -> a/)
+  })
+
+  it('leaves an ordinary parent chain alone', () => {
+    expect(() =>
+      normalize({
+        nodes: [
+          { id: 'outer', kind: 'account' },
+          { id: 'inner', kind: 'vpc', parent: 'outer' },
+          { id: 'leaf', type: 'ecs', parent: 'inner' },
+        ],
+      }),
+    ).not.toThrow()
+  })
+})
+
+describe('wrap', () => {
+  const chain = (wrap: boolean) => ({
+    wrap,
+    nodes: Array.from({ length: 24 }, (_, i) => ({ id: `n${i}`, type: 'ecs' })),
+    edges: Array.from({ length: 23 }, (_, i) => ({ from: `n${i}`, to: `n${i + 1}` })),
+  })
+
+  it('folds a long chain into rows instead of one runaway line', async () => {
+    const { layout } = await import('./index.js')
+    const wide = await layout(normalize(chain(false)))
+    const folded = await layout(normalize(chain(true)))
+
+    expect(folded.width ?? 0).toBeLessThan((wide.width ?? 0) / 2)
+    expect(folded.height ?? 0).toBeGreaterThan(wide.height ?? 0)
+  })
+
+  it('is off unless the diagram asks for it', () => {
+    expect(normalize({ nodes: [] }).wrap).toBe(false)
+  })
+})
+
 describe('icon resolver', () => {
   it('resolves aliases to canonical slugs', () => {
     expect(createResolver(pack).resolve('ecs').viewBox).toBe('0 0 48 48')
@@ -292,6 +344,7 @@ describe('toJsonSchema', () => {
       'provider',
       'shape',
       'title',
+      'wrap',
     ])
     expect(schema.properties.direction?.enum).toEqual(['RIGHT', 'DOWN'])
   })

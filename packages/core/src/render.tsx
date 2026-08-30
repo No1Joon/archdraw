@@ -45,6 +45,19 @@ export const defaultTheme: Theme = {
   fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
 
+/** The same palette read against a dark page, so a diagram is not a white slab in dark mode. */
+export const darkTheme: Theme = {
+  background: '#0d1117',
+  groupStroke: '#6b7683',
+  groupFill: '#161b22',
+  boxFill: '#161b22',
+  boxStroke: '#30363d',
+  text: '#e6edf3',
+  mutedText: '#9198a1',
+  edge: '#9198a1',
+  fontFamily: defaultTheme.fontFamily,
+}
+
 export interface DiagramProps {
   root: ElkNode
   ir: Ir

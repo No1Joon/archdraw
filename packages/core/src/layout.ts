@@ -151,6 +151,10 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': ir.direction,
+      // Wrapping needs a shape to aim at; 1.6 is a landscape that fits a README or a slide.
+      ...(ir.wrap
+        ? { 'elk.layered.wrapping.strategy': 'SINGLE_EDGE', 'elk.aspectRatio': '1.6' }
+        : {}),
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.spacing.nodeNode': '48',

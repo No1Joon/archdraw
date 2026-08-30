@@ -8,10 +8,11 @@
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `provider` | `aws` \| `gcp` \| `brands` | `aws` | Icon pack. The CLI's `-p` wins, and `-p aws,brands` loads several |
+| `provider` | `aws` \| `gcp` \| `brands` | `aws` | Icon packs to draw with. The CLI uses this unless `-p` is given, and `-p aws,brands` loads several |
 | `title` | string | — | The SVG `<title>` and the accessible label |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | Flow direction. Applies to the whole diagram; it cannot be set per group |
 | `shape` | `icon` \| `card` | `icon` | Default node presentation. `icon` puts the name under the mark (the AWS convention); `card` puts it beside the mark (the GCP convention) |
+| `wrap` | boolean | `false` | Fold a long chain into several rows. Without it a 200-node chain renders as one strip tens of thousands of pixels wide |
 | `nodes` | Node[] | `[]` | The list of nodes |
 | `groups` | Node[] | `[]` | An alias for `nodes`. Reads better when everything at the top level is a container |
 | `edges` | Edge[] | `[]` | The connections |

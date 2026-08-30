@@ -26,17 +26,18 @@ YAML
 ## 명령
 
 ```bash
-archdraw <input> [-o out] [-p aws,brands] [-s 2]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
-archdraw <input> --check                          # 검증만. 실패 시 exit 1
-archdraw types <query> [-p aws,brands]            # 쓸 수 있는 type 검색
-archdraw schema [--flat]                          # 입력 계약을 JSON Schema 로
+archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
+archdraw <input> --check                                  # 검증만. 실패 시 exit 1
+archdraw types <query> [-p aws,brands]                    # 쓸 수 있는 type 검색
+archdraw schema [--flat]                                  # 입력 계약을 JSON Schema 로
 ```
 
 | 옵션 | |
 |---|---|
 | `-o, --out <file>` | 확장자가 `.png` 면 래스터, 그 외는 SVG. 생략하면 stdout |
-| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 기본 `aws` |
-| `-s, --scale <n>` | PNG 배율. 기본 `2` |
+| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 생략하면 다이어그램의 `provider` |
+| `-s, --scale <n>` | PNG 배율. 0 초과 10 이하. 기본 `2` |
+| `--theme <name>` | `light` 또는 `dark`. 기본 `light` |
 | `--check` | 아무것도 쓰지 않고 검증만 |
 
 ## 에이전트로 쓸 때
