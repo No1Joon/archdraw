@@ -1,5 +1,16 @@
 # archdraw
 
+## 0.6.1
+
+### Patch Changes
+
+- 016ead2: Give every package `keywords`. npm search ranks on keywords and description, and with the field absent none of the packages appeared for "architecture diagram", "cloud architecture diagram", "aws diagram" or "diagram yaml".
+- Updated dependencies [016ead2]
+  - @archdraw/core@0.5.1
+  - @archdraw/icons-aws@0.2.3
+  - @archdraw/icons-gcp@0.2.2
+  - @archdraw/icons-brands@0.1.3
+
 ## 0.6.0
 
 ### Minor Changes
