@@ -2,6 +2,18 @@
   "name": "@archdraw/core",
   "version": "0.5.0",
   "description": "Parse, validate, lay out and render cloud architecture diagrams as SVG.",
+  "keywords": [
+    "architecture-diagram",
+    "diagram-as-code",
+    "cloud-architecture",
+    "diagram",
+    "svg",
+    "layout",
+    "elk",
+    "yaml",
+    "react",
+    "typescript"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

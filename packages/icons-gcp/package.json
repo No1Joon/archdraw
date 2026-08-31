@@ -2,6 +2,17 @@
   "name": "@archdraw/icons-gcp",
   "version": "0.2.1",
   "description": "Google Cloud icons packaged as an archdraw icon pack.",
+  "keywords": [
+    "gcp",
+    "google-cloud",
+    "google-cloud-icons",
+    "architecture-icons",
+    "cloud-icons",
+    "icons",
+    "svg",
+    "architecture-diagram",
+    "diagram-as-code"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

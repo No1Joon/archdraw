@@ -2,6 +2,15 @@
   "name": "@archdraw/icons-brands",
   "version": "0.1.2",
   "description": "Brand and OSS icons (Simple Icons) with a slug/alias registry.",
+  "keywords": [
+    "icons",
+    "brand-icons",
+    "simple-icons",
+    "svg",
+    "architecture-diagram",
+    "diagram-as-code",
+    "logos"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

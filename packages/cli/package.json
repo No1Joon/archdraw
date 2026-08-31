@@ -2,6 +2,20 @@
   "name": "archdraw",
   "version": "0.6.0",
   "description": "Render cloud architecture diagrams from YAML. Built for AI CLIs and humans.",
+  "keywords": [
+    "architecture-diagram",
+    "diagram-as-code",
+    "cloud-architecture",
+    "aws",
+    "gcp",
+    "diagram",
+    "svg",
+    "png",
+    "yaml",
+    "cli",
+    "infrastructure-diagram",
+    "ai-agent"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -2,6 +2,16 @@
   "name": "@archdraw/icons-aws",
   "version": "0.2.2",
   "description": "AWS Architecture Icons packaged as an archdraw icon pack.",
+  "keywords": [
+    "aws",
+    "aws-icons",
+    "architecture-icons",
+    "cloud-icons",
+    "icons",
+    "svg",
+    "architecture-diagram",
+    "diagram-as-code"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

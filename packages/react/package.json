@@ -2,6 +2,15 @@
   "name": "@archdraw/react",
   "version": "0.1.5",
   "description": "React component for rendering archdraw diagrams in the browser.",
+  "keywords": [
+    "architecture-diagram",
+    "diagram-as-code",
+    "cloud-architecture",
+    "react",
+    "react-component",
+    "diagram",
+    "svg"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
