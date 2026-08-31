@@ -1,6 +1,6 @@
 {
   "name": "@archdraw/core",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Parse, validate, lay out and render cloud architecture diagrams as SVG.",
   "license": "MIT",
   "repository": {
