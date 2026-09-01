@@ -1,5 +1,14 @@
 # archdraw
 
+## 0.6.2
+
+### Patch Changes
+
+- 9f19acf: Ship `AGENTS.md` in the package. The agent rules — look the type up rather than guess it, no `type` for a component with no icon, `redis` is not `amazon-elasticache` — lived only in `docs/agents.md`, which is not in the tarball, so an agent that had installed archdraw could not read them without fetching the repo.
+- 75b2680: Rank `archdraw types` results by how the query lands, and drop matches where it is buried mid-word. `types alb` answered with `virtualbox`, `actualbudget`, `socialblade` and `thurgauerkantonalbank` alongside the alias that resolves it. A query that starts a word is kept, so `types postgres` still finds `amazon-aurora-postgresql-instance`.
+- Updated dependencies [bda5ea5]
+  - @archdraw/core@0.5.2
+
 ## 0.6.1
 
 ### Patch Changes
