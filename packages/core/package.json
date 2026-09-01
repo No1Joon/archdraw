@@ -1,6 +1,6 @@
 {
   "name": "@archdraw/core",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Parse, validate, lay out and render cloud architecture diagrams as SVG.",
   "keywords": [
     "architecture-diagram",
