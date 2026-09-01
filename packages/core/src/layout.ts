@@ -168,3 +168,48 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     edges: edgesOf.get(null) ?? [],
   })
 }
+
+export interface Detour {
+  from: string
+  to: string
+  /** Routed length over the direct distance between the same two points. */
+  ratio: number
+}
+
+/**
+ * An edge whose endpoints sit in different groups is declared on their lowest common
+ * ancestor, so ELK routes it around every container in between. Measured over the
+ * bundled examples the honest ones land at or below 1.32 and the ones that make a
+ * diagram sprawl start at 2.32, so 2 sits in the gap rather than on a guess.
+ */
+export const DETOUR_RATIO = 2
+
+export function detours(ir: Ir, root: ElkNode, threshold = DETOUR_RATIO): Detour[] {
+  const collect = (node: ElkNode, out: ElkExtendedEdge[] = []): ElkExtendedEdge[] => {
+    for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) out.push(edge)
+    for (const child of node.children ?? []) collect(child, out)
+    return out
+  }
+
+  const found: Detour[] = []
+  for (const edge of collect(root)) {
+    const source = ir.edges[Number(edge.id.slice(1))]
+    if (!source) continue
+    for (const section of edge.sections ?? []) {
+      let routed = 0
+      let previous = section.startPoint
+      for (const point of [...(section.bendPoints ?? []), section.endPoint]) {
+        routed += Math.abs(point.x - previous.x) + Math.abs(point.y - previous.y)
+        previous = point
+      }
+      const direct =
+        Math.abs(section.endPoint.x - section.startPoint.x) +
+        Math.abs(section.endPoint.y - section.startPoint.y)
+      // A near-zero direct distance says the endpoints overlap, not that the route is bad.
+      if (direct < 1) continue
+      const ratio = routed / direct
+      if (ratio >= threshold) found.push({ from: source.from, to: source.to, ratio })
+    }
+  }
+  return found.sort((a, b) => b.ratio - a.ratio)
+}

@@ -50,6 +50,8 @@ npx archdraw diagram.yaml --check        # on exit 1, stderr carries the clue to
 npx archdraw diagram.yaml -o out.png
 ```
 
+After a render, an edge that travelled more than twice its direct distance is named on stderr — a group boundary drawn between two things that talk a lot is what makes a diagram sprawl.
+
 A `type` that does not resolve fails with candidates rather than being silently substituted — better than drawing the wrong icon.
 
 ```

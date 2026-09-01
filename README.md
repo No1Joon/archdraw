@@ -50,6 +50,8 @@ archdraw schema [--flat]                                  # print the input cont
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |
 
+After a render, an edge that travelled more than twice its direct distance is named on stderr — a group boundary drawn between two things that talk a lot is what makes a diagram sprawl.
+
 A `type` that does not resolve fails with candidates rather than being silently substituted — better than drawing the wrong icon.
 
 ```

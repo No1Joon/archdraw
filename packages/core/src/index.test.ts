@@ -385,3 +385,24 @@ describe('a dashed edge', () => {
     expect(svg).not.toContain('stroke-linecap="round"')
   })
 })
+
+describe('detours', () => {
+  it('measures a route against the direct line rather than counting boundaries', async () => {
+    const { layout: runLayout, detours: findDetours } = await import('./layout.js')
+    const ir = normalize(parseYaml(nested))
+    const found = findDetours(ir, await runLayout(ir))
+    // The nested example is small and laid out straight, so nothing is worth reporting.
+    expect(found).toEqual([])
+  })
+
+  it('reports the pair an edge connects, not the elk id', async () => {
+    const { layout: runLayout, detours: findDetours } = await import('./layout.js')
+    const ir = normalize(parseYaml(nested))
+    const all = findDetours(ir, await runLayout(ir), 0)
+    expect(all.length).toBeGreaterThan(0)
+    for (const detour of all) {
+      expect(ir.nodes.some((node) => node.id === detour.from)).toBe(true)
+      expect(ir.nodes.some((node) => node.id === detour.to)).toBe(true)
+    }
+  })
+})

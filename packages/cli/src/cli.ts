@@ -5,9 +5,11 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   createResolver,
+  type Detour,
   DiagramError,
   darkTheme,
   defaultTheme,
+  detours,
   type IconPack,
   normalize,
   parse,
@@ -37,6 +39,26 @@ const program = new Command()
   .description('Render cloud architecture diagrams from YAML.')
   .version(createRequire(import.meta.url)('../package.json').version)
 
+const DETOUR_LIST = 5
+
+/**
+ * Never fatal and never on stdout — stdout may be the SVG. A diagram is allowed to
+ * cross its own group boundaries; this only says which edges paid for it.
+ */
+function reportDetours(found: Detour[]) {
+  if (found.length === 0) return
+  const one = found.length === 1
+  console.error(
+    `${found.length} ${one ? 'edge routes' : 'edges route'} far around the ` +
+      `${one ? 'groups it crosses' : 'groups they cross'}:`,
+  )
+  for (const detour of found.slice(0, DETOUR_LIST)) {
+    console.error(`  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line)`)
+  }
+  if (found.length > DETOUR_LIST) console.error(`  ... ${found.length - DETOUR_LIST} more`)
+  console.error('  Both ends sit in different groups. Revisit the grouping if the picture sprawls.')
+}
+
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
 program
   .command('render', { isDefault: true })
@@ -64,7 +86,11 @@ program
         console.error('ok')
         return
       }
-      const svg = await renderToSvg(document, { icons, theme: themeFor(options.theme) })
+      const svg = await renderToSvg(document, {
+        icons,
+        theme: themeFor(options.theme),
+        onLayout: (laid, root) => reportDetours(detours(laid, root)),
+      })
       write(svg, options.out, scaleFor(options.scale))
     })
   })

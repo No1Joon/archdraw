@@ -1,14 +1,17 @@
+import type { ElkNode } from 'elkjs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { parse as parseYaml } from 'yaml'
 import { createResolver, type IconPack, type IconResolver } from './icons.js'
 import { layout } from './layout.js'
+import type { Ir } from './normalize.js'
 import { normalize } from './normalize.js'
 import { Diagram, defaultTheme, type Theme } from './render.js'
 
 export type { ElkNode } from 'elkjs'
 export type { IconAsset, IconPack, IconResolver } from './icons.js'
 export { createResolver } from './icons.js'
-export { layout } from './layout.js'
+export type { Detour } from './layout.js'
+export { DETOUR_RATIO, detours, layout } from './layout.js'
 export type { FlatNode, Ir } from './normalize.js'
 export { DiagramError, normalize } from './normalize.js'
 export type { DiagramProps, Theme } from './render.js'
@@ -27,6 +30,8 @@ export interface RenderOptions {
   /** Icon packs, or a resolver you built yourself. Required for any diagram with `type:` nodes. */
   icons?: IconResolver | IconPack | IconPack[]
   theme?: Theme
+  /** Sees the laid-out graph before it is drawn, so a caller can measure it without laying it out twice. */
+  onLayout?: (ir: Ir, root: ElkNode) => void
 }
 
 /** Parses YAML or JSON source into the untyped document `normalize` accepts. */
@@ -47,6 +52,7 @@ export async function renderToSvg(
 ): Promise<string> {
   const ir = normalize(typeof source === 'string' ? parse(source) : source)
   const root = await layout(ir)
+  options.onLayout?.(ir, root)
   const element = Diagram({
     root,
     ir,

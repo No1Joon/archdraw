@@ -32,6 +32,7 @@ archdraw schema [--flat]                                   # input contract as J
 - **Read the errors and act on them.** They name what is wrong and what to fix. Do not substitute a value of your own.
 - **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide.
 - **Group top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways.
+- **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. archdraw names those edges after a render — if it does, put the talkative pair in the same group.
 - **`direction` is global**, not per-group. `RIGHT` suits a flow in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - **Draw only what is true.** Leave out any component you could not confirm.

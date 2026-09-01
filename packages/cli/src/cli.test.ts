@@ -65,6 +65,27 @@ describe('archdraw types', () => {
   })
 })
 
+describe('the detour note', () => {
+  it('names the edge that pays for a group boundary', () => {
+    const { code, stderr } = run(['examples/growth.yaml', '-p', 'aws,brands', '-o', '/dev/null'])
+    expect(code).toBe(0)
+    expect(stderr).toContain('queue -> worker')
+    expect(stderr).toMatch(/routes far around/)
+  })
+
+  it('stays quiet on a diagram that lays out straight', () => {
+    const { stderr } = run(['examples/startup.yaml', '-p', 'aws,brands', '-o', '/dev/null'])
+    // A false note costs more than a missing one: an agent would regroup a fine diagram.
+    expect(stderr).not.toMatch(/routes? far around/)
+  })
+
+  it('never reaches stdout, which may be the SVG', () => {
+    const { stdout } = run(['examples/growth.yaml', '-p', 'aws,brands'])
+    expect(stdout).toContain('<svg')
+    expect(stdout).not.toMatch(/direct line/)
+  })
+})
+
 describe('archdraw schema', () => {
   it('prints the input contract as JSON Schema', () => {
     const { code, stdout } = run(['schema'])
