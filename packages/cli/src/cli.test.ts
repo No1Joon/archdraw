@@ -38,6 +38,26 @@ describe('archdraw types', () => {
     expect(stdout).toContain('amazon-elasticache')
   })
 
+  it('drops matches where the query is buried mid-word', () => {
+    const { stdout } = run(['types', 'alb', '-p', 'aws,brands'])
+    expect(stdout).toContain('alb -> elastic-load-balancing')
+    // 'alb' sits inside all of these, and an agent reads the whole list.
+    for (const noise of ['virtualbox', 'actualbudget', 'socialblade', 'thurgauerkantonalbank']) {
+      expect(stdout).not.toContain(noise)
+    }
+  })
+
+  it('keeps a match that starts a word, buried or not', () => {
+    const { stdout } = run(['types', 'postgres', '-p', 'aws,brands'])
+    // 'postgres' only ever appears inside 'postgresql' here — dropping it loses the answer.
+    expect(stdout).toContain('amazon-aurora-postgresql-instance')
+  })
+
+  it('leads with the closest match', () => {
+    const { stdout } = run(['types', 'rds', '-p', 'aws'])
+    expect(stdout.split('\n')[0]).toBe('rds -> amazon-rds')
+  })
+
   it('fails with a hint when nothing matches', () => {
     const { code, stderr } = run(['types', 'zzzz'])
     expect(code).toBe(1)

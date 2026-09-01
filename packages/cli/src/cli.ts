@@ -69,6 +69,32 @@ program
     })
   })
 
+/**
+ * Substring matching alone buries the answer — 'alb' returned albertheijn and virtualbox
+ * alongside the alias that actually resolves it. Score by how the query lands, and once
+ * anything lands on a word boundary or better, drop the incidental substrings entirely.
+ */
+function rank(hits: { line: string; key: string; alias: boolean }[], needle: string): string[] {
+  const score = (key: string) => {
+    if (key === needle) return 0
+    if (key.startsWith(`${needle}-`)) return 1
+    if (key.endsWith(`-${needle}`) || key.includes(`-${needle}-`)) return 2
+    // A query that starts a word is still the thing asked for: 'postgres' finds
+    // amazon-aurora-postgresql-instance. Buried mid-word it is a coincidence —
+    // that is how 'alb' reached virtualbox and thurgauerkantonalbank.
+    if (key.split('-').some((segment) => segment.startsWith(needle))) return 3
+    return 4
+  }
+  const scored = hits.map((hit) => ({ ...hit, score: score(hit.key) }))
+  const kept = scored.some((hit) => hit.score < 4) ? scored.filter((hit) => hit.score < 4) : scored
+  return kept
+    .sort(
+      (a, b) =>
+        a.score - b.score || Number(b.alias) - Number(a.alias) || a.line.localeCompare(b.line),
+    )
+    .map((hit) => hit.line)
+}
+
 program
   .command('types')
   .description('Search the icon type slugs and aliases a diagram may use.')
@@ -91,12 +117,17 @@ program
       }
 
       const needle = query.toLowerCase()
-      const hits = [
-        ...aliases
-          .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
-          .map(([alias, slug]) => `${alias} -> ${slug}`),
-        ...slugs.filter((slug) => slug.includes(needle)),
-      ]
+      const hits = rank(
+        [
+          ...aliases
+            .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
+            .map(([alias, slug]) => ({ line: `${alias} -> ${slug}`, key: alias, alias: true })),
+          ...slugs
+            .filter((slug) => slug.includes(needle))
+            .map((slug) => ({ line: slug, key: slug, alias: false })),
+        ],
+        needle,
+      )
 
       if (hits.length === 0) {
         throw new Error(
