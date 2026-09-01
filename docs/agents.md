@@ -49,7 +49,9 @@ A `type` that does not resolve is **never** replaced with a similar icon. A wron
 
 Pass several with commas, as in `-p aws,brands`. One diagram commonly holds both the cloud and the software running on top of it.
 
-**Distinguish two icons that name the same thing** — `redis` (Redis itself) and `amazon-elasticache` (the AWS managed service) are not the same. Putting the managed icon on something self-hosted makes the picture lie.
+**A product and its managed service are different icons.** Decide which one you are drawing before you pick, and let the deployment decide — self-hosted takes the product's own mark from `brands`, a managed offering takes the vendor pack's. `redis` is not `amazon-elasticache`; `postgresql` is not `amazon-rds`; `apachekafka` is not `amazon-managed-streaming-for-apache-kafka`.
+
+**An alias is a shortcut, not a ruling.** `postgres` resolves to `postgresql`, the self-hosted mark — so a managed "RDS Postgres" wants `rds`, and taking the alias would make the picture lie. Search the vendor pack too and choose between the results.
 
 ## Components with no icon
 

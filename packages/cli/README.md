@@ -66,7 +66,7 @@ Rasterising uses the bundled Noto Sans KR alone and never a system font — the 
 ## Docs
 
 - [Input contract](https://github.com/No1Joon/archdraw/blob/main/docs/schema.md) — every field, both input shapes, what gets rejected
-- [Using it from an agent](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md)
+- [Using it from an agent](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md) — also shipped in this package as `AGENTS.md`, so an agent can read it offline
 - [Repository](https://github.com/No1Joon/archdraw)
 
 ## Licence

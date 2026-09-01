@@ -66,7 +66,7 @@ Unknown type 'lambdaa'.
 ## 문서
 
 - [입력 계약](https://github.com/No1Joon/archdraw/blob/main/docs/schema.ko.md) — 전체 필드, 두 가지 입력 형태, 거부되는 것
-- [에이전트 사용법](https://github.com/No1Joon/archdraw/blob/main/docs/agents.ko.md)
+- [에이전트 사용법](https://github.com/No1Joon/archdraw/blob/main/docs/agents.ko.md) — 이 패키지에 `AGENTS.md` 로도 실려 있어 에이전트가 오프라인에서 읽는다
 - [저장소](https://github.com/No1Joon/archdraw)
 
 ## 라이선스

@@ -28,7 +28,8 @@
   },
   "files": [
     "dist",
-    "fonts"
+    "fonts",
+    "AGENTS.md"
   ],
   "scripts": {
     "build": "tsdown src/cli.ts --format esm --clean",

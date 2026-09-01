@@ -49,7 +49,9 @@ Unknown type 'lambdaa'.
 
 `-p aws,brands` 처럼 콤마로 여러 개를 건다. 하나의 다이어그램이 클라우드와 그 위에서 도는 소프트웨어를 함께 담는 일이 흔하다.
 
-**같은 것을 가리키는 두 아이콘을 구분한다** — `redis`(Redis 자체)와 `amazon-elasticache`(AWS 관리형)는 다른 것이다. 자체호스팅에 관리형 아이콘을 붙이면 그림이 거짓말을 한다.
+**제품과 그 관리형 서비스는 다른 아이콘이다.** 고르기 전에 어느 쪽을 그리는지 정하고, 배포 형태가 그것을 결정하게 한다 — 자체 호스팅이면 `brands` 의 제품 마크, 관리형이면 벤더 팩의 것이다. `redis` 는 `amazon-elasticache` 가 아니고, `postgresql` 은 `amazon-rds` 가 아니며, `apachekafka` 는 `amazon-managed-streaming-for-apache-kafka` 가 아니다.
+
+**alias 는 지름길이지 판정이 아니다.** `postgres` 는 자체 호스팅 마크인 `postgresql` 로 풀린다 — 관리형 "RDS Postgres" 는 `rds` 여야 하고, alias 를 그대로 쓰면 그림이 거짓말을 한다. 벤더 팩도 함께 검색해 결과 중에서 고른다.
 
 ## 아이콘이 없는 구성요소
 
