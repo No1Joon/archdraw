@@ -38,13 +38,29 @@ main 푸시 → Release 워크플로가 버전 PR 을 연다. 그 PR 을 머지�
 npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발행자는 패키지 단위라 새 패키지를 추가하면 npmjs.com 에서 그 패키지에 한 번 등록해야 한다(`No1Joon` / `archdraw` / `release.yml` / `npm publish`).
 `release.yml` 의 npm 11 고정과 `registry-url` 부재는 OIDC 교환 조건이다 — 주석 참조.
 
-## Agent tooling
+## Invariants
 
-이 파일이 진입점이고, 경로별 규칙은 따로 있다 — 해당 경로를 만지기 전에 읽는다.
+다이어그램 모델 — `packages/core/src`
 
-- `.claude/rules/diagram-model.md` — `packages/core/src/**`
-- `.claude/rules/icons.md` — `packages/icons-*/**` · `packages/core/src/icons.ts` · `packages/cli/src/**` · `scripts/sync-icons.ts`
-- `.claude/skills/smart-commit/SKILL.md` — 스테이지된 변경으로 원자적 커밋 메시지 작성(`AD-<번호>` 이슈 ID 추출). Claude Code 전용
+- 입력은 중첩 형(`children`)과 평면 형(`parent` 참조) 둘을 받는다. `normalize()` 가 하나의 평면 IR 로 만들고 이후 모든 단계는 평면 IR 만 본다.
+- 평면 형은 생성기를 위한 것이다. 재귀가 없어 스키마로 강제하거나 한 번에 뱉기 쉽다.
+- 검증 실패는 `DiagramError` 로 던지고, 메시지에 무엇이 왜 틀렸는지와 고칠 단서를 담는다.
+- 렌더는 DOM 을 건드리지 않는다. 브라우저와 CLI 가 같은 컴포넌트로 동일한 SVG 를 내야 스냅샷이 두 환경을 함께 지킨다.
+- SVG 스냅샷은 레이아웃 회귀 감시 장치다. 스냅샷이 바뀌면 렌더 결과를 눈으로 확인하고 갱신한다.
+- 점선은 컨테이너 경계(`6 4` 대시)의 것이다. `style: dashed` 엣지는 둥근 점(`1 5`)을 써서 겹치지 않게 한다.
+
+아이콘 — `packages/icons-*` · `packages/core/src/icons.ts` · `scripts/sync-icons.ts`
+
+- 아이콘 갱신은 `pnpm icons:sync <provider>` 를 사람이 돌리고 `git diff` 를 눈으로 확인한 뒤 커밋하는 의도적 행위다. 빌드·CI 는 아이콘을 내려받지 않는다.
+- 해석되지 않는 `type:` 은 에러다. 가장 가까운 아이콘으로 조용히 대체하지 않고 유사 후보를 붙인다.
+- `aliases.ts` 는 사람이 관리하고 canonical slug 는 생성물이다. sync 는 존재하지 않는 slug 를 가리키는 alias 가 있으면 실패한다.
+- 여러 아이콘이 한 SVG 문서에 인라인되므로 sync 는 SVGO `prefixIds` 로 id 를 접두한다. 끄면 그라디언트·클립패스 id 가 충돌해 엉뚱한 도형이 칠해진다.
+- 각 아이콘 패키지의 `NOTICE` 는 코드(MIT)와 아이콘 자산(프로바이더 소유)의 라이선스가 다르다는 사실을 담는다. 프로바이더를 추가하면 `NOTICE` 도 함께 추가한다.
+
+주석·커밋
+
+- 주석은 한 줄 사실로 쓴다. 경위·추론 과정은 PR 본문과 git history 가 갖는다. 한 줄 안에서 이유를 잇는 것은 위반이 아니다.
+- 커밋 메시지는 `<type>: <summary>` — 명령형, 72자 이내, 마침표 없음. AI 를 가리키는 trailer 는 붙이지 않는다.
 
 ## Environment
 
