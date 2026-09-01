@@ -128,6 +128,7 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
           const badge = meta.type ? icons.resolve(meta.type) : undefined
           return (
             <g key={child.id} transform={`translate(${child.x ?? 0}, ${child.y ?? 0})`}>
+              {/* A 6 4 dash. Dashed edges are round dots so a boundary never reads as an edge. */}
               <rect
                 width={child.width ?? 0}
                 height={child.height ?? 0}
@@ -335,7 +336,8 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
         fill="none"
         stroke={theme.edge}
         strokeWidth={1.5}
-        strokeDasharray={meta?.style === 'dashed' ? '5 4' : undefined}
+        strokeDasharray={meta?.style === 'dashed' ? '1 5' : undefined}
+        strokeLinecap={meta?.style === 'dashed' ? 'round' : undefined}
         markerEnd="url(#archdraw-arrow)"
       />
       {meta?.label && label ? (

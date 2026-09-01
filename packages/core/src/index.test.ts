@@ -356,3 +356,32 @@ describe('renderToSvg', () => {
     expect(svg).toMatchSnapshot()
   })
 })
+
+const dashedAcrossGroup = `
+provider: test
+groups:
+  - id: vpc
+    kind: vpc
+    children:
+      - { id: api, type: ecs, label: api }
+nodes:
+  - { id: telemetry, label: Datadog }
+edges:
+  - { from: api, to: telemetry, style: dashed }
+`
+
+describe('a dashed edge', () => {
+  it('does not borrow the dash a container boundary uses', async () => {
+    const svg = await renderToSvg(dashedAcrossGroup, { icons: pack })
+    // Both are dashed grey lines, and an edge to an outside node routes around the
+    // container it leaves — so sharing a pattern makes the edge read as a second border.
+    expect(svg).toContain('stroke-dasharray="6 4"')
+    expect(svg).toContain('stroke-dasharray="1 5"')
+    expect(svg).toContain('stroke-linecap="round"')
+  })
+
+  it('leaves a solid edge undashed', async () => {
+    const svg = await renderToSvg(untyped, { icons: pack })
+    expect(svg).not.toContain('stroke-linecap="round"')
+  })
+})
