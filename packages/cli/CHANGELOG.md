@@ -1,5 +1,12 @@
 # archdraw
 
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [19c4100]
+  - @archdraw/core@0.7.1
+
 ## 0.7.1
 
 ### Patch Changes
