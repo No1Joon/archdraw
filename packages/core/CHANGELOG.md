@@ -1,5 +1,12 @@
 # @archdraw/core
 
+## 0.7.2
+
+### Patch Changes
+
+- 5ebffdf: Stop hiding the self-hosted mark behind the managed service. `archdraw types airflow -p aws,brands` answered with AWS Managed Workflows alone and never `apacheairflow`, because the ranking read word starts and the brands pack runs its words together — `apacheairflow` starts with `apache`. A word end now counts too, `airflow` and `flink` gain aliases, and the near-miss hint reads a one-character slip as a typo first so `ecss` still means `ecs` rather than `purgecss`.
+- d01279b: Stop `wrap: true` throwing out of ELK. On a diagram whose groups an edge passes through, the `SINGLE_EDGE` wrapping strategy threw `java.util.NoSuchElementException` — a raw GWT exception with nothing to act on, and `--check` passed because it never lays out. `MULTI_EDGE` handles the same graph, and folds better besides: the bundled `startup` example was not folded at all before and now halves its longest side.
+
 ## 0.7.1
 
 ### Patch Changes
