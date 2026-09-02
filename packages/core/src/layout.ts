@@ -152,8 +152,10 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       'elk.algorithm': 'layered',
       'elk.direction': ir.direction,
       // Wrapping needs a shape to aim at; 1.6 is a landscape that fits a README or a slide.
+      // MULTI_EDGE, not SINGLE_EDGE: the latter throws NoSuchElementException on a wrapped
+      // graph whose groups an edge passes through.
       ...(ir.wrap
-        ? { 'elk.layered.wrapping.strategy': 'SINGLE_EDGE', 'elk.aspectRatio': '1.6' }
+        ? { 'elk.layered.wrapping.strategy': 'MULTI_EDGE', 'elk.aspectRatio': '1.6' }
         : {}),
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.edgeRouting': 'ORTHOGONAL',

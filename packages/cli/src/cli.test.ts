@@ -19,6 +19,97 @@ if (!existsSync(cli)) throw new Error(`${cli} is missing — run \`pnpm build\` 
 const diagram =
   'nodes:\n  - { id: a, type: ecs }\n  - { id: b, type: rds }\nedges: [{ from: a, to: b }]\n'
 
+// Real icon sizes decide where a wrap folds, so this one belongs with the bundled packs.
+const wrappedGroups = `wrap: true
+direction: DOWN
+provider: aws
+
+groups:
+  - id: grp_ingest
+    label: x
+    children:
+      - id: s3_raw
+        label: x
+        type: s3
+      - id: glue
+        label: x
+        type: s3
+      - id: lambda_norm
+        label: x
+        type: s3
+
+  - id: grp_recovery
+    label: x
+    children:
+      - id: sqs_dlq
+        label: x
+        type: s3
+      - id: airflow
+        label: x
+        type: s3
+
+  - id: grp_streaming
+    label: x
+    children:
+      - id: kinesis
+        label: x
+        type: s3
+      - id: flink
+        label: x
+        type: s3
+
+  - id: grp_serving
+    label: x
+    children:
+      - id: clickhouse
+        label: x
+        type: s3
+      - id: grafana
+        label: x
+        type: s3
+
+edges:
+  - from: s3_raw
+    to: lambda_norm
+    label: x
+  - from: lambda_norm
+    to: glue
+    label: x
+    style: dashed
+  - from: lambda_norm
+    to: sqs_dlq
+    label: x
+  - from: sqs_dlq
+    to: airflow
+    label: x
+  - from: airflow
+    to: s3_raw
+    label: x
+    style: dashed
+  - from: lambda_norm
+    to: kinesis
+    label: x
+  - from: kinesis
+    to: flink
+    label: x
+  - from: flink
+    to: clickhouse
+    label: x
+  - from: clickhouse
+    to: grafana
+    label: x
+`
+
+describe('a wrapped diagram with groups', () => {
+  it('lays out instead of throwing out of elk', () => {
+    const { code, stdout, stderr } = run(['-', '-p', 'aws'], wrappedGroups)
+    // SINGLE_EDGE wrapping threw java.util.NoSuchElementException on exactly this shape.
+    expect(stderr).not.toContain('NoSuchElement')
+    expect(code).toBe(0)
+    expect(stdout).toContain('<svg')
+  })
+})
+
 describe('archdraw types', () => {
   it('resolves an alias to its canonical slug', () => {
     const { stdout } = run(['types', 'ecs'])
