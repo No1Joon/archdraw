@@ -402,6 +402,7 @@ describe('detours', () => {
     for (const detour of all) {
       expect(ir.nodes.some((node) => node.id === detour.from)).toBe(true)
       expect(ir.nodes.some((node) => node.id === detour.to)).toBe(true)
+      expect(typeof detour.backward).toBe('boolean')
     }
   })
 })

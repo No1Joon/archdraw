@@ -42,18 +42,27 @@ const program = new Command()
 const DETOUR_LIST = 5
 
 /** Never fatal and never on stdout — stdout may be the SVG. */
-function reportDetours(found: Detour[]) {
+function reportDetours(found: Detour[], direction: string) {
   if (found.length === 0) return
   const one = found.length === 1
   console.error(
-    `${found.length} ${one ? 'edge routes' : 'edges route'} far around the ` +
-      `${one ? 'groups it crosses' : 'groups they cross'}:`,
+    `${found.length} ${one ? 'edge routes' : 'edges route'} far around what ${one ? 'it crosses' : 'they cross'}:`,
   )
   for (const detour of found.slice(0, DETOUR_LIST)) {
-    console.error(`  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line)`)
+    const why = detour.backward ? `against direction: ${direction}` : 'crosses a group boundary'
+    console.error(
+      `  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line, ${why})`,
+    )
   }
   if (found.length > DETOUR_LIST) console.error(`  ... ${found.length - DETOUR_LIST} more`)
-  console.error('  Both ends sit in different groups. Revisit the grouping if the picture sprawls.')
+  if (found.some((detour) => detour.backward)) {
+    console.error(
+      '  An edge against the direction is only shortened by `direction` or the edge itself.',
+    )
+  }
+  if (found.some((detour) => !detour.backward)) {
+    console.error('  An edge across a boundary is shortened by putting the pair in one group.')
+  }
 }
 
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
@@ -86,7 +95,7 @@ program
       const svg = await renderToSvg(document, {
         icons,
         theme: themeFor(options.theme),
-        onLayout: (laid, root) => reportDetours(detours(laid, root)),
+        onLayout: (laid, root) => reportDetours(detours(laid, root), laid.direction),
       })
       write(svg, options.out, scaleFor(options.scale))
     })

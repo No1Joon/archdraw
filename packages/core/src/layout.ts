@@ -174,6 +174,8 @@ export interface Detour {
   to: string
   /** Routed length over the direct distance between the same two points. */
   ratio: number
+  /** Runs against `direction`. Regrouping does not shorten one of these. */
+  backward: boolean
 }
 
 /**
@@ -188,6 +190,25 @@ export function detours(ir: Ir, root: ElkNode, threshold = DETOUR_RATIO): Detour
     for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) out.push(edge)
     for (const child of node.children ?? []) collect(child, out)
     return out
+  }
+
+  // ELK reports a child relative to its parent, so a comparison across groups needs the sum.
+  const centre = new Map<string, { x: number; y: number }>()
+  const walk = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const child of node.children ?? []) {
+      const x = ox + (child.x ?? 0)
+      const y = oy + (child.y ?? 0)
+      centre.set(child.id, { x: x + (child.width ?? 0) / 2, y: y + (child.height ?? 0) / 2 })
+      walk(child, x, y)
+    }
+  }
+  walk(root)
+
+  const runsBackward = (from: string, to: string) => {
+    const a = centre.get(from)
+    const b = centre.get(to)
+    if (!a || !b) return false
+    return ir.direction === 'RIGHT' ? b.x < a.x : b.y < a.y
   }
 
   const found: Detour[] = []
@@ -207,7 +228,14 @@ export function detours(ir: Ir, root: ElkNode, threshold = DETOUR_RATIO): Detour
       // A near-zero direct distance says the endpoints overlap, not that the route is bad.
       if (direct < 1) continue
       const ratio = routed / direct
-      if (ratio >= threshold) found.push({ from: source.from, to: source.to, ratio })
+      if (ratio >= threshold) {
+        found.push({
+          from: source.from,
+          to: source.to,
+          ratio,
+          backward: runsBackward(source.from, source.to),
+        })
+      }
     }
   }
   return found.sort((a, b) => b.ratio - a.ratio)

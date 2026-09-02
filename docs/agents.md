@@ -69,7 +69,7 @@ edges:
 
 - **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide. Wrapping folds it into rows.
 - **Group the top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways and makes the boundaries visible.
-- **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. After a render archdraw names any edge that travelled more than twice its direct distance — when it does, put the talkative pair in the same group.
+- **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. After a render archdraw names any edge that travelled more than twice its direct distance, and says which of the two causes it was — a boundary between a talkative pair, which regrouping fixes, or an edge running against `direction`, which it does not.
 - **`direction` is global.** It cannot vary per group. `RIGHT` usually suits a flow that runs in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - Draw only what is true. Leave out any component you could not confirm.
