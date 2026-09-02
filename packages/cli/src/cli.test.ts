@@ -58,6 +58,13 @@ describe('archdraw types', () => {
     expect(stdout.split('\n')[0]).toBe('rds -> amazon-rds')
   })
 
+  it('surfaces the ECS icons whose slug spells the service out', () => {
+    const { stdout } = run(['types', 'ecs', '-p', 'aws'])
+    // None of these carry 'ecs' in the slug, so only an alias puts them in front of an agent.
+    expect(stdout).toContain('ecs-task -> amazon-elastic-container-service-task')
+    expect(stdout).toContain('ecs-service -> amazon-elastic-container-service-service')
+  })
+
   it('fails with a hint when nothing matches', () => {
     const { code, stderr } = run(['types', 'zzzz'])
     expect(code).toBe(1)
@@ -70,7 +77,9 @@ describe('the detour note', () => {
     const { code, stderr } = run(['examples/growth.yaml', '-p', 'aws,brands', '-o', '/dev/null'])
     expect(code).toBe(0)
     expect(stderr).toContain('queue -> worker')
-    expect(stderr).toMatch(/routes far around/)
+    // It runs against the layout direction, so telling the author to regroup would mislead.
+    expect(stderr).toContain('against direction: RIGHT')
+    expect(stderr).not.toContain('putting the pair in one group')
   })
 
   it('stays quiet on a diagram that lays out straight', () => {
