@@ -57,6 +57,8 @@ Pass several with commas, as in `-p aws,brands`. One diagram commonly holds both
 
 Omit `type` and the node is drawn as a labelled box. Use it for things none of the three packs carry, such as an internal service. Do not force a vaguely similar icon onto it.
 
+**A workload takes no icon from the platform it runs on.** Three services on GKE are not three GKE, and three tasks on ECS are not three ECS — an icon that exists is not a reason to use it. Put the platform on the group once, as `kind` plus `type`, and leave the services inside it without a `type`.
+
 ```yaml
 nodes:
   - { id: api, type: ecs, label: api }
