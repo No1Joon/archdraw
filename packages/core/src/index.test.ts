@@ -132,6 +132,21 @@ describe('icon resolver', () => {
     expect(() => createResolver(pack).resolve('ecss')).toThrow(/Did you mean: ecs/)
   })
 
+  it('suggests the slug that spells the guess out, however far apart they spell', () => {
+    const wide = createResolver({
+      provider: 'test',
+      icons: {
+        'amazon-kinesis': { viewBox: '0 0 1 1', content: '' },
+        'managed-workflows-for-apache-airflow': { viewBox: '0 0 1 1', content: '' },
+        akiflow: { viewBox: '0 0 1 1', content: '' },
+      },
+      aliases: {},
+    })
+    // Edit distance alone answered 'airflow' with 'akiflow', a different product.
+    expect(() => wide.resolve('airflow')).toThrow(/managed-workflows-for-apache-airflow/)
+    expect(() => wide.resolve('kinesis')).toThrow(/amazon-kinesis/)
+  })
+
   it('names the loaded pack when nothing comes close', () => {
     expect(() => createResolver(pack).resolve('bigquery')).toThrow(
       /Not in the loaded icon pack: test/,

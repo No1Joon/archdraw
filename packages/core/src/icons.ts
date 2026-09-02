@@ -52,7 +52,22 @@ function hint(guesses: string[], providers: string[]): string {
   return `Not in the loaded icon pack: ${providers.join(', ')}.`
 }
 
+/**
+ * A guess that names a whole word of a slug beats any edit distance: `kinesis` is
+ * `amazon-kinesis` and `airflow` is the managed Airflow, however far apart they spell.
+ */
 function suggest(input: string, candidates: string[], limit = 3): string[] {
+  const named = candidates
+    .filter((name) => name.split('-').some((word) => word === input))
+    .sort((a, b) => a.length - b.length)
+  if (named.length > 0) return named.slice(0, limit)
+
+  // A word start still names it — 'dynamo' for dynamodb. Buried mid-word it is a coincidence.
+  const started = candidates
+    .filter((name) => name.split('-').some((word) => word.startsWith(input)))
+    .sort((a, b) => a.length - b.length)
+  if (started.length > 0) return started.slice(0, limit)
+
   return candidates
     .map((name) => ({ name, score: distance(input, name) }))
     .filter(({ name, score }) => score <= Math.max(2, Math.floor(name.length / 3)))
