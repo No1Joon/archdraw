@@ -41,10 +41,7 @@ const program = new Command()
 
 const DETOUR_LIST = 5
 
-/**
- * Never fatal and never on stdout — stdout may be the SVG. A diagram is allowed to
- * cross its own group boundaries; this only says which edges paid for it.
- */
+/** Never fatal and never on stdout — stdout may be the SVG. */
 function reportDetours(found: Detour[]) {
   if (found.length === 0) return
   const one = found.length === 1
@@ -95,19 +92,13 @@ program
     })
   })
 
-/**
- * Substring matching alone buries the answer — 'alb' returned albertheijn and virtualbox
- * alongside the alias that actually resolves it. Score by how the query lands, and once
- * anything lands on a word boundary or better, drop the incidental substrings entirely.
- */
+/** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
 function rank(hits: { line: string; key: string; alias: boolean }[], needle: string): string[] {
   const score = (key: string) => {
     if (key === needle) return 0
     if (key.startsWith(`${needle}-`)) return 1
     if (key.endsWith(`-${needle}`) || key.includes(`-${needle}-`)) return 2
-    // A query that starts a word is still the thing asked for: 'postgres' finds
-    // amazon-aurora-postgresql-instance. Buried mid-word it is a coincidence —
-    // that is how 'alb' reached virtualbox and thurgauerkantonalbank.
+    // A word start still answers the query: 'postgres' must reach amazon-aurora-postgresql-instance.
     if (key.split('-').some((segment) => segment.startsWith(needle))) return 3
     return 4
   }

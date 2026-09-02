@@ -178,9 +178,8 @@ export interface Detour {
 
 /**
  * An edge whose endpoints sit in different groups is declared on their lowest common
- * ancestor, so ELK routes it around every container in between. Measured over the
- * bundled examples the honest ones land at or below 1.32 and the ones that make a
- * diagram sprawl start at 2.32, so 2 sits in the gap rather than on a guess.
+ * ancestor, so ELK routes it around every container in between. The bundled examples
+ * reach 1.32 when they lay out straight and start at 2.32 when they sprawl.
  */
 export const DETOUR_RATIO = 2
 

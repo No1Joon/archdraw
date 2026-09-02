@@ -373,8 +373,7 @@ edges:
 describe('a dashed edge', () => {
   it('does not borrow the dash a container boundary uses', async () => {
     const svg = await renderToSvg(dashedAcrossGroup, { icons: pack })
-    // Both are dashed grey lines, and an edge to an outside node routes around the
-    // container it leaves — so sharing a pattern makes the edge read as a second border.
+    // A container boundary is a dashed grey line too, and an edge leaving one routes around it.
     expect(svg).toContain('stroke-dasharray="6 4"')
     expect(svg).toContain('stroke-dasharray="1 5"')
     expect(svg).toContain('stroke-linecap="round"')
