@@ -1,6 +1,7 @@
 # archdraw
 
 > 역할: 단일 repo
+> 재개 노트: `temp-memory.md`(gitignore) — 있으면 **세션 시작 때 읽고, 수행한 뒤 지운다.**
 
 프롬프트 또는 YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 TypeScript 모노레포.
 pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.

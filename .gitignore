@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 .DS_Store
 .claude/
+temp-memory.md
 .env
 .env.*
 !.env.example
