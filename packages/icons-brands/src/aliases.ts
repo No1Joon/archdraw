@@ -1,10 +1,12 @@
 /** Hand-maintained short names. Values must exist in `generated.ts`; sync fails otherwise. */
 export const aliases: Record<string, string> = {
+  airflow: 'apacheairflow',
   cloudflare: 'cloudflare',
   docker: 'docker',
   expo: 'expo',
   fastapi: 'fastapi',
   firebase: 'firebase',
+  flink: 'apacheflink',
   go: 'go',
   grafana: 'grafana',
   kafka: 'apachekafka',

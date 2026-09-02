@@ -53,27 +53,30 @@ function hint(guesses: string[], providers: string[]): string {
 }
 
 /**
- * A guess that names a whole word of a slug beats any edit distance: `kinesis` is
- * `amazon-kinesis` and `airflow` is the managed Airflow, however far apart they spell.
+ * A one-character slip is a typo. Anything further apart is a different way of writing
+ * the name: `airflow` is apacheairflow and `kinesis` is amazon-kinesis, however far
+ * those spell. Only a guess buried mid-word is a coincidence.
  */
 function suggest(input: string, candidates: string[], limit = 3): string[] {
+  const byDistance = (threshold: (name: string) => number) =>
+    candidates
+      .map((name) => ({ name, score: distance(input, name) }))
+      .filter(({ name, score }) => score <= threshold(name))
+      .sort((a, b) => a.score - b.score || a.name.length - b.name.length)
+      .slice(0, limit)
+      .map(({ name }) => name)
+
+  const typo = byDistance(() => 1)
+  if (typo.length > 0) return typo
+
   const named = candidates
-    .filter((name) => name.split('-').some((word) => word === input))
+    .filter((name) =>
+      name.split('-').some((word) => word.startsWith(input) || word.endsWith(input)),
+    )
     .sort((a, b) => a.length - b.length)
   if (named.length > 0) return named.slice(0, limit)
 
-  // A word start still names it — 'dynamo' for dynamodb. Buried mid-word it is a coincidence.
-  const started = candidates
-    .filter((name) => name.split('-').some((word) => word.startsWith(input)))
-    .sort((a, b) => a.length - b.length)
-  if (started.length > 0) return started.slice(0, limit)
-
-  return candidates
-    .map((name) => ({ name, score: distance(input, name) }))
-    .filter(({ name, score }) => score <= Math.max(2, Math.floor(name.length / 3)))
-    .sort((a, b) => a.score - b.score || a.name.length - b.name.length)
-    .slice(0, limit)
-    .map(({ name }) => name)
+  return byDistance((name) => Math.max(2, Math.floor(name.length / 3)))
 }
 
 function distance(a: string, b: string): number {

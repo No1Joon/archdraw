@@ -147,6 +147,19 @@ describe('icon resolver', () => {
     expect(() => wide.resolve('kinesis')).toThrow(/amazon-kinesis/)
   })
 
+  it('reads a one-character slip as a typo before reaching for a longer name', () => {
+    const both = createResolver({
+      provider: 'test',
+      icons: {
+        ecs: { viewBox: '0 0 1 1', content: '' },
+        purgecss: { viewBox: '0 0 1 1', content: '' },
+      },
+      aliases: {},
+    })
+    // 'purgecss' ends with 'ecss', so a word-edge rule alone answers the typo with it.
+    expect(() => both.resolve('ecss')).toThrow(/ecs\?$|ecs,/)
+  })
+
   it('names the loaded pack when nothing comes close', () => {
     expect(() => createResolver(pack).resolve('bigquery')).toThrow(
       /Not in the loaded icon pack: test/,

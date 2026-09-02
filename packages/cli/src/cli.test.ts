@@ -65,6 +65,13 @@ describe('archdraw types', () => {
     expect(stdout).toContain('ecs-service -> amazon-elastic-container-service-service')
   })
 
+  it('shows the self-hosted mark beside the managed service', () => {
+    const { stdout } = run(['types', 'airflow', '-p', 'aws,brands'])
+    // brands runs its words together, so a rule that only reads word starts loses this one.
+    expect(stdout).toContain('apacheairflow')
+    expect(stdout).toContain('amazon-managed-workflows-for-apache-airflow')
+  })
+
   it('fails with a hint when nothing matches', () => {
     const { code, stderr } = run(['types', 'zzzz'])
     expect(code).toBe(1)

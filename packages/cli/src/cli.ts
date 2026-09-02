@@ -104,15 +104,18 @@ program
 /** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
 function rank(hits: { line: string; key: string; alias: boolean }[], needle: string): string[] {
   const score = (key: string) => {
+    const segments = key.split('-')
     if (key === needle) return 0
     if (key.startsWith(`${needle}-`)) return 1
     if (key.endsWith(`-${needle}`) || key.includes(`-${needle}-`)) return 2
     // A word start still answers the query: 'postgres' must reach amazon-aurora-postgresql-instance.
-    if (key.split('-').some((segment) => segment.startsWith(needle))) return 3
-    return 4
+    if (segments.some((segment) => segment.startsWith(needle))) return 3
+    // brands runs its words together, so 'airflow' only ever ends apacheairflow.
+    if (segments.some((segment) => segment.endsWith(needle))) return 4
+    return 5
   }
   const scored = hits.map((hit) => ({ ...hit, score: score(hit.key) }))
-  const kept = scored.some((hit) => hit.score < 4) ? scored.filter((hit) => hit.score < 4) : scored
+  const kept = scored.some((hit) => hit.score < 5) ? scored.filter((hit) => hit.score < 5) : scored
   return kept
     .sort(
       (a, b) =>
