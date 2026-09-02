@@ -1,5 +1,11 @@
 # @archdraw/icons-aws
 
+## 0.2.4
+
+### Patch Changes
+
+- 091ebd0: Alias the ECS icons whose slug spells the service out — `ecs-task`, `ecs-service`, `ecs-container`. None of `amazon-elastic-container-service-task`, `-service` or `-container-1` contains the substring `ecs`, so `archdraw types ecs` never showed them and a diagram drew the ECS service mark on every task inside an ECS group.
+
 ## 0.2.3
 
 ### Patch Changes
