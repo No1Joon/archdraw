@@ -1,5 +1,0 @@
----
-'archdraw': patch
----
-
-Say the three things a test run showed a model could not see. `archdraw types flink` on the default aws pack answered with the managed service alone and never mentioned that `brands` holds `apacheflink`, so the self-hosted mark stayed hidden whenever the loaded pack had any answer at all; the search now names what the other packs hold, and a no-match names the pack that does answer instead of listing all three. A diagram that only renders because `-p` covered for its own short `provider` now says so after a render — two runs wrote a file that renders on the author's machine and nowhere else, copying the example in AGENTS.md, which was itself written that way and is fixed here along with the bundled examples. A label written `"a\\nb"` draws the escape as text and widens the node, which is the opposite of what a request for a narrow picture asked for, so those labels are named too. The detour note no longer blames a group boundary on a diagram that has no groups: a wrapped chain pays for the fold, and the note now says so rather than sending an agent to regroup nothing.
