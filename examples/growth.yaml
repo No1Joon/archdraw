@@ -1,5 +1,5 @@
 # Growing — the monolith split into containers, with async work and cache pulled out. Multi-AZ.
-provider: aws
+provider: aws,brands
 title: growth — multi-AZ services
 direction: RIGHT
 

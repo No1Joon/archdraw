@@ -1,4 +1,4 @@
-provider: aws
+provider: aws,brands
 title: web-app
 groups:
   - id: clients

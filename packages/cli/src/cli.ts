@@ -11,6 +11,7 @@ import {
   defaultTheme,
   detours,
   type IconPack,
+  type Ir,
   normalize,
   parse,
   renderToSvg,
@@ -40,29 +41,97 @@ const program = new Command()
   .version(createRequire(import.meta.url)('../package.json').version)
 
 const DETOUR_LIST = 5
+const DRIFT_LIST = 3
+
+/** Enough to show that another pack answers too, short enough to stay a footnote. */
+const OTHER_PACK_LIST = 3
+
+/** Why one edge came out long. Naming the wrong cause costs more than naming none. */
+function detourCause(detour: Detour, ir: Ir): 'backward' | 'boundary' | 'wrap' | 'layout' {
+  if (detour.backward) return 'backward'
+  const parent = (id: string) => ir.nodes.find((node) => node.id === id)?.parent ?? null
+  if (parent(detour.from) !== parent(detour.to)) return 'boundary'
+  // Rows are what a wrapped chain is folded into, so an edge between rows pays for the fold.
+  return ir.wrap ? 'wrap' : 'layout'
+}
 
 /** Never fatal and never on stdout — stdout may be the SVG. */
-function reportDetours(found: Detour[], direction: string) {
+function reportDetours(found: Detour[], ir: Ir) {
   if (found.length === 0) return
+  const causes = found.map((detour) => detourCause(detour, ir))
+  const why: Record<ReturnType<typeof detourCause>, string> = {
+    backward: `against direction: ${ir.direction}`,
+    boundary: 'crosses a group boundary',
+    wrap: 'spans two rows of the wrap',
+    layout: 'routed around what sits between them',
+  }
   const one = found.length === 1
   console.error(
     `${found.length} ${one ? 'edge routes' : 'edges route'} far around what ${one ? 'it crosses' : 'they cross'}:`,
   )
-  for (const detour of found.slice(0, DETOUR_LIST)) {
-    const why = detour.backward ? `against direction: ${direction}` : 'crosses a group boundary'
+  for (const [index, detour] of found.slice(0, DETOUR_LIST).entries()) {
     console.error(
-      `  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line, ${why})`,
+      `  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line, ${why[causes[index]]})`,
     )
   }
   if (found.length > DETOUR_LIST) console.error(`  ... ${found.length - DETOUR_LIST} more`)
-  if (found.some((detour) => detour.backward)) {
-    console.error(
-      '  An edge against the direction is only shortened by `direction` or the edge itself.',
-    )
+  const advice: Record<ReturnType<typeof detourCause>, string> = {
+    backward: 'An edge against the direction is only shortened by `direction` or the edge itself.',
+    boundary: 'An edge across a boundary is shortened by putting the pair in one group.',
+    wrap: '`wrap: true` folds the chain into rows; an edge between rows is shortened by ordering the pair together, or by dropping `wrap`.',
+    layout: 'Ordering the pair next to each other in `nodes` is what shortens one of these.',
   }
-  if (found.some((detour) => !detour.backward)) {
-    console.error('  An edge across a boundary is shortened by putting the pair in one group.')
+  for (const cause of ['backward', 'boundary', 'wrap', 'layout'] as const) {
+    if (causes.includes(cause)) console.error(`  ${advice[cause]}`)
   }
+}
+
+/** A label written with one backslash too many draws the escape instead of the break, and the
+ *  wider node it makes is exactly what an author asking for a narrow picture did not want. */
+function reportLiteralBreaks(ir: Ir) {
+  const labels = [
+    ...ir.nodes.map((node) => ({ id: node.id, label: node.label })),
+    ...ir.edges.map((edge) => ({ id: `${edge.from} -> ${edge.to}`, label: edge.label ?? '' })),
+  ].filter((entry) => entry.label.includes('\\n'))
+  if (labels.length === 0) return
+  const one = labels.length === 1
+  console.error(
+    `${labels.length} ${one ? 'label draws' : 'labels draw'} a literal \\n instead of a line break: ` +
+      `${labels
+        .slice(0, DRIFT_LIST)
+        .map((entry) => entry.id)
+        .join(', ')}` +
+      `${labels.length > DRIFT_LIST ? `, and ${labels.length - DRIFT_LIST} more` : ''}.`,
+  )
+  console.error('  One backslash breaks the line in a "quoted" label; a `|-` block does too.')
+}
+
+/** `-p` covers for a diagram whose own `provider` is short of what it draws, and the file that
+ *  comes out of it renders here and nowhere else. Only the types that miss are worth a word. */
+function reportProviderDrift(ir: Ir, flag: string | undefined) {
+  if (!flag || flag === ir.provider) return
+  let own: ReturnType<typeof iconsFor>
+  try {
+    own = iconsFor(ir.provider)
+  } catch {
+    return // Its `provider` names no pack at all; the flag is the only reason this ran.
+  }
+  const missing = new Set<string>()
+  for (const node of ir.nodes) {
+    if (!node.type) continue
+    try {
+      own.resolve(node.type)
+    } catch {
+      missing.add(node.type)
+    }
+  }
+  if (missing.size === 0) return
+  const shown = [...missing].slice(0, DRIFT_LIST).join(', ')
+  const more = missing.size > DRIFT_LIST ? `, and ${missing.size - DRIFT_LIST} more` : ''
+  console.error(
+    `The diagram says \`provider: ${ir.provider}\`, which does not cover ${shown}${more}. ` +
+      `It renders under -p ${flag} and nowhere else — write \`provider: ${flag}\` into the file.`,
+  )
 }
 
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
@@ -85,6 +154,8 @@ program
       const ir = normalize(document)
       // The flag wins when given; otherwise the diagram says which packs it needs.
       const icons = iconsFor(options.provider ?? ir.provider)
+      reportProviderDrift(ir, options.provider)
+      reportLiteralBreaks(ir)
       if (options.check) {
         ir.nodes.forEach((node) => {
           if (node.type) icons.resolve(node.type)
@@ -95,7 +166,7 @@ program
       const svg = await renderToSvg(document, {
         icons,
         theme: themeFor(options.theme),
-        onLayout: (laid, root) => reportDetours(detours(laid, root), laid.direction),
+        onLayout: (laid, root) => reportDetours(detours(laid, root), laid),
       })
       write(svg, options.out, scaleFor(options.scale))
     })
@@ -124,6 +195,42 @@ function rank(hits: { line: string; key: string; alias: boolean }[], needle: str
     .map((hit) => hit.line)
 }
 
+/** Every slug and alias the query lands on, ranked. */
+function search(selected: IconPack[], needle: string): string[] {
+  const slugs = selected.flatMap((pack) => Object.keys(pack.icons)).sort()
+  const aliases = selected
+    .flatMap((pack) => Object.entries(pack.aliases))
+    .sort(([a], [b]) => a.localeCompare(b))
+  return rank(
+    [
+      ...aliases
+        .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
+        .map(([alias, slug]) => ({ line: `${alias} -> ${slug}`, key: alias, alias: true })),
+      ...slugs
+        .filter((slug) => slug.includes(needle))
+        .map((slug) => ({ line: slug, key: slug, alias: false })),
+    ],
+    needle,
+  )
+}
+
+/** A pack that answers hides what the others hold: `types flink` on aws alone reads as if
+ *  the managed service were the only Flink there is, and `apacheflink` is never offered. */
+function elsewhere(provider: string, needle: string): string[] {
+  const loaded = provider.split(',').map((name) => name.trim())
+  return Object.entries(packs)
+    .filter(([name]) => !loaded.includes(name))
+    .flatMap(([name, pack]) => {
+      // The footnote names what to draw, so an alias and its slug are one answer, not two.
+      const hits = [...new Set(search([pack], needle).map((hit) => hit.split(' -> ').pop()))]
+      if (hits.length === 0) return []
+      const shown = hits.slice(0, OTHER_PACK_LIST).join(', ')
+      const more =
+        hits.length > OTHER_PACK_LIST ? `, and ${hits.length - OTHER_PACK_LIST} more` : ''
+      return [`Also in '${name}': ${shown}${more}. Load it with -p ${[...loaded, name].join(',')}`]
+    })
+}
+
 program
   .command('types')
   .description('Search the icon type slugs and aliases a diagram may use.')
@@ -132,12 +239,10 @@ program
   .action((query: string | undefined, options) => {
     run(async () => {
       const selected = packsFor(options.provider)
-      const slugs = selected.flatMap((pack) => Object.keys(pack.icons)).sort()
-      const aliases = selected
-        .flatMap((pack) => Object.entries(pack.aliases))
-        .sort(([a], [b]) => a.localeCompare(b))
 
       if (!query) {
+        const slugs = selected.flatMap((pack) => Object.keys(pack.icons))
+        const aliases = selected.flatMap((pack) => Object.keys(pack.aliases))
         console.error(
           `${slugs.length} types and ${aliases.length} aliases in '${options.provider}'. ` +
             `Narrow with: archdraw types <query> -p ${options.provider}`,
@@ -146,22 +251,15 @@ program
       }
 
       const needle = query.toLowerCase()
-      const hits = rank(
-        [
-          ...aliases
-            .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
-            .map(([alias, slug]) => ({ line: `${alias} -> ${slug}`, key: alias, alias: true })),
-          ...slugs
-            .filter((slug) => slug.includes(needle))
-            .map((slug) => ({ line: slug, key: slug, alias: false })),
-        ],
-        needle,
-      )
+      const hits = search(selected, needle)
+      const others = elsewhere(options.provider, needle)
 
       if (hits.length === 0) {
         throw new Error(
           `No type matches '${query}' in '${options.provider}'. ` +
-            `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`,
+            (others.length > 0
+              ? others.join(' ')
+              : `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`),
         )
       }
 
@@ -169,6 +267,7 @@ program
       if (hits.length > LIST_LIMIT) {
         console.error(`... ${hits.length - LIST_LIMIT} more. Narrow the query.`)
       }
+      for (const other of others) console.error(other)
     })
   })
 

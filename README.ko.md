@@ -11,7 +11,7 @@ YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 CLI·�
 위 그림은 [`examples/web-app.yaml`](./examples/web-app.yaml) 을 그대로 렌더한 것이다.
 
 ```bash
-npx archdraw examples/web-app.yaml -p aws,brands -o web-app.png
+npx archdraw examples/web-app.yaml -o web-app.png
 ```
 
 ## 시작하기
@@ -85,7 +85,7 @@ nodes:
 규모가 달라져도 문법은 같다. 아래 그림은 전부 `examples/` 의 YAML 을 그대로 렌더한 것이다.
 
 ```bash
-npx archdraw examples/startup.yaml -p aws,brands -o startup.png
+npx archdraw examples/startup.yaml -o startup.png
 ```
 
 ### 초기 — [`examples/startup.yaml`](./examples/startup.yaml)

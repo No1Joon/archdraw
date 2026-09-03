@@ -11,7 +11,7 @@ A CLI and library that draws cloud architecture diagrams (SVG/PNG) from YAML. Sh
 That picture is [`examples/web-app.yaml`](./examples/web-app.yaml), rendered as-is.
 
 ```bash
-npx archdraw examples/web-app.yaml -p aws,brands -o web-app.png
+npx archdraw examples/web-app.yaml -o web-app.png
 ```
 
 ## Getting started
@@ -87,7 +87,7 @@ Every field is in [`docs/schema.md`](./docs/schema.md). For the machine-readable
 The syntax does not change with scale. Every picture below is YAML from `examples/`, rendered as-is.
 
 ```bash
-npx archdraw examples/startup.yaml -p aws,brands -o startup.png
+npx archdraw examples/startup.yaml -o startup.png
 ```
 
 ### Early — [`examples/startup.yaml`](./examples/startup.yaml)

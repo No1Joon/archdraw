@@ -38,7 +38,7 @@ got="$("$CLI" --version)"
 
 # Self-contained: a fixture from the repo would drift against the version being tested.
 cat >"$DIR/a.yaml" <<'YAML'
-provider: aws
+provider: aws,brands
 title: smoke
 nodes:
   - { id: lb, type: alb, label: "웹 로드밸런서" }

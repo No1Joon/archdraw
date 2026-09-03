@@ -31,9 +31,11 @@ archdraw schema [--flat]                                   # input contract as J
 - **A product and its managed service are different icons.** The deployment decides — self-hosted takes the product's mark from `brands`, a managed offering takes the vendor pack's. `redis` is not `amazon-elasticache`; `postgresql` is not `amazon-rds`.
 - **An alias is a shortcut, not a ruling.** `postgres` resolves to `postgresql`, the self-hosted mark, so a managed "RDS Postgres" wants `rds`. Search the vendor pack too and choose between the results.
 - **Read the errors and act on them.** They name what is wrong and what to fix. Do not substitute a value of your own.
-- **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide.
+- **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide. It has a price of its own: an edge between two rows of the fold is routed around them, and archdraw names it after a render.
 - **Group top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways.
 - **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. archdraw names those edges after a render and says why — a boundary between a talkative pair, which regrouping fixes, or an edge running against `direction`, which it does not.
+- **The file's `provider` lists every pack the diagram draws from.** `-p` overrides it for one run, so a file that renders only with the flag is broken for whoever opens it next. archdraw says so after a render.
+- **A label breaks a line with a real break**, `"one\ntwo"` in a quoted label or a `|-` block. Written with two backslashes it draws `\n` as text and makes the node wider.
 - **`direction` is global**, not per-group. `RIGHT` suits a flow in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - **Draw only what is true.** Leave out any component you could not confirm.
@@ -50,7 +52,7 @@ Pass several with commas (`-p aws,brands`). One diagram commonly holds both the 
 ## Example
 
 ```yaml
-provider: aws
+provider: aws,brands
 direction: RIGHT
 nodes:
   - { id: alb, type: alb, label: public alb }
@@ -64,7 +66,7 @@ edges:
 ```
 
 ```bash
-npx archdraw diagram.yaml -p aws,brands -o out.png
+npx archdraw diagram.yaml -o out.png
 ```
 
 Full documentation: https://github.com/No1Joon/archdraw
