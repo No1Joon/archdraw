@@ -1,3 +1,4 @@
+import type { ElkNode } from 'elkjs'
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
 import { parse as parseYaml, renderToSvg } from './index.js'
@@ -47,6 +48,25 @@ describe('normalize', () => {
   it('produces the same IR for the nested and flat forms', async () => {
     const { parse } = await import('./index.js')
     expect(normalize(parse(nested))).toEqual(normalize(parse(flat)))
+  })
+
+  it('treats an entry under `groups` as one even with nothing in it yet', () => {
+    // The flat form fills a group by pointing children at it, so at parse time it is empty.
+    const ir = normalize({
+      groups: [{ id: 'g', label: 'one' }],
+      nodes: [{ id: 'a', type: 'ecs', parent: 'g' }],
+    })
+    expect(ir.nodes.find((node) => node.id === 'g')?.isGroup).toBe(true)
+  })
+
+  it('treats a node another node names as its parent as a group', () => {
+    const ir = normalize({
+      nodes: [
+        { id: 'g', label: 'one' },
+        { id: 'a', type: 'ecs', parent: 'g' },
+      ],
+    })
+    expect(ir.nodes.find((node) => node.id === 'g')?.isGroup).toBe(true)
   })
 
   it('lets a container carry a type for its header icon', () => {
@@ -410,6 +430,39 @@ describe('a dashed edge', () => {
   it('leaves a solid edge undashed', async () => {
     const svg = await renderToSvg(untyped, { icons: pack })
     expect(svg).not.toContain('stroke-linecap="round"')
+  })
+})
+
+describe('a group declared without children', () => {
+  const empty = `
+provider: test
+groups:
+  - { id: g1, label: one }
+  - { id: g2, label: two }
+nodes:
+  - { id: a, type: ecs, label: A, parent: g1 }
+  - { id: b, type: rds, label: B, parent: g1 }
+  - { id: c, type: ecs, label: C, parent: g2 }
+edges:
+  - { from: a, to: b }
+  - { from: b, to: c }
+`
+
+  it('lays its children out instead of dropping them', async () => {
+    const { layout } = await import('./index.js')
+    const root = await layout(normalize(parseYaml(empty)))
+    const ids = (node: ElkNode): string[] => [
+      node.id,
+      ...(node.children ?? []).flatMap((child) => ids(child)),
+    ]
+    // Read as a leaf, the group is drawn as an empty box and every child vanishes with it —
+    // a render that succeeds and quietly loses three nodes is worse than one that refuses.
+    expect(ids(root)).toEqual(expect.arrayContaining(['g1', 'g2', 'a', 'b', 'c']))
+  })
+
+  it('draws the children it holds', async () => {
+    const svg = await renderToSvg(parseYaml(empty), { icons: pack })
+    for (const label of ['A', 'B', 'C']) expect(svg).toContain(`>${label}<`)
   })
 })
 
