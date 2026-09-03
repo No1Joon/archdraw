@@ -35,6 +35,12 @@ const FONT = join(dirname(fileURLToPath(import.meta.url)), '..', 'fonts', 'NotoS
 /** Long lists cost an agent context; make it narrow the query instead. */
 const LIST_LIMIT = 60
 
+/** Several queries at once answer a whole diagram, so each one gets a shortlist. */
+const BATCH_LIMIT = 10
+
+/** The rank at which a match is only a word ending — enough to answer, not to volunteer. */
+const WORD_END = 4
+
 const program = new Command()
   .name('archdraw')
   .description('Render cloud architecture diagrams from YAML.')
@@ -173,7 +179,11 @@ program
   })
 
 /** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
-function rank(hits: { line: string; key: string; alias: boolean }[], needle: string): string[] {
+function rank(
+  hits: { line: string; key: string; alias: boolean }[],
+  needle: string,
+  ceiling = 5,
+): string[] {
   const score = (key: string) => {
     const segments = key.split('-')
     if (key === needle) return 0
@@ -186,7 +196,10 @@ function rank(hits: { line: string; key: string; alias: boolean }[], needle: str
     return 5
   }
   const scored = hits.map((hit) => ({ ...hit, score: score(hit.key) }))
-  const kept = scored.some((hit) => hit.score < 5) ? scored.filter((hit) => hit.score < 5) : scored
+  const landed = scored.filter((hit) => hit.score < ceiling)
+  // A weak landing is worth showing to someone who asked for the word — 'rds' does end
+  // 'awwwards' — but never worth volunteering under a query that was about something else.
+  const kept = landed.length > 0 || ceiling < 5 ? landed : scored
   return kept
     .sort(
       (a, b) =>
@@ -196,7 +209,7 @@ function rank(hits: { line: string; key: string; alias: boolean }[], needle: str
 }
 
 /** Every slug and alias the query lands on, ranked. */
-function search(selected: IconPack[], needle: string): string[] {
+function search(selected: IconPack[], needle: string, ceiling?: number): string[] {
   const slugs = selected.flatMap((pack) => Object.keys(pack.icons)).sort()
   const aliases = selected
     .flatMap((pack) => Object.entries(pack.aliases))
@@ -211,6 +224,7 @@ function search(selected: IconPack[], needle: string): string[] {
         .map((slug) => ({ line: slug, key: slug, alias: false })),
     ],
     needle,
+    ceiling,
   )
 }
 
@@ -222,7 +236,9 @@ function elsewhere(provider: string, needle: string): string[] {
     .filter(([name]) => !loaded.includes(name))
     .flatMap(([name, pack]) => {
       // The footnote names what to draw, so an alias and its slug are one answer, not two.
-      const hits = [...new Set(search([pack], needle).map((hit) => hit.split(' -> ').pop()))]
+      const hits = [
+        ...new Set(search([pack], needle, WORD_END).map((hit) => hit.split(' -> ').pop())),
+      ]
       if (hits.length === 0) return []
       const shown = hits.slice(0, OTHER_PACK_LIST).join(', ')
       const more =
@@ -234,13 +250,13 @@ function elsewhere(provider: string, needle: string): string[] {
 program
   .command('types')
   .description('Search the icon type slugs and aliases a diagram may use.')
-  .argument('[query]', 'substring to match against slugs and aliases')
+  .argument('[query...]', 'substrings to match against slugs and aliases')
   .option('-p, --provider <names>', 'icon packs to load, comma separated', 'aws')
-  .action((query: string | undefined, options) => {
+  .action((queries: string[], options) => {
     run(async () => {
       const selected = packsFor(options.provider)
 
-      if (!query) {
+      if (queries.length === 0) {
         const slugs = selected.flatMap((pack) => Object.keys(pack.icons))
         const aliases = selected.flatMap((pack) => Object.keys(pack.aliases))
         console.error(
@@ -250,24 +266,48 @@ program
         return
       }
 
-      const needle = query.toLowerCase()
-      const hits = search(selected, needle)
-      const others = elsewhere(options.provider, needle)
+      // One query keeps the output it always had; a header would break whatever reads it.
+      const label = (query: string) => (queries.length > 1 ? `# ${query}` : undefined)
+      // A batch is asked in order to spend less, so no one query may fill the answer.
+      const limit = queries.length > 1 ? BATCH_LIMIT : LIST_LIMIT
+      const missed: string[] = []
 
-      if (hits.length === 0) {
+      for (const query of queries) {
+        const needle = query.toLowerCase()
+        const hits = search(selected, needle)
+        const others = elsewhere(options.provider, needle)
+        const heading = label(query)
+
+        if (hits.length === 0) {
+          missed.push(query)
+          console.error(
+            `${heading ? `${heading}: ` : ''}No type matches '${query}' in '${options.provider}'. ` +
+              (others.length > 0
+                ? others.join(' ')
+                : `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`),
+          )
+          continue
+        }
+
+        if (heading) console.log(heading)
+        for (const hit of hits.slice(0, limit)) console.log(hit)
+        if (hits.length > limit) {
+          console.error(
+            `... ${hits.length - limit} more for '${query}'. ` +
+              (heading ? 'Ask for it on its own, or narrow it.' : 'Narrow the query.'),
+          )
+        }
+        for (const other of others) console.error(other)
+      }
+
+      // A miss is a type the diagram cannot use, so it fails the run even beside a dozen hits.
+      if (missed.length > 0) {
         throw new Error(
-          `No type matches '${query}' in '${options.provider}'. ` +
-            (others.length > 0
-              ? others.join(' ')
-              : `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`),
+          missed.length === queries.length
+            ? `Nothing matched: ${missed.join(', ')}.`
+            : `Named above, with no match: ${missed.join(', ')}.`,
         )
       }
-
-      for (const hit of hits.slice(0, LIST_LIMIT)) console.log(hit)
-      if (hits.length > LIST_LIMIT) {
-        console.error(`... ${hits.length - LIST_LIMIT} more. Narrow the query.`)
-      }
-      for (const other of others) console.error(other)
     })
   })
 

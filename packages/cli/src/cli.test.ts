@@ -267,6 +267,44 @@ describe('archdraw types', () => {
     expect(stderr).toContain("Also in 'brands': apacheairflow.")
   })
 
+  it('answers several queries in one run, each under its own heading', () => {
+    // A diagram needs a dozen types looked up; one call per service costs seconds each.
+    const { code, stdout } = run(['types', 'lambda', 'flink', '-p', 'aws,brands'])
+    expect(code).toBe(0)
+    expect(stdout).toContain('# lambda')
+    expect(stdout).toContain('lambda -> aws-lambda')
+    expect(stdout).toContain('# flink')
+    expect(stdout).toContain('apacheflink')
+  })
+
+  it('leaves a single query’s output exactly as it was', () => {
+    expect(run(['types', 'lambda']).stdout.startsWith('lambda -> aws-lambda')).toBe(true)
+  })
+
+  it('shortlists each query of a batch so one cannot fill the answer', () => {
+    const alone = run(['types', 's3']).stdout.trim().split('\n').length
+    const batched = run(['types', 's3', 'lambda']).stdout.trim().split('\n')
+    expect(alone).toBeGreaterThan(20)
+    expect(batched.filter((line) => line.startsWith('amazon-simple-storage')).length).toBeLessThan(
+      alone,
+    )
+  })
+
+  it('still answers the queries that landed when one of them misses', () => {
+    const { code, stdout, stderr } = run(['types', 'lambda', 'kinesiss'])
+    expect(stdout).toContain('lambda -> aws-lambda')
+    expect(stderr).toContain("No type matches 'kinesiss'")
+    // A miss is a type the diagram cannot use, so the run fails even beside a good answer.
+    expect(code).toBe(1)
+  })
+
+  it('does not volunteer a pack whose only match is a word ending', () => {
+    const { stderr } = run(['types', 'rds'])
+    // 'rds' does end 'awwwards', and nobody asking about RDS wants to hear it.
+    expect(stderr).not.toContain('awwwards')
+    expect(stderr).not.toContain('Also in')
+  })
+
   it('keeps the note off stdout, which a caller may be parsing', () => {
     const { stdout } = run(['types', 'flink'])
     expect(stdout).not.toContain('Also in')

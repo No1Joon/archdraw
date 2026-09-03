@@ -9,6 +9,7 @@ archdraw 는 LLM 을 호출하지 않는다. **에이전트가 YAML 을 쓰고 a
 ```bash
 # 1. 쓸 수 있는 type 을 찾는다 — 추측하지 않는다
 npx archdraw types postgres
+npx archdraw types s3 lambda kinesis clickhouse   # 질의 여러 개를 한 번에 — 각 답이 `# 질의` 머리글 아래에 나온다
 npx archdraw types run -p gcp
 npx archdraw types redis -p aws,brands   # 팩을 여러 개 걸면 둘 다 나온다
 
