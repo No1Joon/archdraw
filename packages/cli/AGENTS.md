@@ -5,7 +5,7 @@ archdraw never calls an LLM. **You write the YAML; archdraw draws it.** This fil
 ## Three steps
 
 ```bash
-npx archdraw types postgres            # 1. look the type up. never guess it
+npx archdraw types postgres redis ecs  # 1. look every type up at once. never guess one
 cat diagram.yaml | npx archdraw - --check   # 2. validate. exits 1 on failure
 cat diagram.yaml | npx archdraw - -o out.png -s 2   # 3. draw
 ```
@@ -17,7 +17,7 @@ cat diagram.yaml | npx archdraw - -o out.png -s 2   # 3. draw
 ```
 archdraw <input> [-o out] [-p aws,brands] [--theme dark]   # `-` reads stdin. without -o, SVG goes to stdout
 archdraw <input> --check                                   # validate only
-archdraw types <query> [-p aws,brands]                     # search available types
+archdraw types <query...> [-p aws,brands]                  # search types; several queries in one run
 archdraw schema [--flat]                                   # input contract as JSON Schema
 ```
 
@@ -25,7 +25,7 @@ archdraw schema [--flat]                                   # input contract as J
 
 ## Rules
 
-- **Never guess a `type`.** Run `archdraw types <query>` first. An unresolved type is an error with candidates attached, never a silent substitution — a wrong icon rendered as though it were right makes the diagram lie.
+- **Never guess a `type`.** Run `archdraw types <query...>` first, and pass every type the diagram needs in one run — each match is listed under a `# query` heading. An unresolved type is an error with candidates attached, never a silent substitution — a wrong icon rendered as though it were right makes the diagram lie.
 - **A component with no icon takes no `type`.** It renders as a labelled box, which is correct. Do not force a vaguely similar icon onto it.
 - **A workload takes no icon from the platform it runs on.** Three services on GKE are not three GKE, and three tasks on ECS are not three ECS. Put the platform on the group once, as `kind` plus `type`, and leave the services inside it without a `type`.
 - **A product and its managed service are different icons.** The deployment decides — self-hosted takes the product's mark from `brands`, a managed offering takes the vendor pack's. `redis` is not `amazon-elasticache`; `postgresql` is not `amazon-rds`.

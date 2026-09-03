@@ -7,8 +7,9 @@ archdraw never calls an LLM. **The agent writes the YAML; archdraw draws it.**
 ## Three steps
 
 ```bash
-# 1. Find the types you can use — do not guess
+# 1. Find the types you can use — do not guess. Several queries in one run
 npx archdraw types postgres
+npx archdraw types s3 lambda kinesis clickhouse   # each answer under a `# query` heading
 npx archdraw types run -p gcp
 npx archdraw types redis -p aws,brands   # with several packs, both show up
 
