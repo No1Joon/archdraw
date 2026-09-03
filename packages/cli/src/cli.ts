@@ -58,7 +58,7 @@ function detourCause(detour: Detour, ir: Ir): 'backward' | 'boundary' | 'wrap' |
 /** Never fatal and never on stdout — stdout may be the SVG. */
 function reportDetours(found: Detour[], ir: Ir) {
   if (found.length === 0) return
-  const causes = found.map((detour) => detourCause(detour, ir))
+  const noted = found.map((detour) => ({ detour, cause: detourCause(detour, ir) }))
   const why: Record<ReturnType<typeof detourCause>, string> = {
     backward: `against direction: ${ir.direction}`,
     boundary: 'crosses a group boundary',
@@ -69,9 +69,9 @@ function reportDetours(found: Detour[], ir: Ir) {
   console.error(
     `${found.length} ${one ? 'edge routes' : 'edges route'} far around what ${one ? 'it crosses' : 'they cross'}:`,
   )
-  for (const [index, detour] of found.slice(0, DETOUR_LIST).entries()) {
+  for (const { detour, cause } of noted.slice(0, DETOUR_LIST)) {
     console.error(
-      `  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line, ${why[causes[index]]})`,
+      `  ${detour.from} -> ${detour.to} (${detour.ratio.toFixed(1)}x the direct line, ${why[cause]})`,
     )
   }
   if (found.length > DETOUR_LIST) console.error(`  ... ${found.length - DETOUR_LIST} more`)
@@ -82,7 +82,7 @@ function reportDetours(found: Detour[], ir: Ir) {
     layout: 'Ordering the pair next to each other in `nodes` is what shortens one of these.',
   }
   for (const cause of ['backward', 'boundary', 'wrap', 'layout'] as const) {
-    if (causes.includes(cause)) console.error(`  ${advice[cause]}`)
+    if (noted.some((note) => note.cause === cause)) console.error(`  ${advice[cause]}`)
   }
 }
 
