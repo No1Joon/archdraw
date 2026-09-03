@@ -1,6 +1,6 @@
 {
   "name": "archdraw",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Render cloud architecture diagrams from YAML. Built for AI CLIs and humans.",
   "keywords": [
     "architecture-diagram",
