@@ -1,5 +1,5 @@
 # Early — an MVP: one team, one service. Single AZ, and managed wherever managed is an option.
-provider: aws
+provider: aws,brands
 title: startup — MVP
 direction: RIGHT
 

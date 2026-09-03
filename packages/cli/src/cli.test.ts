@@ -19,6 +19,85 @@ if (!existsSync(cli)) throw new Error(`${cli} is missing — run \`pnpm build\` 
 const diagram =
   'nodes:\n  - { id: a, type: ecs }\n  - { id: b, type: rds }\nedges: [{ from: a, to: b }]\n'
 
+// A wrapped chain with no group in it — the shape a model reaches for when told to keep the
+// picture narrow. The two dashed edges reach back across the fold.
+const wrappedChain = `provider: aws,brands
+title: 데이터 수집·집계 파이프라인
+direction: RIGHT
+shape: card
+wrap: true
+
+nodes:
+  - id: s3
+    type: amazon-simple-storage-service
+    label: S3 원본 데이터
+  - id: lambda
+    type: aws-lambda
+    label: Lambda 정규화
+  - id: kinesis
+    type: amazon-kinesis-data-streams
+    label: Kinesis 스트림
+  - id: flink
+    type: apacheflink
+    label: Flink 실시간 집계
+  - id: clickhouse
+    type: clickhouse
+    label: ClickHouse 분석 저장소
+  - id: grafana
+    type: grafana
+    label: Grafana 대시보드
+  - id: glue
+    type: aws-glue-data-catalog
+    label: Glue Data Catalog 스키마
+  - id: dlq
+    type: amazon-simple-queue-service
+    label: SQS DLQ 실패 이벤트
+  - id: airflow
+    type: apacheairflow
+    label: Airflow 배치 재처리
+
+edges:
+  - from: s3
+    to: lambda
+    label: 원본 이벤트
+  - from: lambda
+    to: kinesis
+    label: 정규화 데이터
+  - from: kinesis
+    to: flink
+    label: 스트리밍
+  - from: flink
+    to: clickhouse
+    label: 집계 결과
+  - from: clickhouse
+    to: grafana
+    label: 조회·시각화
+  - from: glue
+    to: lambda
+    label: 스키마 참조
+    style: dashed
+  - from: glue
+    to: flink
+    label: 스키마 참조
+    style: dashed
+  - from: lambda
+    to: dlq
+    label: 정규화 실패
+    style: dashed
+  - from: flink
+    to: dlq
+    label: 처리 실패
+    style: dashed
+  - from: dlq
+    to: airflow
+    label: 실패건 수집
+    style: dashed
+  - from: airflow
+    to: s3
+    label: 배치 재처리
+    style: dashed
+`
+
 // Real icon sizes decide where a wrap folds, so this one belongs with the bundled packs.
 const wrappedGroups = `wrap: true
 direction: DOWN
@@ -168,6 +247,30 @@ describe('archdraw types', () => {
     expect(code).toBe(1)
     expect(stderr).toMatch(/No type matches/)
   })
+
+  it('names the pack that answers when the loaded one does not', () => {
+    const { stderr } = run(['types', 'clickhouse'])
+    // 'another pack: aws, gcp, brands' leaves the caller to try all three.
+    expect(stderr).toContain("Also in 'brands': clickhouse")
+    expect(stderr).toContain('-p aws,brands')
+  })
+
+  it('names the self-hosted mark another pack holds even when this one answers', () => {
+    const { stdout, stderr } = run(['types', 'flink'])
+    // An answer from aws alone reads as if the managed service were the only Flink there is.
+    expect(stdout).toContain('amazon-managed-service-for-apache-flink')
+    expect(stderr).toContain("Also in 'brands': apacheflink")
+  })
+
+  it('counts an alias and its slug as one answer in that note', () => {
+    const { stderr } = run(['types', 'airflow'])
+    expect(stderr).toContain("Also in 'brands': apacheairflow.")
+  })
+
+  it('keeps the note off stdout, which a caller may be parsing', () => {
+    const { stdout } = run(['types', 'flink'])
+    expect(stdout).not.toContain('Also in')
+  })
 })
 
 describe('the detour note', () => {
@@ -190,6 +293,47 @@ describe('the detour note', () => {
     const { stdout } = run(['examples/growth.yaml', '-p', 'aws,brands'])
     expect(stdout).toContain('<svg')
     expect(stdout).not.toMatch(/direct line/)
+  })
+
+  it('blames the wrap, not a boundary, on a diagram that has no groups', () => {
+    const { stderr } = run(['-', '-p', 'aws,brands', '-o', '/dev/null'], wrappedChain)
+    expect(stderr).toMatch(/routes? far around/)
+    // There is nothing to regroup here, so the group advice would send an agent nowhere.
+    expect(stderr).toContain('spans two rows of the wrap')
+    expect(stderr).not.toContain('crosses a group boundary')
+    expect(stderr).not.toContain('putting the pair in one group')
+  })
+})
+
+describe('the note on a diagram that only renders here', () => {
+  const short = 'provider: aws\nnodes:\n  - { id: a, type: apacheflink, label: x }\n'
+
+  it('names the types the file’s own provider does not cover', () => {
+    const { code, stderr } = run(['-', '-p', 'aws,brands', '--check'], short)
+    expect(code).toBe(0)
+    expect(stderr).toContain('apacheflink')
+    expect(stderr).toContain('provider: aws,brands')
+  })
+
+  it('stays quiet when the file renders on its own', () => {
+    const { stderr } = run(['-', '-p', 'aws,brands', '--check'], diagram)
+    // `-p` is also just an override; only a file that cannot stand alone is worth a word.
+    expect(stderr).not.toContain('nowhere else')
+  })
+})
+
+describe('the note on a literal line break', () => {
+  it('names the labels that draw \\n as text', () => {
+    const escaped = 'nodes:\n  - { id: a, type: ecs, label: "one\\\\ntwo" }\n'
+    const { code, stderr } = run(['-', '--check'], escaped)
+    expect(code).toBe(0)
+    expect(stderr).toContain('literal \\n')
+    expect(stderr).toContain('a')
+  })
+
+  it('stays quiet on a label that really does break', () => {
+    const real = 'nodes:\n  - { id: a, type: ecs, label: "one\\ntwo" }\n'
+    expect(run(['-', '--check'], real).stderr).not.toContain('literal')
   })
 })
 

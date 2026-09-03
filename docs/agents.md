@@ -70,6 +70,9 @@ edges:
 ## Rules for a diagram that reads well
 
 - **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide. Wrapping folds it into rows.
+- **Wrapping has a price too.** An edge between two rows of the fold is routed around them, the same way a group boundary costs. archdraw names those edges after a render and says which of the two it was, so read the note before rearranging anything.
+- **The file's `provider` lists every pack the diagram draws from.** `-p` overrides it for one run; a file that renders only with the flag is broken for whoever opens it next, and archdraw says so after a render.
+- **A label breaks a line with a real break** — `"one\ntwo"` in a quoted label, or a `|-` block. Written with two backslashes it draws `\n` as text, and the wider node is exactly what a narrow picture did not want.
 - **Group the top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways and makes the boundaries visible.
 - **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. After a render archdraw names any edge that travelled more than twice its direct distance, and says which of the two causes it was — a boundary between a talkative pair, which regrouping fixes, or an edge running against `direction`, which it does not.
 - **`direction` is global.** It cannot vary per group. `RIGHT` usually suits a flow that runs in one line; `DOWN` suits stacked tiers.

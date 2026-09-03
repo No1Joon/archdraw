@@ -1,5 +1,5 @@
 # Large — accounts draw the boundaries and two regions run in parallel. Workload, data and shared services each get their own account.
-provider: aws
+provider: aws,brands
 title: enterprise — multi-account, multi-region
 direction: RIGHT
 
