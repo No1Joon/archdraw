@@ -146,7 +146,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       }
     })
 
-  return elk.layout({
+  const root = await elk.layout({
     id: 'root',
     layoutOptions: {
       'elk.algorithm': 'layered',
@@ -155,7 +155,15 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       // MULTI_EDGE, not SINGLE_EDGE: the latter throws NoSuchElementException on a wrapped
       // graph whose groups an edge passes through.
       ...(ir.wrap
-        ? { 'elk.layered.wrapping.strategy': 'MULTI_EDGE', 'elk.aspectRatio': '1.6' }
+        ? {
+            'elk.layered.wrapping.strategy': 'MULTI_EDGE',
+            'elk.aspectRatio': '1.6',
+            // ELK's pass that reroutes a wrapped edge is what strands its arrowhead in
+            // open space; without it the same graphs wrap to within ten pixels of the
+            // same box. It does not cover an edge that runs against `direction`, so
+            // `reconnect` still has work to do.
+            'elk.layered.wrapping.multiEdge.improveWrappedEdges': 'false',
+          }
         : {}),
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.edgeRouting': 'ORTHOGONAL',
@@ -169,6 +177,118 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     children: build(null),
     edges: edgesOf.get(null) ?? [],
   })
+
+  reconnect(root)
+  return root
+}
+
+interface Point {
+  x: number
+  y: number
+}
+
+interface Box {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** ELK lands an endpoint on the border, so a whole pixel of slack is enough. */
+const ON_BOX = 1
+
+function onBox(point: Point, box: Box): boolean {
+  return (
+    point.x >= box.x - ON_BOX &&
+    point.x <= box.x + box.w + ON_BOX &&
+    point.y >= box.y - ON_BOX &&
+    point.y <= box.y + box.h + ON_BOX
+  )
+}
+
+/** Orthogonal route between two boxes, leaving and entering on the sides that face. */
+function route(
+  from: Box,
+  to: Box,
+): { startPoint: Point; endPoint: Point; bendPoints: [Point, Point] } {
+  if (to.x >= from.x + from.w || to.x + to.w <= from.x) {
+    const rightwards = to.x >= from.x + from.w
+    const startPoint = { x: rightwards ? from.x + from.w : from.x, y: from.y + from.h / 2 }
+    const endPoint = { x: rightwards ? to.x : to.x + to.w, y: to.y + to.h / 2 }
+    const mid = (startPoint.x + endPoint.x) / 2
+    return {
+      startPoint,
+      endPoint,
+      bendPoints: [
+        { x: mid, y: startPoint.y },
+        { x: mid, y: endPoint.y },
+      ],
+    }
+  }
+  // The boxes share a column, so the run has to be vertical.
+  const downwards = to.y >= from.y
+  const startPoint = { x: from.x + from.w / 2, y: downwards ? from.y + from.h : from.y }
+  const endPoint = { x: to.x + to.w / 2, y: downwards ? to.y : to.y + to.h }
+  const mid = (startPoint.y + endPoint.y) / 2
+  return {
+    startPoint,
+    endPoint,
+    bendPoints: [
+      { x: startPoint.x, y: mid },
+      { x: endPoint.x, y: mid },
+    ],
+  }
+}
+
+/**
+ * Wrapping can route an edge to a point that lies on no node: the arrowhead then claims a
+ * connection and shows nowhere, which reads worse than a long detour because nothing on
+ * the page says where the edge went. Any such edge is redrawn between the two boxes it
+ * actually joins — a plainer line than ELK's, but one that lands.
+ */
+function reconnect(root: ElkNode): void {
+  const boxes = new Map<string, Box>()
+  const measure = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const child of node.children ?? []) {
+      const x = ox + (child.x ?? 0)
+      const y = oy + (child.y ?? 0)
+      boxes.set(child.id, { x, y, w: child.width ?? 0, h: child.height ?? 0 })
+      measure(child, x, y)
+    }
+  }
+  measure(root)
+
+  const walk = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+      const [from, to] = [edge.sources[0], edge.targets[0]]
+      if (!from || !to) continue
+      const source = boxes.get(from)
+      const target = boxes.get(to)
+      if (!source || !target) continue
+      // ELK reports edge coordinates relative to the node the edge is declared on.
+      const local = (box: Box): Box => ({ x: box.x - ox, y: box.y - oy, w: box.w, h: box.h })
+      const sourceBox = local(source)
+      const targetBox = local(target)
+      for (const section of edge.sections ?? []) {
+        if (onBox(section.startPoint, sourceBox) && onBox(section.endPoint, targetBox)) continue
+        const fixed = route(sourceBox, targetBox)
+        section.startPoint = fixed.startPoint
+        section.endPoint = fixed.endPoint
+        section.bendPoints = fixed.bendPoints
+        // The label was placed against the route that missed, so it would sit by itself.
+        const label = edge.labels?.[0]
+        if (label) {
+          const [first, second] = fixed.bendPoints
+          label.x = (first.x + second.x) / 2 - (label.width ?? 0) / 2
+          label.y = (first.y + second.y) / 2 - (label.height ?? 0) / 2
+        }
+      }
+    }
+    for (const child of node.children ?? []) {
+      walk(child, ox + (child.x ?? 0), oy + (child.y ?? 0))
+    }
+  }
+  walk(root)
 }
 
 export interface Detour {
