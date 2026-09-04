@@ -47,13 +47,15 @@ export function normalize(input: unknown): Ir {
   const nodes: FlatNode[] = []
   const seen = new Set<string>()
 
-  const walk = (entry: NodeEntry, parent: string | null): void => {
+  const walk = (entry: NodeEntry, parent: string | null, declared = false): void => {
     if (seen.has(entry.id)) {
       throw new DiagramError(`Duplicate id '${entry.id}'.`)
     }
     seen.add(entry.id)
 
-    const isGroup = entry.kind !== undefined || (entry.children?.length ?? 0) > 0
+    // Declared under `groups`, so it is one — the flat form fills a group by pointing children
+    // at it, and reading emptiness as "not a group" loses every one of them.
+    const isGroup = declared || entry.kind !== undefined || (entry.children?.length ?? 0) > 0
     nodes.push({
       id: entry.id,
       label: entry.label ?? entry.id,
@@ -68,7 +70,15 @@ export function normalize(input: unknown): Ir {
     for (const child of entry.children ?? []) walk(child, entry.id)
   }
 
-  for (const entry of [...doc.groups, ...doc.nodes]) walk(entry, null)
+  for (const entry of doc.groups) walk(entry, null, true)
+  for (const entry of doc.nodes) walk(entry, null)
+
+  // The other half of the flat form: `parent` names a container whether or not it was declared
+  // under `groups`. A leaf with children is not built, and the children go with it.
+  const claimed = new Set(nodes.map((node) => node.parent).filter((id) => id !== null))
+  for (const node of nodes) {
+    if (claimed.has(node.id)) node.isGroup = true
+  }
 
   for (const node of nodes) {
     if (node.parent !== null && !seen.has(node.parent)) {
