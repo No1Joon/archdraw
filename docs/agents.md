@@ -71,7 +71,7 @@ edges:
 ## Rules for a diagram that reads well
 
 - **Set `wrap: true` once a diagram runs long.** A chain laid out in one line grows without bound — 200 nodes render as a strip tens of thousands of pixels wide. Wrapping folds it into rows.
-- **Wrapping has a price too.** An edge between two rows of the fold is routed around them, the same way a group boundary costs. archdraw names those edges after a render and says which of the two it was, so read the note before rearranging anything.
+- **Wrapping has two prices.** An edge between two rows of the fold is routed around them, the same way a group boundary costs — archdraw names those edges after a render and says which of the two it was, so read the note before rearranging anything. And the fold follows the layout's layer index rather than the chain, so the main chain can stop reading in order: of six diagrams measured, four sent a reader backwards up the page, two bundled examples among them. Read the wrapped picture in order before keeping it.
 - **The file's `provider` lists every pack the diagram draws from.** `-p` overrides it for one run; a file that renders only with the flag is broken for whoever opens it next, and archdraw says so after a render.
 - **A label breaks a line with a real break** — `"one\ntwo"` in a quoted label, or a `|-` block. Written with two backslashes it draws `\n` as text, and the wider node is exactly what a narrow picture did not want.
 - **Group the top-level siblings.** Gathering external dependencies and managed services into their own groups stops the picture stretching sideways and makes the boundaries visible.
