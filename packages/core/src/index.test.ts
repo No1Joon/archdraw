@@ -1,4 +1,4 @@
-import type { ElkNode } from 'elkjs'
+import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
 import { parse as parseYaml, renderToSvg } from './index.js'
@@ -140,6 +140,128 @@ describe('wrap', () => {
 
   it('is off unless the diagram asks for it', () => {
     expect(normalize({ nodes: [] }).wrap).toBe(false)
+  })
+
+  // Wrapping used to route these two to a point on no node, so the arrowhead claimed a
+  // connection and showed nowhere. The label sizes decide where the fold falls, so both
+  // graphs are kept as the agent runs wrote them.
+  const strandedForwards = `
+provider: test
+direction: RIGHT
+wrap: true
+shape: card
+nodes:
+  - { id: s3_raw, type: ecs, label: "Amazon S3\\n원본 데이터 적재" }
+  - { id: lambda_normalize, type: ecs, label: "AWS Lambda\\n정규화" }
+  - { id: kinesis_stream, type: ecs, label: "Amazon Kinesis\\n스트리밍" }
+  - { id: flink_aggregate, type: ecs, label: "Apache Flink\\n실시간 집계" }
+  - { id: clickhouse, type: ecs, label: "ClickHouse\\n집계 데이터 적재" }
+  - { id: grafana, type: ecs, label: "Grafana\\n대시보드" }
+  - { id: glue_catalog, type: ecs, label: "Glue Data Catalog\\n스키마 관리" }
+  - { id: sqs_dlq, type: ecs, label: "Amazon SQS DLQ\\n실패 이벤트" }
+  - { id: airflow, type: ecs, label: "Apache Airflow\\n배치 재처리" }
+edges:
+  - { from: s3_raw, to: lambda_normalize, label: 객체 생성 }
+  - { from: lambda_normalize, to: kinesis_stream, label: 정규화 이벤트 }
+  - { from: kinesis_stream, to: flink_aggregate, label: 스트림 소비 }
+  - { from: flink_aggregate, to: clickhouse, label: 집계 결과 }
+  - { from: clickhouse, to: grafana, label: 조회 · 시각화 }
+  - { from: glue_catalog, to: lambda_normalize, label: 스키마 제공, style: dashed }
+  - { from: glue_catalog, to: flink_aggregate, label: 스키마 제공, style: dashed }
+  - { from: lambda_normalize, to: sqs_dlq, label: 처리 실패, style: dashed }
+  - { from: sqs_dlq, to: airflow, label: 배치 재처리 대상, style: dashed }
+`
+
+  const strandedBackwards = `
+provider: test
+direction: RIGHT
+wrap: true
+nodes:
+  - { id: s3_raw, type: ecs, label: Raw Data Lake }
+  - { id: lambda_norm, type: ecs, label: Normalizer }
+  - { id: kinesis_stream, type: ecs, label: Ingestion Stream }
+  - { id: flink_agg, type: ecs, label: Stream Aggregator }
+  - { id: clickhouse_db, type: ecs, label: Analytics DB }
+  - { id: grafana_dash, type: ecs, label: Monitoring & BI }
+  - { id: sqs_dlq, type: ecs, label: Dead Letter Queue }
+  - { id: glue_catalog, type: ecs, label: Schema Registry }
+  - { id: airflow_batch, type: ecs, label: Batch Reprocessing }
+edges:
+  - { from: s3_raw, to: lambda_norm, label: S3 Event / Raw Log }
+  - { from: lambda_norm, to: kinesis_stream, label: Normalized Event }
+  - { from: lambda_norm, to: sqs_dlq, label: Parsing Failure, style: dashed }
+  - { from: lambda_norm, to: glue_catalog, label: Schema Lookup, style: dashed }
+  - { from: kinesis_stream, to: flink_agg, label: Event Stream }
+  - { from: flink_agg, to: clickhouse_db, label: Aggregated Metrics }
+  - { from: clickhouse_db, to: grafana_dash, label: Real-time Query }
+  - { from: airflow_batch, to: s3_raw, label: Replay Raw Data, style: dashed }
+  - { from: airflow_batch, to: sqs_dlq, label: Drain & Reprocess, style: dashed }
+  - { from: airflow_batch, to: clickhouse_db, label: Batch Sync / Backfill, style: dashed }
+`
+
+  const strayEndpoints = (root: ElkNode) => {
+    const boxes = new Map<string, { x: number; y: number; w: number; h: number }>()
+    const measure = (node: ElkNode, ox = 0, oy = 0) => {
+      for (const child of node.children ?? []) {
+        const x = ox + (child.x ?? 0)
+        const y = oy + (child.y ?? 0)
+        boxes.set(child.id, { x, y, w: child.width ?? 0, h: child.height ?? 0 })
+        measure(child, x, y)
+      }
+    }
+    measure(root)
+
+    const holds = (id: string, point: { x: number; y: number }) => {
+      const box = boxes.get(id)
+      if (!box) return false
+      return (
+        point.x >= box.x - 1.5 &&
+        point.x <= box.x + box.w + 1.5 &&
+        point.y >= box.y - 1.5 &&
+        point.y <= box.y + box.h + 1.5
+      )
+    }
+
+    const stray: string[] = []
+    const walk = (node: ElkNode, ox = 0, oy = 0) => {
+      for (const edge of node.edges ?? []) {
+        for (const section of (edge as ElkExtendedEdge).sections ?? []) {
+          const [from, to] = [edge.sources[0] ?? '', edge.targets[0] ?? '']
+          const start = { x: section.startPoint.x + ox, y: section.startPoint.y + oy }
+          const end = { x: section.endPoint.x + ox, y: section.endPoint.y + oy }
+          if (!holds(from, start) || !holds(to, end)) stray.push(`${from}->${to}`)
+        }
+      }
+      for (const child of node.children ?? []) {
+        walk(child, ox + (child.x ?? 0), oy + (child.y ?? 0))
+      }
+    }
+    walk(root)
+    return stray
+  }
+
+  it('lands every arrowhead on the node the edge names', async () => {
+    const { layout } = await import('./index.js')
+    for (const source of [strandedForwards, strandedBackwards]) {
+      expect(strayEndpoints(await layout(normalize(parseYaml(source))))).toEqual([])
+    }
+  })
+
+  it('leaves a route elk got right alone', async () => {
+    const { layout } = await import('./index.js')
+    const root = await layout(
+      normalize({
+        nodes: [
+          { id: 'a', type: 'ecs' },
+          { id: 'b', type: 'ecs' },
+        ],
+        edges: [{ from: 'a', to: 'b' }],
+      }),
+    )
+    // A rerouted edge always carries the two bends `route` puts in.
+    const section = (root.edges?.[0] as ElkExtendedEdge).sections?.[0]
+    expect(section?.bendPoints ?? []).toEqual([])
+    expect(strayEndpoints(root)).toEqual([])
   })
 })
 
