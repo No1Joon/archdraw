@@ -7,6 +7,7 @@ groups:
   - id: clients
     label: Clients
     kind: group
+    external: true
     children:
       - { id: browser, type: client, label: Browser }
       - { id: mobile, type: mobile-client, label: Mobile }
@@ -89,6 +90,7 @@ groups:
   - id: external
     label: External
     kind: group
+    external: true
     children:
       - { id: stripe, type: stripe, label: Stripe }
       - { id: sentry, type: sentry, label: Sentry }

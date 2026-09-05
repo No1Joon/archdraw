@@ -19,8 +19,11 @@ cat diagram.yaml | npx archdraw - --check
 # 3. Draw it
 cat diagram.yaml | npx archdraw - -o out.png -s 2
 npx archdraw diagram.yaml -o out.svg          # a file works too
+npx archdraw diagram.yaml -o out.html         # one self-contained page, with the traffic moving
 npx archdraw diagram.yaml                     # without -o, SVG goes to stdout
 ```
+
+`.html` is the same drawing with dots travelling along every edge in the direction it points, and pan and zoom. It is one file with nothing to serve it from. Mark whatever the system does not own with `external: true` — on a node, or on the group that holds them all — and the traffic arriving from outside, staying inside, and leaving is drawn in three colours, with a legend. Say nothing and everything counts as inside, which is one colour and no legend.
 
 The input contract is in [`schema.md`](./schema.md), and the same content is available in machine-readable form.
 

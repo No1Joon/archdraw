@@ -29,6 +29,11 @@ export interface Theme {
   text: string
   mutedText: string
   edge: string
+  /** The travelling dashes in an animated render. Falls back to colours that read on both grounds. */
+  flow?: string
+  /** Traffic arriving from outside the system, and traffic leaving it. */
+  flowIn?: string
+  flowOut?: string
   fontFamily: string
 }
 
@@ -41,6 +46,9 @@ export const defaultTheme: Theme = {
   text: '#12181f',
   mutedText: '#5b6675',
   edge: '#5b6675',
+  flow: '#1f6feb',
+  flowIn: '#1a7f37',
+  flowOut: '#bc4c00',
   // resvg resolves only the first family. Noto ships under both names.
   fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
@@ -55,7 +63,41 @@ export const darkTheme: Theme = {
   text: '#e6edf3',
   mutedText: '#9198a1',
   edge: '#9198a1',
+  flow: '#58a6ff',
+  flowIn: '#3fb950',
+  flowOut: '#db6d28',
   fontFamily: defaultTheme.fontFamily,
+}
+
+/** Used when a caller's own theme predates the flow colours. */
+const FLOW = { flow: '#1f6feb', flowIn: '#1a7f37', flowOut: '#bc4c00' }
+
+/** The three flows, in the order a legend reads them. */
+export const FLOW_KEYS = [
+  ['flowIn', 'from outside'],
+  ['flow', 'inside'],
+  ['flowOut', 'to outside'],
+] as const satisfies readonly (readonly [keyof Theme, string])[]
+
+/**
+ * Which side of the boundary the traffic crosses. An edge with both ends on the same side —
+ * two internal services, or two things that are both outside — stays the plain colour.
+ */
+export function flowColour(theme: Theme, from?: FlatNode, to?: FlatNode): string {
+  if (from?.external && !to?.external) return theme.flowIn ?? FLOW.flowIn
+  if (!from?.external && to?.external) return theme.flowOut ?? FLOW.flowOut
+  return theme.flow ?? FLOW.flow
+}
+
+/** Sparse dots, not a dashed line: the drawn edge must still read as the solid or dashed one it is. */
+function flowCss(): string {
+  return [
+    // One period per 1.2s is 25 px/s, the same speed on a short edge and a long one alike.
+    '.archdraw-flow{stroke-width:4;stroke-linecap:round;stroke-dasharray:2 28;',
+    'animation:archdraw-flow 1.2s linear infinite}',
+    '@keyframes archdraw-flow{to{stroke-dashoffset:-30}}',
+    '@media (prefers-reduced-motion:reduce){.archdraw-flow{animation:none;opacity:0}}',
+  ].join('')
 }
 
 export interface DiagramProps {
@@ -63,9 +105,11 @@ export interface DiagramProps {
   ir: Ir
   icons: IconResolver
   theme?: Theme
+  /** Draw travelling dashes along every edge. Off by default: a still SVG must stay byte-identical. */
+  flow?: boolean
 }
 
-export function Diagram({ root, ir, icons, theme = defaultTheme }: DiagramProps) {
+export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: DiagramProps) {
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
   // The title sits above the graph rather than inside it, so ELK's box is left untouched.
   const band = ir.title ? TITLE_BAND : 0
@@ -83,6 +127,7 @@ export function Diagram({ root, ir, icons, theme = defaultTheme }: DiagramProps)
       style={{ fontFamily: theme.fontFamily }}
     >
       <title>{ir.title ?? 'architecture diagram'}</title>
+      {flow ? <style>{flowCss()}</style> : null}
       <defs>
         <marker
           id="archdraw-arrow"
@@ -105,7 +150,7 @@ export function Diagram({ root, ir, icons, theme = defaultTheme }: DiagramProps)
         </text>
       ) : null}
       <g transform={`translate(0, ${band})`}>
-        <Container node={root} byId={byId} icons={icons} theme={theme} ir={ir} />
+        <Container node={root} byId={byId} icons={icons} theme={theme} ir={ir} flow={flow} />
       </g>
     </svg>
   )
@@ -117,9 +162,10 @@ interface ContainerProps {
   icons: IconResolver
   theme: Theme
   ir: Ir
+  flow?: boolean
 }
 
-function Container({ node, byId, icons, theme, ir }: ContainerProps) {
+function Container({ node, byId, icons, theme, ir, flow }: ContainerProps) {
   return (
     <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
       {node.children?.map((child) => {
@@ -164,6 +210,7 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
                 icons={icons}
                 theme={theme}
                 ir={ir}
+                flow={flow}
               />
             </g>
           )
@@ -174,7 +221,7 @@ function Container({ node, byId, icons, theme, ir }: ContainerProps) {
       })}
       {/* Edges paint after the children; a group fill would cover them otherwise. */}
       {(node.edges as ElkExtendedEdge[] | undefined)?.map((edge) => (
-        <EdgePath key={edge.id} edge={edge} ir={ir} theme={theme} />
+        <EdgePath key={edge.id} edge={edge} ir={ir} byId={byId} theme={theme} flow={flow} />
       ))}
     </g>
   )
@@ -318,7 +365,19 @@ function Label({
   )
 }
 
-function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: Theme }) {
+function EdgePath({
+  edge,
+  ir,
+  byId,
+  theme,
+  flow,
+}: {
+  edge: ElkExtendedEdge
+  ir: Ir
+  byId: Map<string, FlatNode>
+  theme: Theme
+  flow?: boolean
+}) {
   const section = edge.sections?.[0]
   if (!section) return null
 
@@ -340,6 +399,15 @@ function EdgePath({ edge, ir, theme }: { edge: ElkExtendedEdge; ir: Ir; theme: T
         strokeLinecap={meta?.style === 'dashed' ? 'round' : undefined}
         markerEnd="url(#archdraw-arrow)"
       />
+      {/* A second path over the first: the line stays where it was and only the dashes travel. */}
+      {flow ? (
+        <path
+          className="archdraw-flow"
+          d={d}
+          fill="none"
+          stroke={flowColour(theme, byId.get(meta?.from ?? ''), byId.get(meta?.to ?? ''))}
+        />
+      ) : null}
       {meta?.label && label ? (
         <text
           x={(label.x ?? 0) + (label.width ?? 0) / 2}

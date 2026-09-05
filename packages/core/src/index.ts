@@ -1,6 +1,7 @@
 import type { ElkNode } from 'elkjs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { parse as parseYaml } from 'yaml'
+import { page } from './html.js'
 import { createResolver, type IconPack, type IconResolver } from './icons.js'
 import { layout } from './layout.js'
 import type { Ir } from './normalize.js'
@@ -43,6 +44,26 @@ function toResolver(icons: RenderOptions['icons']): IconResolver {
   if (!icons) return createResolver()
   if ('resolve' in icons) return icons
   return Array.isArray(icons) ? createResolver(...icons) : createResolver(icons)
+}
+
+/** The SVG plus a page around it: dashes travelling along every edge, and pan and zoom. */
+export async function renderToHtml(
+  source: string | unknown,
+  options: RenderOptions = {},
+): Promise<string> {
+  const ir = normalize(typeof source === 'string' ? parse(source) : source)
+  const root = await layout(ir)
+  options.onLayout?.(ir, root)
+  const theme = options.theme ?? defaultTheme
+  const svg = renderToStaticMarkup(
+    Diagram({ root, ir, icons: toResolver(options.icons), theme, flow: true }),
+  )
+  return page(
+    svg,
+    ir.title ?? 'architecture diagram',
+    theme,
+    ir.nodes.some((n) => n.external),
+  )
 }
 
 /** source -> validated IR -> ELK layout -> SVG string. Touches no DOM. */
