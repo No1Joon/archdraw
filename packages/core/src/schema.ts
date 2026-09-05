@@ -20,6 +20,8 @@ export const FlatNodeSchema = z
     shape: z.enum(['icon', 'card']).optional(),
     /** Address this node answers on. Drawn above the mark, apart from the service name. */
     domain: z.string().optional(),
+    /** Outside the system being drawn. Everything inside a group marked this way is too. */
+    external: z.boolean().optional(),
   })
   .strict()
 

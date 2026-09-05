@@ -11,6 +11,8 @@ export interface FlatNode {
   isGroup: boolean
   shape: 'icon' | 'card'
   domain?: string
+  /** Outside the system being drawn — resolved, so a child of an external group carries it too. */
+  external: boolean
 }
 
 export interface Ir {
@@ -46,6 +48,9 @@ export function normalize(input: unknown): Ir {
   const doc = parsed.data
   const nodes: FlatNode[] = []
   const seen = new Set<string>()
+  // What each entry said about itself. Inheritance is resolved once the parents are all known,
+  // because the flat form names a parent that may be declared further down the file.
+  const saidExternal = new Map<string, boolean>()
 
   const walk = (entry: NodeEntry, parent: string | null, declared = false): void => {
     if (seen.has(entry.id)) {
@@ -65,7 +70,9 @@ export function normalize(input: unknown): Ir {
       domain: entry.domain,
       parent: entry.parent ?? parent,
       isGroup,
+      external: false,
     })
+    if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
     for (const child of entry.children ?? []) walk(child, entry.id)
   }
@@ -106,6 +113,21 @@ export function normalize(input: unknown): Ir {
     for (const end of [edge.from, edge.to] as const) {
       if (!seen.has(end)) {
         throw new DiagramError(`Edge ${edge.from} -> ${edge.to} references unknown node '${end}'.`)
+      }
+    }
+  }
+
+  // The nearest word wins: a group says it for everything inside it, a child may say otherwise.
+  for (const node of nodes) {
+    for (
+      let cursor: string | null = node.id;
+      cursor !== null;
+      cursor = parentOf.get(cursor) ?? null
+    ) {
+      const said = saidExternal.get(cursor)
+      if (said !== undefined) {
+        node.external = said
+        break
       }
     }
   }

@@ -412,6 +412,19 @@ describe('archdraw render', () => {
   })
 })
 
+describe('an .html out path', () => {
+  it('writes a page that animates, where the same diagram as svg does not', () => {
+    const out = join(tmpdir(), 'archdraw-flow.html')
+    rmSync(out, { force: true })
+    const { code, stderr } = run(['-', '-o', out], diagram)
+    expect(code, stderr).toBe(0)
+    const html = readFileSync(out, 'utf8')
+    expect(html.startsWith('<!doctype html>')).toBe(true)
+    expect(html).toContain('@keyframes archdraw-flow')
+    expect(run(['-'], diagram).stdout).not.toContain('archdraw-flow')
+  })
+})
+
 describe('provider resolution', () => {
   const gcp = 'provider: gcp\nnodes:\n  - { id: a, type: gke }\n'
 

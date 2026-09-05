@@ -14,6 +14,7 @@ import {
   type Ir,
   normalize,
   parse,
+  renderToHtml,
   renderToSvg,
   type Theme,
   toJsonSchema,
@@ -143,9 +144,12 @@ function reportProviderDrift(ir: Ir, flag: string | undefined) {
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
 program
   .command('render', { isDefault: true })
-  .description('Render a diagram file to SVG or PNG.')
+  .description('Render a diagram file to SVG, PNG or an animated HTML page.')
   .argument('<input>', "diagram YAML or JSON file, or '-' to read stdin")
-  .option('-o, --out <file>', 'output path; .png renders a raster, anything else writes SVG')
+  .option(
+    '-o, --out <file>',
+    'output path; .png renders a raster, .html an animated page, anything else writes SVG',
+  )
   .option(
     '-p, --provider <names>',
     "icon packs to load, comma separated; defaults to the diagram's own `provider`",
@@ -169,12 +173,15 @@ program
         console.error('ok')
         return
       }
-      const svg = await renderToSvg(document, {
+      // Only the page can hold motion, so the extension picks the renderer, not just the writer.
+      const render =
+        extname(options.out ?? '').toLowerCase() === '.html' ? renderToHtml : renderToSvg
+      const markup = await render(document, {
         icons,
         theme: themeFor(options.theme),
         onLayout: (laid, root) => reportDetours(detours(laid, root), laid),
       })
-      write(svg, options.out, scaleFor(options.scale))
+      write(markup, options.out, scaleFor(options.scale))
     })
   })
 
@@ -362,13 +369,13 @@ function scaleFor(input: string): number {
   return scale
 }
 
-function write(svg: string, out: string | undefined, scale: number) {
+function write(markup: string, out: string | undefined, scale: number) {
   if (!out) {
-    process.stdout.write(svg)
+    process.stdout.write(markup)
     return
   }
   if (extname(out).toLowerCase() === '.png') {
-    const png = new Resvg(svg, {
+    const png = new Resvg(markup, {
       fitTo: { mode: 'zoom', value: scale },
       font: { loadSystemFonts: false, fontFiles: [FONT], defaultFontFamily: 'Noto Sans KR' },
     })
@@ -376,7 +383,7 @@ function write(svg: string, out: string | undefined, scale: number) {
       .asPng()
     writeFileSync(out, png)
   } else {
-    writeFileSync(out, svg)
+    writeFileSync(out, markup)
   }
   console.error(`wrote ${out}`)
 }

@@ -44,7 +44,7 @@ archdraw schema [--flat]                                  # print the input cont
 
 | Option | |
 |---|---|
-| `-o, --out <file>` | `.png` rasterises, anything else is SVG. Omit for stdout |
+| `-o, --out <file>` | `.png` rasterises, `.html` writes one self-contained page with the traffic moving along the edges, anything else is SVG. Omit for stdout |
 | `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to the diagram's own `provider` |
 | `-s, --scale <n>` | PNG scale factor, between 0 and 10. Defaults to `2` |
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |

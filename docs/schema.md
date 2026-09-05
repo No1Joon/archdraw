@@ -28,6 +28,7 @@
 | `parent` | string \| null | — | The containing id, in the flat shape |
 | `shape` | `icon` \| `card` | — | This node's presentation. Overrides the diagram default |
 | `domain` | string | — | The address this node answers on. Drawn small **above** the mark, so it does not blend into the service name |
+| `external` | boolean | — | This is outside the system being drawn. Everything inside a group marked so is too, unless it says otherwise. Only an animated HTML render uses it, to colour traffic arriving, staying and leaving |
 | `children` | Node[] | — | Child nodes, in the nested shape |
 
 A multi-line label mirrors how reference architectures write an identifier under the name.

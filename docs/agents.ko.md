@@ -18,6 +18,7 @@ cat diagram.yaml | npx archdraw - --check
 
 # 3. 그린다
 cat diagram.yaml | npx archdraw - -o out.png -s 2
+npx archdraw diagram.yaml -o out.html         # 자족형 페이지 하나. 트래픽이 흐른다
 npx archdraw diagram.yaml -o out.svg          # 파일도 된다
 npx archdraw diagram.yaml                     # -o 생략 시 stdout 으로 SVG
 ```
@@ -28,6 +29,8 @@ npx archdraw diagram.yaml                     # -o 생략 시 stdout 으로 SVG
 npx archdraw schema          # JSON Schema (중첩 형 포함)
 npx archdraw schema --flat   # 평면 형만
 ```
+
+`.html` 은 같은 그림에 점이 엣지 방향으로 흘러가고 팬·줌이 붙은 것이다. 파일 하나로 끝나 띄울 서버가 없다. 시스템이 소유하지 않는 것에 `external: true` 를 달면 — 노드마다 달아도 되고 그것들을 담은 그룹에 한 번 달아도 된다 — 밖에서 들어오는·안에 머무는·밖으로 나가는 트래픽이 세 색으로 갈리고 범례가 붙는다. 아무 말도 안 하면 전부 안쪽이라 한 색이고 범례도 없다.
 
 ## 오류를 신호로 쓴다
 

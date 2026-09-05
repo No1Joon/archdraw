@@ -1,7 +1,7 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
-import { parse as parseYaml, renderToSvg } from './index.js'
+import { darkTheme, defaultTheme, parse as parseYaml, renderToHtml, renderToSvg } from './index.js'
 import { DiagramError, normalize } from './normalize.js'
 
 const pack: IconPack = {
@@ -524,6 +524,82 @@ describe('renderToSvg', () => {
   it('renders a stable SVG', async () => {
     const svg = await renderToSvg(nested, { icons: pack })
     expect(svg).toMatchSnapshot()
+  })
+
+  it('leaves the still picture unanimated', async () => {
+    const svg = await renderToSvg(nested, { icons: pack })
+    expect(svg).not.toContain('archdraw-flow')
+  })
+})
+
+const sides = `
+provider: test
+groups:
+  - id: outside
+    label: Outside
+    external: true
+    children:
+      - { id: browser, label: Browser }
+nodes:
+  - { id: api, type: ecs, label: api }
+  - { id: db, type: rds, label: db }
+  - { id: stripe, label: Stripe, external: true }
+edges:
+  - { from: browser, to: api }
+  - { from: api, to: db }
+  - { from: api, to: stripe }
+`
+
+describe('external', () => {
+  it('carries the word of a group down to everything inside it', () => {
+    const ir = normalize(parseYaml(sides))
+    expect(ir.nodes.find((n) => n.id === 'browser')?.external).toBe(true)
+    expect(ir.nodes.find((n) => n.id === 'api')?.external).toBe(false)
+  })
+
+  it('leaves a diagram that never says it entirely inside', () => {
+    const ir = normalize(parseYaml(nested))
+    expect(ir.nodes.every((n) => !n.external)).toBe(true)
+  })
+})
+
+describe('renderToHtml', () => {
+  it('animates one flow path per edge, over the drawn route', async () => {
+    const html = await renderToHtml(nested, { icons: pack })
+    const flows = html.match(/class="archdraw-flow"/g) ?? []
+    // The overlay traces the same `d` as the line under it; a route ELK bent is followed, not cut.
+    expect(flows).toHaveLength(1)
+    expect(html).toContain('@keyframes archdraw-flow')
+    expect(html).toContain('prefers-reduced-motion')
+  })
+
+  it('carries the whole page with it — no network and nothing to serve it from', async () => {
+    const html = await renderToHtml(nested, { icons: pack })
+    expect(html.startsWith('<!doctype html>')).toBe(true)
+    expect(html).toContain('<svg')
+    expect(html).not.toMatch(/(src|href)="https?:/)
+  })
+
+  it('colours a flow by the boundary it crosses', async () => {
+    const html = await renderToHtml(sides, { icons: pack })
+    // Three edges, three colours: in from outside, inside, and back out.
+    expect(html.match(/class="archdraw-flow"/g)).toHaveLength(3)
+    expect(html).toContain(`stroke="${defaultTheme.flowIn}"`)
+    expect(html).toContain(`stroke="${defaultTheme.flow}"`)
+    expect(html).toContain(`stroke="${defaultTheme.flowOut}"`)
+    expect(html).toContain('from outside')
+  })
+
+  it('leaves the legend off a diagram that names nothing outside', async () => {
+    const html = await renderToHtml(nested, { icons: pack })
+    expect(html).not.toContain('from outside')
+    expect(html).not.toContain(String(defaultTheme.flowIn))
+  })
+
+  it('paints the page in the theme the diagram was drawn with', async () => {
+    const html = await renderToHtml(nested, { icons: pack, theme: darkTheme })
+    expect(html).toContain(darkTheme.background)
+    expect(html).toContain(String(darkTheme.flow))
   })
 })
 
