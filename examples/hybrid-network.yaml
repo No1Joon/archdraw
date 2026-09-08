@@ -1,0 +1,77 @@
+# Hybrid — the picture is about the link, so the two sides sit side by side and the circuits are the only edges crossing.
+provider: aws,brands
+title: hybrid network — datacenter to VPC
+direction: RIGHT
+
+groups:
+  - id: corp
+    label: Corporate datacenter
+    kind: group
+    external: true
+    children:
+      - id: corp-net
+        label: Core network
+        kind: group
+        children:
+          - { id: fw, type: fortinet, label: "Firewall\n(HA pair)" }
+          - { id: router, type: cisco, label: "Border router" }
+      - id: corp-app
+        label: Legacy systems
+        kind: group
+        children:
+          - { id: erp, label: "ERP\n(SAP)" }
+          - { id: oracle, label: "Oracle DB\n(11g)" }
+          - { id: ad, label: "Active Directory" }
+
+  - id: link
+    label: Interconnect
+    kind: group
+    children:
+      - { id: dx, type: aws-direct-connect, label: "Direct Connect\n(10 Gbps)" }
+      - { id: dxgw, type: aws-direct-connect-gateway, label: "DX Gateway" }
+      - { id: vpn, type: aws-site-to-site-vpn, label: "Site-to-Site VPN\n(backup)" }
+      - { id: tgw, type: aws-transit-gateway, label: "Transit Gateway" }
+
+  - id: vpc-prod
+    label: VPC — prod (10.0.0.0/16)
+    kind: vpc
+    type: vpc
+    children:
+      - id: sn-app
+        label: App subnet
+        kind: subnet
+        children:
+          - { id: eks, type: eks, label: "EKS\n(workloads)" }
+          - { id: nlb, type: elastic-load-balancing-network-load-balancer, label: "NLB\n(internal)" }
+      - id: sn-data
+        label: Data subnet
+        kind: subnet
+        children:
+          - { id: rds, type: rds, label: "RDS\n(postgres)" }
+          - { id: efs, type: amazon-efs, label: "EFS" }
+
+  - id: vpc-shared
+    label: VPC — shared services
+    kind: vpc
+    type: vpc
+    children:
+      - { id: dns, type: route53, label: "Route 53 Resolver\n(inbound endpoint)" }
+      - { id: bastion, type: aws-systems-manager, label: "SSM Session Manager" }
+
+edges:
+  - { from: erp, to: router }
+  - { from: oracle, to: router }
+  - { from: router, to: fw }
+  - { from: fw, to: dx, label: "BGP" }
+  - { from: fw, to: vpn, label: "IPsec\n(failover)", style: dashed }
+  - { from: dx, to: dxgw }
+  - { from: dxgw, to: tgw }
+  - { from: vpn, to: tgw, style: dashed }
+  - { from: tgw, to: vpc-prod, label: "attachment" }
+  - { from: tgw, to: vpc-shared, label: "attachment" }
+  - { from: nlb, to: eks }
+  - { from: eks, to: rds, label: SQL }
+  - { from: eks, to: efs }
+  - { from: eks, to: dns, label: "resolve corp.local", style: dashed }
+  - { from: dns, to: ad, label: "forward", style: dashed }
+  - { from: bastion, to: eks, style: dashed }

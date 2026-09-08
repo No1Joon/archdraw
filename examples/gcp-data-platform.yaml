@@ -1,0 +1,54 @@
+# GCP convention — card shape puts the name beside the mark, and the tiers stack downward.
+provider: gcp
+title: GCP data platform — ingest to dashboard
+direction: DOWN
+shape: card
+
+groups:
+  - id: sources
+    label: Sources
+    kind: group
+    external: true
+    children:
+      - { id: web, label: "Web app\n(events)" }
+      - { id: pos, type: iot-core, label: "Store terminals" }
+      - { id: saas, label: "SaaS exports" }
+
+  - id: ingest
+    label: Ingest
+    kind: group
+    children:
+      - { id: lb, type: cloud-load-balancing, label: "Cloud Load Balancing" }
+      - { id: collector, type: cloud-run, label: "collector" }
+      - { id: pubsub, type: pubsub, label: "Pub/Sub" }
+      - { id: transfer, type: cloud-storage, label: "Cloud Storage\n(landing)" }
+
+  - id: process
+    label: Process
+    kind: group
+    children:
+      - { id: dataflow, type: dataflow, label: "Dataflow\n(streaming)" }
+      - { id: composer, type: cloud-composer, label: "Cloud Composer\n(batch DAGs)" }
+      - { id: dq, label: "Great Expectations\n(data quality)" }
+
+  - id: serve
+    label: Serve
+    kind: group
+    children:
+      - { id: bq, type: bigquery, label: "BigQuery\n(warehouse)" }
+      - { id: bt, type: bigtable, label: "Bigtable\n(serving)" }
+      - { id: looker, type: looker, label: Looker }
+
+edges:
+  - { from: web, to: lb, label: https }
+  - { from: pos, to: lb }
+  - { from: saas, to: transfer, label: nightly }
+  - { from: lb, to: collector }
+  - { from: collector, to: pubsub, label: publish }
+  - { from: pubsub, to: dataflow }
+  - { from: transfer, to: composer }
+  - { from: dataflow, to: bq, label: stream insert }
+  - { from: dataflow, to: bt }
+  - { from: composer, to: bq, label: load }
+  - { from: bq, to: dq, style: dashed }
+  - { from: bq, to: looker, label: SQL }

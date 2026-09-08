@@ -1,0 +1,66 @@
+# Serverless — no server to place, so the boundaries are the account and the managed services it calls.
+provider: aws,brands
+title: serverless API — event-driven backend
+direction: RIGHT
+
+groups:
+  - id: clients
+    label: Clients
+    kind: group
+    external: true
+    children:
+      - { id: spa, type: client, label: "Browser\n(SPA)" }
+      - { id: app, type: mobile-client, label: Mobile }
+
+  - id: edge
+    label: Edge
+    kind: group
+    children:
+      - { id: cdn, type: cloudfront, label: CloudFront, domain: app.example.com }
+      - { id: site, type: s3, label: "S3\n(static site)" }
+      - { id: apigw, type: apigw, label: "API Gateway\n(HTTP API)", domain: api.example.com }
+      - { id: cognito, type: amazon-cognito, label: "Cognito\n(user pool)" }
+
+  - id: compute
+    label: Functions
+    kind: group
+    children:
+      - { id: fn-read, type: lambda, label: "read\n(Lambda)" }
+      - { id: fn-write, type: lambda, label: "write\n(Lambda)" }
+      - { id: fn-worker, type: lambda, label: "worker\n(Lambda)" }
+      - { id: sfn, type: aws-step-functions, label: "Step Functions\n(order saga)" }
+
+  - id: state
+    label: State
+    kind: group
+    children:
+      - { id: ddb, type: dynamodb, label: "DynamoDB\n(orders)" }
+      - { id: queue, type: sqs, label: "SQS\n(jobs)" }
+      - { id: bus, type: eventbridge, label: "EventBridge\n(domain events)" }
+      - { id: uploads, type: s3, label: "S3\n(uploads)" }
+
+  - id: external
+    label: External
+    kind: group
+    external: true
+    children:
+      - { id: stripe, type: stripe, label: Stripe }
+      - { id: sentry, type: sentry, label: Sentry }
+
+edges:
+  - { from: spa, to: cdn, label: https }
+  - { from: app, to: apigw, label: REST }
+  - { from: cdn, to: site }
+  - { from: cdn, to: apigw, label: /api/* }
+  - { from: apigw, to: cognito, label: authorize, style: dashed }
+  - { from: apigw, to: fn-read }
+  - { from: apigw, to: fn-write }
+  - { from: fn-read, to: ddb, label: query }
+  - { from: fn-write, to: ddb, label: put }
+  - { from: fn-write, to: bus, label: publish }
+  - { from: bus, to: queue }
+  - { from: queue, to: fn-worker }
+  - { from: fn-worker, to: uploads }
+  - { from: bus, to: sfn }
+  - { from: sfn, to: stripe, label: charge, style: dashed }
+  - { from: fn-worker, to: sentry, style: dashed }

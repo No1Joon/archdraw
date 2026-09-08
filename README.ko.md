@@ -106,13 +106,30 @@ npx archdraw examples/startup.yaml -o startup.png
 
 ![enterprise 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/enterprise.png)
 
+### 그 밖 — 같은 문법이 취하는 다른 모양들
+
+렌더 방법은 같고, 이 열 개는 이미지를 커밋해 두지 않았다.
+
+| 파일 | 보여주는 것 |
+|---|---|
+| [`serverless-api.yaml`](./examples/serverless-api.yaml) | API Gateway·Lambda·EventBridge — 놓을 서버가 없고 관리형 서비스뿐이다 |
+| [`gcp-data-platform.yaml`](./examples/gcp-data-platform.yaml) | GCP 를 `shape: card` 와 `direction: DOWN` 으로, 계층을 쌓아서 |
+| [`k8s-onprem.yaml`](./examples/k8s-onprem.yaml) | 자체 호스팅만 — 제품 자신의 마크를 쓰고 관리형 아이콘을 대신 세우지 않는다 |
+| [`ml-platform.yaml`](./examples/ml-platform.yaml) | 생성기가 뱉는 평면 형, 팩 둘을 동시에 |
+| [`iot-telemetry.yaml`](./examples/iot-telemetry.yaml) | `external` 로 표시한 기기군에서 시작해 핫·콜드 저장으로 흘러든다 |
+| [`cicd-gitops.yaml`](./examples/cicd-gitops.yaml) | 배포 파이프라인 — 클러스터 둘이 그 종착지다 |
+| [`hybrid-network.yaml`](./examples/hybrid-network.yaml) | 데이터센터와 깊게 중첩된 VPC 서브넷 사이의 Direct Connect·VPN |
+| [`jamstack-edge.yaml`](./examples/jamstack-edge.yaml) | 처음부터 끝까지 관리형 플랫폼, 마크가 없는 자리는 아이콘 없는 상자로 |
+| [`batch-etl.yaml`](./examples/batch-etl.yaml) | `wrap: true` 가 긴 사슬을 접는 모습과 그 대가인 읽는 순서 |
+| [`multicloud.yaml`](./examples/multicloud.yaml) | 세 팩을 한꺼번에 — AWS 서빙 옆에 GCP 분석 |
+
 ## 문서
 
 | | |
 |---|---|
 | [`docs/schema.ko.md`](./docs/schema.ko.md) | 입력 계약 — 전체 필드, 두 가지 입력 형태, 거부되는 것 |
 | [`docs/agents.ko.md`](./docs/agents.ko.md) | 에이전트 사용법 — 어휘 탐색 → 검증 → 렌더 |
-| [`examples/`](./examples) | 위 [예제](#예제) 네 개의 원본 YAML |
+| [`examples/`](./examples) | 위 [예제](#예제) 전부의 원본 YAML |
 
 ## 패키지
 

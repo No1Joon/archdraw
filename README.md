@@ -108,13 +108,30 @@ Accounts draw the boundaries and two regions run in parallel. EKS, Aurora Global
 
 ![enterprise example](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/enterprise.png)
 
+### More — other shapes the same syntax takes
+
+Rendered the same way; no image is checked in for these.
+
+| File | What it shows |
+|---|---|
+| [`serverless-api.yaml`](./examples/serverless-api.yaml) | API Gateway, Lambda and EventBridge — there is no server to place, only managed services |
+| [`gcp-data-platform.yaml`](./examples/gcp-data-platform.yaml) | GCP with `shape: card` and `direction: DOWN`, the tiers stacked |
+| [`k8s-onprem.yaml`](./examples/k8s-onprem.yaml) | Self-hosted only — each product's own mark, with no managed icon standing in |
+| [`ml-platform.yaml`](./examples/ml-platform.yaml) | The flat shape a generator emits, drawing from two packs at once |
+| [`iot-telemetry.yaml`](./examples/iot-telemetry.yaml) | A fleet marked `external`, then streaming into hot and cold storage |
+| [`cicd-gitops.yaml`](./examples/cicd-gitops.yaml) | A delivery pipeline whose two clusters are where it lands |
+| [`hybrid-network.yaml`](./examples/hybrid-network.yaml) | Direct Connect and VPN between a datacenter and deeply nested VPC subnets |
+| [`jamstack-edge.yaml`](./examples/jamstack-edge.yaml) | Managed platforms end to end, with icon-less boxes where no mark exists |
+| [`batch-etl.yaml`](./examples/batch-etl.yaml) | `wrap: true` folding a long chain, and the reading order that costs |
+| [`multicloud.yaml`](./examples/multicloud.yaml) | All three packs at once — AWS serving beside GCP analytics |
+
 ## Docs
 
 | | |
 |---|---|
 | [`docs/schema.md`](./docs/schema.md) | The input contract — every field, both input shapes, what gets rejected |
 | [`docs/agents.md`](./docs/agents.md) | Using it from an agent — explore vocabulary → validate → render |
-| [`examples/`](./examples) | The source YAML for the four [examples](#examples) above |
+| [`examples/`](./examples) | The source YAML for every [example](#examples) above |
 
 ## Packages
 

@@ -1,0 +1,48 @@
+# Long chain — a nightly pipeline is a single line of stages, so wrap folds it into rows instead of one endless strip.
+provider: aws,brands
+title: nightly ETL — a chain long enough to wrap
+direction: RIGHT
+wrap: true
+
+nodes:
+  - { id: src, type: rds, label: "RDS\n(oltp)" }
+  - { id: dms, type: aws-database-migration-service, label: "DMS\n(CDC)" }
+  - { id: raw, type: s3, label: "S3\n(raw)" }
+  - { id: crawler, type: aws-glue-crawler, label: "Glue crawler" }
+  - { id: catalog, type: aws-glue-data-catalog, label: "Glue catalog" }
+  - { id: clean, type: aws-glue, label: "Glue job\n(clean)" }
+  - { id: staged, type: s3, label: "S3\n(staged)" }
+  - { id: dq, type: aws-glue-data-quality, label: "Glue data quality" }
+  - { id: emr, type: amazon-emr, label: "EMR\n(aggregate)" }
+  - { id: curated, type: s3, label: "S3\n(curated)" }
+  - { id: copy, type: amazon-redshift, label: "Redshift COPY" }
+  - { id: dbt, label: "dbt\n(marts)" }
+  - { id: marts, type: amazon-redshift, label: "Redshift\n(marts)" }
+  - { id: quicksight, type: grafana, label: "Grafana\n(BI)" }
+  - { id: reverse, type: lambda, label: "reverse ETL\n(Lambda)" }
+  - { id: crm, label: "Salesforce", external: true }
+
+  - { id: orchestration, label: Orchestration, kind: group }
+  - { id: mwaa, type: amazon-managed-workflows-for-apache-airflow, label: "MWAA\n(Airflow)", parent: orchestration }
+  - { id: alerts, type: sns, label: "SNS\n(failures)", parent: orchestration }
+
+edges:
+  - { from: src, to: dms, label: CDC }
+  - { from: dms, to: raw }
+  - { from: raw, to: crawler }
+  - { from: crawler, to: catalog }
+  - { from: catalog, to: clean }
+  - { from: clean, to: staged }
+  - { from: staged, to: dq }
+  - { from: dq, to: emr }
+  - { from: emr, to: curated }
+  - { from: curated, to: copy }
+  - { from: copy, to: dbt }
+  - { from: dbt, to: marts }
+  - { from: marts, to: quicksight }
+  - { from: marts, to: reverse }
+  - { from: reverse, to: crm, label: upsert }
+  - { from: mwaa, to: clean, style: dashed }
+  - { from: mwaa, to: emr, style: dashed }
+  - { from: mwaa, to: dbt, style: dashed }
+  - { from: dq, to: alerts, label: "on failure", style: dashed }
