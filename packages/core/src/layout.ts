@@ -134,11 +134,13 @@ export async function layout(ir: Ir): Promise<ElkNode> {
           // A minimum width, not a label: a sized label would take a layout cell and shove
           // the children aside.
           'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+          // The height keeps an empty group's box around its own header: with no children
+          // to push it open the box collapses under the label and the border crosses it.
           'elk.nodeSize.minimum': `(${
             GROUP_LABEL_INSET * 2 +
             (node.type ? GROUP_ICON + 8 : 0) +
             labelWidth(node.label, GROUP_LABEL_SIZE)
-          },0)`,
+          },${GROUP_HEADER})`,
           'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
         },
         children: build(node.id),

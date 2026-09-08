@@ -21,13 +21,14 @@ archdraw types <query...> [-p aws,brands]                  # search types; sever
 archdraw schema [--flat]                                   # input contract as JSON Schema
 ```
 
-`-o` ending in `.png` rasterises, anything else is SVG. `-s` is the PNG scale (0–10, default 2). `--theme` is `light` or `dark`.
+`-o` ending in `.png` rasterises, `.html` is an animated page, anything else is SVG. `-s` is the PNG scale (0–10, default 2). `--theme` is `light` or `dark`.
 
 ## Rules
 
 - **Never guess a `type`.** Run `archdraw types <query...>` first, and pass every type the diagram needs in one run — each match is listed under a `# query` heading. An unresolved type is an error with candidates attached, never a silent substitution — a wrong icon rendered as though it were right makes the diagram lie.
 - **A component with no icon takes no `type`.** It renders as a labelled box, which is correct. Do not force a vaguely similar icon onto it.
 - **A workload takes no icon from the platform it runs on.** Three services on GKE are not three GKE, and three tasks on ECS are not three ECS. Put the platform on the group once, as `kind` plus `type`, and leave the services inside it without a `type`.
+- **`kind` marks a container, not a service name.** An entry carrying `kind` becomes a group whether or not it names children, so `kind` written on an ordinary node draws it as an empty box. The value names what the container is (`vpc`, `region`, `account`, the platform a group runs on); what a node *is* goes in `type`.
 - **A product and its managed service are different icons.** The deployment decides — self-hosted takes the product's mark from `brands`, a managed offering takes the vendor pack's. `redis` is not `amazon-elasticache`; `postgresql` is not `amazon-rds`.
 - **An alias is a shortcut, not a ruling.** `postgres` resolves to `postgresql`, the self-hosted mark, so a managed "RDS Postgres" wants `rds`. Search the vendor pack too and choose between the results.
 - **Read the errors and act on them.** They name what is wrong and what to fix. Do not substitute a value of your own.
