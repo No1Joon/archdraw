@@ -24,7 +24,7 @@
 | `id` | string | ✓ | **`A-Z a-z 0-9 - _` only.** Dots, spaces and non-Latin scripts are rejected |
 | `label` | string | — | The displayed name; any script is fine. Defaults to `id`. Split lines with `\n` to hang an identifier or URL under the name |
 | `type` | string | — | A service slug or alias (`ecs`, `s3`). Drawn as an icon on a leaf, as a header badge on a container |
-| `kind` | string | — | Marks a container (`vpc`, `region`, `account`…). Pair it with `type` to put an icon in the header |
+| `kind` | string | — | Names what a container is (`vpc`, `region`, `account`…). Pair it with `type` to put an icon in the header. It does not make a node a container |
 | `parent` | string \| null | — | The containing id, in the flat shape |
 | `shape` | `icon` \| `card` | — | This node's presentation. Overrides the diagram default |
 | `domain` | string | — | The address this node answers on. Drawn small **above** the mark, so it does not blend into the service name |
@@ -37,9 +37,9 @@ A multi-line label mirrors how reference architectures write an identifier under
 - { id: cdn, type: cloudfront, label: "CloudFront\n(E3B54WIT00QZZG)\n(portal.example.com)" }
 ```
 
-With neither `type` nor `kind`, a node is drawn as a **labelled box** — use it for third-party or self-hosted components that have no vendor icon.
+With no `type`, a node is drawn as a **labelled box** — use it for third-party or self-hosted components that have no vendor icon.
 
-A node is a container if it has `kind` or `children`.
+A node is a container if it has `children`, is listed under `groups`, or something names it as its `parent`. `kind` labels a container; it does not make one.
 
 ## Edge
 
