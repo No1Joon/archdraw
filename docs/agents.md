@@ -25,6 +25,8 @@ npx archdraw diagram.yaml                     # without -o, SVG goes to stdout
 
 `.html` is the same drawing with dots travelling along every edge in the direction it points, and pan and zoom. It is one file with nothing to serve it from. Mark whatever the system does not own with `external: true` — on a node, or on the group that holds them all — and the traffic arriving from outside, staying inside, and leaving is drawn in three colours, with a legend. Say nothing and everything counts as inside, which is one colour and no legend.
 
+Name `scenarios` and the page grows a button per state. An element says when it is alive — `when: [normal]` on a node or an edge, `down: [cache-down]` on a node that has failed in that state — and saying nothing means alive in all of them. The graph is laid out once with everything present, so pressing a button changes what is drawn and never moves the picture. A name no scenario declares is an error rather than a line quietly missing.
+
 The input contract is in [`schema.md`](./schema.md), and the same content is available in machine-readable form.
 
 ```bash

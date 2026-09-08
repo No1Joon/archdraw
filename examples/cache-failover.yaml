@@ -1,0 +1,43 @@
+provider: aws,brands
+title: Orders API — cache failover
+direction: RIGHT
+
+scenarios:
+  - { id: normal, label: steady state }
+  - { id: cache-down, label: Redis is down }
+  - { id: az-loss, label: an AZ is lost }
+
+groups:
+  - id: edge
+    label: edge
+    kind: group
+    children:
+      - { id: users, label: browsers, external: true }
+      - { id: alb, type: alb, label: public alb }
+
+  - id: az-a
+    label: az-a
+    kind: subnet
+    children:
+      - { id: api-a, type: ecs, label: "orders api\n(az-a)" }
+
+  - id: az-b
+    label: az-b
+    kind: subnet
+    children:
+      - { id: api-b, type: ecs, label: "orders api\n(az-b)", down: [az-loss] }
+
+  - id: data
+    label: data
+    kind: group
+    children:
+      - { id: redis, type: redis, label: "Redis\n(self-hosted)", down: [cache-down] }
+      - { id: rds, type: rds, label: RDS PostgreSQL }
+
+edges:
+  - { from: users, to: alb, label: https }
+  - { from: alb, to: api-a, label: http }
+  - { from: alb, to: api-b, label: http, when: [normal, cache-down] }
+  - { from: api-a, to: redis, label: get, when: [normal, az-loss] }
+  - { from: api-a, to: rds, label: "read through", when: [cache-down] }
+  - { from: api-a, to: rds, label: write }

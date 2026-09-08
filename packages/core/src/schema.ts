@@ -22,6 +22,10 @@ export const FlatNodeSchema = z
     domain: z.string().optional(),
     /** Outside the system being drawn. Everything inside a group marked this way is too. */
     external: z.boolean().optional(),
+    /** Scenarios this is alive in. Omitted means every one of them. */
+    when: z.array(Id).optional(),
+    /** Scenarios this is failed in — drawn as down rather than merely absent. */
+    down: z.array(Id).optional(),
   })
   .strict()
 
@@ -42,6 +46,16 @@ export const EdgeSchema = z
     to: Id,
     label: z.string().optional(),
     style: z.enum(['solid', 'dashed']).default('solid'),
+    /** Scenarios this edge carries traffic in. Omitted means every one of them. */
+    when: z.array(Id).optional(),
+  })
+  .strict()
+
+/** A named state of the system. The page draws one button per scenario, in this order. */
+export const ScenarioSchema = z
+  .object({
+    id: Id,
+    label: z.string().optional(),
   })
   .strict()
 
@@ -53,6 +67,8 @@ const Base = {
   shape: z.enum(['icon', 'card']).default('icon'),
   /** Fold a long chain into several rows. Without it the canvas grows in one direction forever. */
   wrap: z.boolean().default(false),
+  /** States the diagram can be read in. Only the HTML page draws them; SVG and PNG show all. */
+  scenarios: z.array(ScenarioSchema).default([]),
   edges: z.array(EdgeSchema).default([]),
 }
 
@@ -87,3 +103,4 @@ export function toJsonSchema(form: 'input' | 'flat' = 'input'): Record<string, u
 export type Diagram = z.infer<typeof DiagramSchema>
 export type FlatDiagram = z.infer<typeof FlatDiagramSchema>
 export type Edge = z.infer<typeof EdgeSchema>
+export type Scenario = z.infer<typeof ScenarioSchema>

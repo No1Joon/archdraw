@@ -100,6 +100,15 @@ function flowCss(): string {
   ].join('')
 }
 
+/** Absent from the scene reads as faded; failed in it reads as drained of colour. */
+function sceneCss(): string {
+  return [
+    '.archdraw-off{opacity:.12}',
+    '.archdraw-off .archdraw-flow{animation:none;opacity:0}',
+    '.archdraw-down{filter:grayscale(1);opacity:.45}',
+  ].join('')
+}
+
 export interface DiagramProps {
   root: ElkNode
   ir: Ir
@@ -111,6 +120,9 @@ export interface DiagramProps {
 
 export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: DiagramProps) {
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
+  // Only the page can hold a state, so the marks ride with the animation and never reach a
+  // still SVG — that one shows every element, whatever the diagram says about scenes.
+  const scenes = flow === true && ir.scenarios.length > 0
   // The title sits above the graph rather than inside it, so ELK's box is left untouched.
   const band = ir.title ? TITLE_BAND : 0
   const width = Math.max(root.width ?? 0, ir.title ? labelWidth(ir.title, TITLE_SIZE) + 48 : 0)
@@ -128,6 +140,7 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
     >
       <title>{ir.title ?? 'architecture diagram'}</title>
       {flow ? <style>{flowCss()}</style> : null}
+      {scenes ? <style>{sceneCss()}</style> : null}
       <defs>
         <marker
           id="archdraw-arrow"
@@ -150,7 +163,15 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
         </text>
       ) : null}
       <g transform={`translate(0, ${band})`}>
-        <Container node={root} byId={byId} icons={icons} theme={theme} ir={ir} flow={flow} />
+        <Container
+          node={root}
+          byId={byId}
+          icons={icons}
+          theme={theme}
+          ir={ir}
+          flow={flow}
+          scenes={scenes}
+        />
       </g>
     </svg>
   )
@@ -163,9 +184,23 @@ interface ContainerProps {
   theme: Theme
   ir: Ir
   flow?: boolean
+  scenes?: boolean
 }
 
-function Container({ node, byId, icons, theme, ir, flow }: ContainerProps) {
+/** The page reads these back; a list it does not name means "in every scene". */
+function sceneMarks(
+  scenes: boolean | undefined,
+  when?: string[],
+  down?: string[],
+): { 'data-when'?: string; 'data-down'?: string } {
+  if (!scenes) return {}
+  return {
+    ...(when ? { 'data-when': when.join(' ') } : {}),
+    ...(down ? { 'data-down': down.join(' ') } : {}),
+  }
+}
+
+function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProps) {
   return (
     <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
       {node.children?.map((child) => {
@@ -173,7 +208,11 @@ function Container({ node, byId, icons, theme, ir, flow }: ContainerProps) {
         if (meta?.isGroup) {
           const badge = meta.type ? icons.resolve(meta.type) : undefined
           return (
-            <g key={child.id} transform={`translate(${child.x ?? 0}, ${child.y ?? 0})`}>
+            <g
+              key={child.id}
+              transform={`translate(${child.x ?? 0}, ${child.y ?? 0})`}
+              {...sceneMarks(scenes, meta.when, meta.down)}
+            >
               {/* A 6 4 dash. Dashed edges are round dots so a boundary never reads as an edge. */}
               <rect
                 width={child.width ?? 0}
@@ -211,17 +250,33 @@ function Container({ node, byId, icons, theme, ir, flow }: ContainerProps) {
                 theme={theme}
                 ir={ir}
                 flow={flow}
+                scenes={scenes}
               />
             </g>
           )
         }
-        return meta ? (
+        if (!meta) return null
+        // A wrapper only where there is something to toggle, so every other picture keeps the
+        // markup it had — the still SVG and its snapshots included.
+        return scenes && (meta.when || meta.down) ? (
+          <g key={child.id} {...sceneMarks(scenes, meta.when, meta.down)}>
+            <Node node={child} meta={meta} icons={icons} theme={theme} />
+          </g>
+        ) : (
           <Node key={child.id} node={child} meta={meta} icons={icons} theme={theme} />
-        ) : null
+        )
       })}
       {/* Edges paint after the children; a group fill would cover them otherwise. */}
       {(node.edges as ElkExtendedEdge[] | undefined)?.map((edge) => (
-        <EdgePath key={edge.id} edge={edge} ir={ir} byId={byId} theme={theme} flow={flow} />
+        <EdgePath
+          key={edge.id}
+          edge={edge}
+          ir={ir}
+          byId={byId}
+          theme={theme}
+          flow={flow}
+          scenes={scenes}
+        />
       ))}
     </g>
   )
@@ -371,12 +426,14 @@ function EdgePath({
   byId,
   theme,
   flow,
+  scenes,
 }: {
   edge: ElkExtendedEdge
   ir: Ir
   byId: Map<string, FlatNode>
   theme: Theme
   flow?: boolean
+  scenes?: boolean
 }) {
   const section = edge.sections?.[0]
   if (!section) return null
@@ -389,7 +446,7 @@ function EdgePath({
   const label = edge.labels?.[0]
 
   return (
-    <g>
+    <g {...sceneMarks(scenes, meta?.when)}>
       <path
         d={d}
         fill="none"

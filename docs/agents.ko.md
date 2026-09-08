@@ -23,6 +23,8 @@ npx archdraw diagram.yaml -o out.svg          # 파일도 된다
 npx archdraw diagram.yaml                     # -o 생략 시 stdout 으로 SVG
 ```
 
+`scenarios` 를 적으면 페이지에 상태마다 버튼이 하나씩 생긴다. 요소가 자기가 언제 살아 있는지 말한다 — 노드·엣지에 `when: [normal]`, 그 상태에서 죽은 노드에 `down: [cache-down]` — 아무 말도 안 하면 전부에서 살아 있다. 그래프는 모든 요소가 있는 채로 한 번만 배치하므로 버튼을 눌러도 그리는 것만 바뀌고 그림은 안 움직인다. 선언 안 된 이름을 쓰면 줄이 조용히 빠지는 게 아니라 오류다.
+
 입력 계약은 [`schema.ko.md`](./schema.ko.md) 에 있고, 같은 내용을 기계가 읽을 형태로도 낸다.
 
 ```bash
