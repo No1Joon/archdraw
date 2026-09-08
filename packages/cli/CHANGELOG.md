@@ -1,5 +1,21 @@
 # archdraw
 
+## 0.8.0
+
+### Minor Changes
+
+- e0a77f4: Draw the traffic, not just the wiring. `-o out.html` writes one self-contained page — no CDN, no build step, nothing to serve it from — carrying the same drawing with dots travelling along every edge in the direction it points, plus pan and zoom. One dash period per 1.2s means the same speed on a short edge and a long one, and `prefers-reduced-motion` turns it off.
+  
+  A node or group may now say `external: true`, meaning it is outside the system being drawn; everything inside such a group inherits it unless it says otherwise. The page then colours traffic by the boundary it crosses — arriving from outside, staying inside, leaving — and draws a legend. A diagram that never says it is all inside, in one colour and no legend, which is where every existing file starts.
+  
+  The still SVG and PNG are untouched: the animation is opt-in inside the renderer, so `renderToSvg` output is byte-identical to before.
+
+### Patch Changes
+
+- 35f05a6: Say that wrapping can cost the reading order, not just a detour. `wrap: true` folds on the layout's layer index rather than on the chain, so the main chain need not stay contiguous: of six diagrams measured under it, four send a reader backwards up the page, two bundled examples among them. The guidance offered wrapping for a long diagram and named only the detour it charges, so an agent had no reason to check the picture still reads.
+- Updated dependencies [e0a77f4]
+  - @archdraw/core@0.8.0
+
 ## 0.7.8
 
 ### Patch Changes
