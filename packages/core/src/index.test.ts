@@ -2,6 +2,7 @@ import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
 import { darkTheme, defaultTheme, parse as parseYaml, renderToHtml, renderToSvg } from './index.js'
+import { GROUP_HEADER } from './layout.js'
 import { DiagramError, normalize } from './normalize.js'
 
 const pack: IconPack = {
@@ -323,6 +324,15 @@ edges:
   - { from: cdn, to: api }
 `
 
+const empty = `
+provider: test
+nodes:
+  - { id: a, type: ecs, kind: Amazon ECS, label: Raw Data Lake }
+  - { id: b, type: rds, kind: Amazon RDS, label: Normalizer }
+edges:
+  - { from: a, to: b }
+`
+
 describe('layout', () => {
   it('hangs an edge off the lowest container holding both endpoints', async () => {
     const { layout, parse } = await import('./index.js')
@@ -340,6 +350,17 @@ describe('layout', () => {
 
     expect(root.edges?.map((edge) => edge.id)).toEqual(['e0'])
     expect(vpc?.edges ?? []).toHaveLength(0)
+  })
+
+  // `kind` makes a group of an entry that names no children, so an agent writing it as a
+  // service name turns every node into one of these.
+  it('keeps an empty group tall enough to hold its own header', async () => {
+    const { layout, parse } = await import('./index.js')
+    const root = await layout(normalize(parse(empty)))
+
+    for (const child of root.children ?? []) {
+      expect(child.height ?? 0).toBeGreaterThanOrEqual(GROUP_HEADER)
+    }
   })
 })
 

@@ -61,7 +61,7 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 주석·커밋
 
 - 주석은 한 줄 사실로 쓴다. 경위·추론 과정은 PR 본문과 git history 가 갖는다. 한 줄 안에서 이유를 잇는 것은 위반이 아니다.
-- 커밋 메시지는 `<type>: <summary>` — 명령형, 72자 이내, 마침표 없음. AI 를 가리키는 trailer 는 붙이지 않는다.
+- 커밋 메시지는 `<type>: <summary>` — 명령형, 72자 이내, 마침표 없음. AI 를 가리키는 trailer 는 붙이지 않는다 — 세션 링크(`Claude-Session:`)·생성 표기도 같다.
 
 ## Environment
 
