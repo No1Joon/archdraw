@@ -110,20 +110,77 @@ Accounts draw the boundaries and two regions run in parallel. EKS, Aurora Global
 
 ### More — other shapes the same syntax takes
 
-Rendered the same way; no image is checked in for these.
+Rendered the same way. Open one to see it.
 
-| File | What it shows |
-|---|---|
-| [`serverless-api.yaml`](./examples/serverless-api.yaml) | API Gateway, Lambda and EventBridge — there is no server to place, only managed services |
-| [`gcp-data-platform.yaml`](./examples/gcp-data-platform.yaml) | GCP with `shape: card` and `direction: DOWN`, the tiers stacked |
-| [`k8s-onprem.yaml`](./examples/k8s-onprem.yaml) | Self-hosted only — each product's own mark, with no managed icon standing in |
-| [`ml-platform.yaml`](./examples/ml-platform.yaml) | The flat shape a generator emits, drawing from two packs at once |
-| [`iot-telemetry.yaml`](./examples/iot-telemetry.yaml) | A fleet marked `external`, then streaming into hot and cold storage |
-| [`cicd-gitops.yaml`](./examples/cicd-gitops.yaml) | A delivery pipeline whose two clusters are where it lands |
-| [`hybrid-network.yaml`](./examples/hybrid-network.yaml) | Direct Connect and VPN between a datacenter and deeply nested VPC subnets |
-| [`jamstack-edge.yaml`](./examples/jamstack-edge.yaml) | Managed platforms end to end, with icon-less boxes where no mark exists |
-| [`batch-etl.yaml`](./examples/batch-etl.yaml) | `wrap: true` folding a long chain, and the reading order that costs |
-| [`multicloud.yaml`](./examples/multicloud.yaml) | All three packs at once — AWS serving beside GCP analytics |
+<details>
+<summary><a href="./examples/serverless-api.yaml"><code>serverless-api.yaml</code></a> — API Gateway, Lambda and EventBridge — there is no server to place, only managed services</summary>
+
+![serverless-api](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/serverless-api.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/gcp-data-platform.yaml"><code>gcp-data-platform.yaml</code></a> — GCP with <code>shape: card</code> and <code>direction: DOWN</code>, the tiers stacked</summary>
+
+![gcp-data-platform](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/gcp-data-platform.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/k8s-onprem.yaml"><code>k8s-onprem.yaml</code></a> — Self-hosted only — each product's own mark, with no managed icon standing in</summary>
+
+![k8s-onprem](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/k8s-onprem.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/ml-platform.yaml"><code>ml-platform.yaml</code></a> — The flat shape a generator emits, drawing from two packs at once</summary>
+
+![ml-platform](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/ml-platform.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/iot-telemetry.yaml"><code>iot-telemetry.yaml</code></a> — A fleet marked <code>external</code>, then streaming into hot and cold storage</summary>
+
+![iot-telemetry](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/iot-telemetry.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/cicd-gitops.yaml"><code>cicd-gitops.yaml</code></a> — A delivery pipeline whose two clusters are where it lands</summary>
+
+![cicd-gitops](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/cicd-gitops.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/hybrid-network.yaml"><code>hybrid-network.yaml</code></a> — Direct Connect and VPN between a datacenter and deeply nested VPC subnets</summary>
+
+![hybrid-network](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/hybrid-network.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/jamstack-edge.yaml"><code>jamstack-edge.yaml</code></a> — Managed platforms end to end, with icon-less boxes where no mark exists</summary>
+
+![jamstack-edge](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/jamstack-edge.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> folding a long chain, and the reading order that costs</summary>
+
+![batch-etl](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/batch-etl.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/multicloud.yaml"><code>multicloud.yaml</code></a> — All three packs at once — AWS serving beside GCP analytics</summary>
+
+![multicloud](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/multicloud.png)
+
+</details>
 
 ## Docs
 

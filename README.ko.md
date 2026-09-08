@@ -108,20 +108,77 @@ npx archdraw examples/startup.yaml -o startup.png
 
 ### 그 밖 — 같은 문법이 취하는 다른 모양들
 
-렌더 방법은 같고, 이 열 개는 이미지를 커밋해 두지 않았다.
+렌더 방법은 같다. 열어서 보면 된다.
 
-| 파일 | 보여주는 것 |
-|---|---|
-| [`serverless-api.yaml`](./examples/serverless-api.yaml) | API Gateway·Lambda·EventBridge — 놓을 서버가 없고 관리형 서비스뿐이다 |
-| [`gcp-data-platform.yaml`](./examples/gcp-data-platform.yaml) | GCP 를 `shape: card` 와 `direction: DOWN` 으로, 계층을 쌓아서 |
-| [`k8s-onprem.yaml`](./examples/k8s-onprem.yaml) | 자체 호스팅만 — 제품 자신의 마크를 쓰고 관리형 아이콘을 대신 세우지 않는다 |
-| [`ml-platform.yaml`](./examples/ml-platform.yaml) | 생성기가 뱉는 평면 형, 팩 둘을 동시에 |
-| [`iot-telemetry.yaml`](./examples/iot-telemetry.yaml) | `external` 로 표시한 기기군에서 시작해 핫·콜드 저장으로 흘러든다 |
-| [`cicd-gitops.yaml`](./examples/cicd-gitops.yaml) | 배포 파이프라인 — 클러스터 둘이 그 종착지다 |
-| [`hybrid-network.yaml`](./examples/hybrid-network.yaml) | 데이터센터와 깊게 중첩된 VPC 서브넷 사이의 Direct Connect·VPN |
-| [`jamstack-edge.yaml`](./examples/jamstack-edge.yaml) | 처음부터 끝까지 관리형 플랫폼, 마크가 없는 자리는 아이콘 없는 상자로 |
-| [`batch-etl.yaml`](./examples/batch-etl.yaml) | `wrap: true` 가 긴 사슬을 접는 모습과 그 대가인 읽는 순서 |
-| [`multicloud.yaml`](./examples/multicloud.yaml) | 세 팩을 한꺼번에 — AWS 서빙 옆에 GCP 분석 |
+<details>
+<summary><a href="./examples/serverless-api.yaml"><code>serverless-api.yaml</code></a> — API Gateway·Lambda·EventBridge — 놓을 서버가 없고 관리형 서비스뿐이다</summary>
+
+![serverless-api](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/serverless-api.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/gcp-data-platform.yaml"><code>gcp-data-platform.yaml</code></a> — GCP 를 <code>shape: card</code> 와 <code>direction: DOWN</code> 으로, 계층을 쌓아서</summary>
+
+![gcp-data-platform](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/gcp-data-platform.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/k8s-onprem.yaml"><code>k8s-onprem.yaml</code></a> — 자체 호스팅만 — 제품 자신의 마크를 쓰고 관리형 아이콘을 대신 세우지 않는다</summary>
+
+![k8s-onprem](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/k8s-onprem.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/ml-platform.yaml"><code>ml-platform.yaml</code></a> — 생성기가 뱉는 평면 형, 팩 둘을 동시에</summary>
+
+![ml-platform](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/ml-platform.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/iot-telemetry.yaml"><code>iot-telemetry.yaml</code></a> — <code>external</code> 로 표시한 기기군에서 시작해 핫·콜드 저장으로 흘러든다</summary>
+
+![iot-telemetry](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/iot-telemetry.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/cicd-gitops.yaml"><code>cicd-gitops.yaml</code></a> — 배포 파이프라인 — 클러스터 둘이 그 종착지다</summary>
+
+![cicd-gitops](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/cicd-gitops.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/hybrid-network.yaml"><code>hybrid-network.yaml</code></a> — 데이터센터와 깊게 중첩된 VPC 서브넷 사이의 Direct Connect·VPN</summary>
+
+![hybrid-network](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/hybrid-network.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/jamstack-edge.yaml"><code>jamstack-edge.yaml</code></a> — 처음부터 끝까지 관리형 플랫폼, 마크가 없는 자리는 아이콘 없는 상자로</summary>
+
+![jamstack-edge](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/jamstack-edge.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> 가 긴 사슬을 접는 모습과 그 대가인 읽는 순서</summary>
+
+![batch-etl](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/batch-etl.png)
+
+</details>
+
+<details>
+<summary><a href="./examples/multicloud.yaml"><code>multicloud.yaml</code></a> — 세 팩을 한꺼번에 — AWS 서빙 옆에 GCP 분석</summary>
+
+![multicloud](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/multicloud.png)
+
+</details>
 
 ## 문서
 
