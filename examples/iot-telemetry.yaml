@@ -1,0 +1,63 @@
+# IoT — the fleet is outside the system, so the traffic arriving is coloured apart in an HTML render.
+provider: aws,brands
+title: IoT telemetry — fleet to dashboard
+direction: RIGHT
+
+groups:
+  - id: fleet
+    label: Fleet
+    kind: group
+    external: true
+    children:
+      - { id: sensor, type: aws-iot-sensor, label: "Sensors\n(x12k)" }
+      - { id: gateway, type: aws-iot-thing-industrial-pc, label: "Edge gateway" }
+      - { id: greengrass, type: aws-iot-greengrass, label: "Greengrass\n(edge runtime)" }
+
+  - id: ingest
+    label: Ingest
+    kind: group
+    children:
+      - { id: iot, type: aws-iot-core, label: "IoT Core\n(MQTT)", domain: mqtt.example.com }
+      - { id: rules, type: aws-iot-rule, label: "IoT Rules" }
+      - { id: stream, type: amazon-kinesis-data-streams, label: "Kinesis\n(telemetry)" }
+
+  - id: process
+    label: Process
+    kind: group
+    children:
+      - { id: analytics, type: amazon-managed-service-for-apache-flink, label: "Managed Flink\n(windowing)" }
+      - { id: alarm, type: lambda, label: "alarm\n(Lambda)" }
+      - { id: archive, type: amazon-data-firehose, label: "Firehose" }
+
+  - id: store
+    label: Store
+    kind: group
+    children:
+      - { id: ts, type: amazon-timestream, label: "Timestream\n(hot, 30d)" }
+      - { id: s3, type: s3, label: "S3\n(cold)" }
+      - { id: ddb, type: dynamodb, label: "DynamoDB\n(device shadow)" }
+
+  - id: consume
+    label: Consume
+    kind: group
+    children:
+      - { id: graf, type: amazon-managed-grafana, label: "Managed Grafana" }
+      - { id: sns, type: sns, label: "SNS\n(pager)" }
+      - { id: ops, label: "On-call", external: true }
+
+edges:
+  - { from: sensor, to: gateway, label: modbus }
+  - { from: gateway, to: greengrass }
+  - { from: greengrass, to: iot, label: "MQTT/TLS" }
+  - { from: iot, to: rules }
+  - { from: rules, to: stream }
+  - { from: rules, to: ddb, label: "shadow update" }
+  - { from: stream, to: analytics }
+  - { from: stream, to: archive }
+  - { from: analytics, to: ts }
+  - { from: analytics, to: alarm, label: threshold }
+  - { from: archive, to: s3 }
+  - { from: alarm, to: sns }
+  - { from: sns, to: ops, label: page }
+  - { from: ts, to: graf, label: query }
+  - { from: s3, to: graf, style: dashed }

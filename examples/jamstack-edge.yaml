@@ -1,0 +1,42 @@
+# Edge-first — nothing here is a server we run, so the whole middle is somebody else's platform.
+provider: brands
+title: jamstack — edge rendering with managed services
+direction: RIGHT
+shape: card
+
+nodes:
+  - { id: visitors, label: Visitors, kind: group, external: true }
+  - { id: browser, label: "Browser", parent: visitors }
+  - { id: bot, label: "Search crawler", parent: visitors }
+
+  - { id: edge, label: "Cloudflare edge", kind: group, type: cloudflare }
+  - { id: dnsproxy, type: cloudflare, label: "DNS + WAF", parent: edge, domain: shop.example.com }
+  - { id: workers, type: cloudflareworkers, label: "Workers\n(A/B, redirects)", parent: edge }
+  - { id: r2, type: cloudflare, label: "R2\n(media)", parent: edge }
+
+  - { id: platform, label: "Hosting platform", kind: group, type: vercel }
+  - { id: isr, type: nextdotjs, label: "Next.js\n(ISR pages)", parent: platform }
+  - { id: routes, type: nextdotjs, label: "Route handlers", parent: platform }
+
+  - { id: backend, label: "Managed backends", kind: group, external: true }
+  - { id: cms, type: sanity, label: "Sanity\n(CMS)", parent: backend }
+  - { id: db, type: supabase, label: "Supabase\n(postgres)", parent: backend }
+  - { id: auth, type: auth0, label: "Auth0", parent: backend }
+  - { id: pay, type: stripe, label: "Stripe", parent: backend }
+  - { id: search, type: algolia, label: "Algolia", parent: backend }
+  - { id: mail, type: resend, label: "Resend\n(transactional)", parent: backend }
+
+edges:
+  - { from: browser, to: dnsproxy, label: https }
+  - { from: bot, to: dnsproxy }
+  - { from: dnsproxy, to: workers }
+  - { from: workers, to: isr, label: "cache miss" }
+  - { from: workers, to: r2, label: "/media/*" }
+  - { from: isr, to: cms, label: "content" }
+  - { from: cms, to: isr, label: "revalidate webhook", style: dashed }
+  - { from: browser, to: routes, label: "/api/*" }
+  - { from: routes, to: db, label: SQL }
+  - { from: routes, to: auth, label: "verify JWT", style: dashed }
+  - { from: routes, to: pay, label: checkout }
+  - { from: routes, to: search }
+  - { from: routes, to: mail, style: dashed }

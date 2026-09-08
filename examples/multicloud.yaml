@@ -1,0 +1,83 @@
+# Two clouds at once — the packs are loaded together and each side keeps its own vendor's marks, so which cloud a box lives in is readable without a legend.
+provider: aws,gcp,brands
+title: multi-cloud — AWS serving, GCP analytics, mid-migration
+direction: RIGHT
+
+groups:
+  - id: users
+    label: Users
+    kind: group
+    external: true
+    children:
+      - { id: browser, type: client, label: Browser }
+      - { id: mobile, type: mobile-client, label: Mobile }
+
+  - id: aws
+    label: AWS — serving plane
+    kind: account
+    type: aws-organizations-account
+    children:
+      - id: aws-edge
+        label: Edge
+        kind: group
+        children:
+          - { id: r53, type: route53, label: "Route 53\n(weighted)" }
+          - { id: cf, type: cloudfront, label: CloudFront, domain: www.example.com }
+      - id: aws-vpc
+        label: VPC — prod
+        kind: vpc
+        type: vpc
+        children:
+          - { id: alb, type: alb, label: "ALB" }
+          - { id: api, type: ecs, label: "api\n(ECS Fargate)" }
+          - { id: legacy, type: ec2, label: "monolith\n(EC2, migrating)" }
+          - { id: aurora, type: amazon-aurora, label: "Aurora\n(orders)" }
+          - { id: cache, type: elasticache, label: ElastiCache }
+
+  - id: gcp
+    label: GCP — analytics plane
+    kind: group
+    type: googlecloud
+    children:
+      - { id: run, type: cloud-run, label: "ingest\n(Cloud Run)" }
+      - { id: ps, type: pubsub, label: "Pub/Sub" }
+      - { id: df, type: dataflow, label: "Dataflow" }
+      - { id: bq, type: bigquery, label: "BigQuery" }
+      - { id: looker, type: looker, label: "Looker" }
+
+  - id: shared
+    label: Cross-cloud
+    kind: group
+    children:
+      - { id: interconnect, label: "Interconnect\n(VPN, 2 tunnels)" }
+      - { id: dns, type: cloudflare, label: "Cloudflare\n(failover DNS)" }
+      - { id: iac, type: terraform, label: "Terraform\n(both providers)" }
+
+  - id: sso
+    label: Identity
+    kind: group
+    external: true
+    children:
+      - { id: okta, type: okta, label: Okta }
+
+edges:
+  - { from: browser, to: dns, label: https }
+  - { from: mobile, to: dns }
+  - { from: dns, to: r53 }
+  - { from: r53, to: cf }
+  - { from: cf, to: alb, label: /api/* }
+  - { from: alb, to: api }
+  - { from: alb, to: legacy, label: "legacy routes" }
+  - { from: api, to: aurora, label: SQL }
+  - { from: api, to: cache }
+  - { from: legacy, to: aurora }
+  - { from: api, to: interconnect, label: "events" }
+  - { from: interconnect, to: run }
+  - { from: run, to: ps }
+  - { from: ps, to: df }
+  - { from: df, to: bq }
+  - { from: bq, to: looker }
+  - { from: okta, to: r53, label: "SAML", style: dashed }
+  - { from: okta, to: looker, label: "SAML", style: dashed }
+  - { from: iac, to: aws, style: dashed }
+  - { from: iac, to: gcp, style: dashed }

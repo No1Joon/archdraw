@@ -1,0 +1,66 @@
+# Delivery — the pipeline is the flow, so it runs RIGHT and the environments it lands in are the boxes at the end.
+provider: aws,brands
+title: CI/CD — GitOps to two environments
+direction: RIGHT
+
+groups:
+  - id: dev
+    label: Developers
+    kind: group
+    external: true
+    children:
+      - { id: laptop, label: "Laptop" }
+      - { id: repo, type: github, label: "GitHub\n(app repo)" }
+      - { id: infra, type: terraform, label: "Terraform\n(infra repo)" }
+
+  - id: ci
+    label: CI
+    kind: group
+    children:
+      - { id: actions, type: githubactions, label: "GitHub Actions" }
+      - { id: test, label: "unit + e2e" }
+      - { id: scan, type: snyk, label: "Snyk\n(SCA)" }
+      - { id: build, type: docker, label: "buildx\n(image)" }
+
+  - id: registry
+    label: Artifacts
+    kind: group
+    children:
+      - { id: ecr, type: amazon-elastic-container-registry, label: ECR }
+      - { id: chart, type: helm, label: "Helm charts" }
+      - { id: gitops, type: github, label: "GitHub\n(gitops repo)" }
+
+  - id: staging
+    label: Staging cluster
+    kind: cluster
+    type: eks
+    children:
+      - { id: argo-stg, type: argo, label: "Argo CD" }
+      - { id: app-stg, label: "app\n(v2.1.0-rc)" }
+
+  - id: prod
+    label: Production cluster
+    kind: cluster
+    type: eks
+    children:
+      - { id: argo-prod, type: argo, label: "Argo CD" }
+      - { id: app-prod, label: "app\n(v2.0.4)" }
+      - { id: canary, label: "canary\n(10%)" }
+
+edges:
+  - { from: laptop, to: repo, label: push }
+  - { from: repo, to: actions, label: "pull_request" }
+  - { from: actions, to: test }
+  - { from: actions, to: scan, style: dashed }
+  - { from: test, to: build }
+  - { from: build, to: ecr, label: push }
+  - { from: build, to: chart }
+  - { from: actions, to: gitops, label: "bump tag" }
+  - { from: gitops, to: argo-stg, label: sync }
+  - { from: gitops, to: argo-prod, label: "sync\n(on approval)" }
+  - { from: argo-stg, to: app-stg }
+  - { from: argo-prod, to: app-prod }
+  - { from: argo-prod, to: canary }
+  - { from: ecr, to: app-stg, style: dashed }
+  - { from: ecr, to: app-prod, style: dashed }
+  - { from: infra, to: actions, label: plan/apply }

@@ -1,0 +1,51 @@
+# ML — training and serving are different paths over the same feature store; the flat shape is written the way a generator emits it.
+provider: gcp,brands
+title: ML platform — training and online serving
+direction: RIGHT
+shape: card
+
+nodes:
+  - { id: sources, label: Sources, kind: group, external: true }
+  - { id: events, label: "Product events", parent: sources }
+  - { id: crm, label: "CRM export", parent: sources }
+
+  - { id: lake, label: Lakehouse, kind: group }
+  - { id: gcs, type: cloud-storage, label: "Cloud Storage\n(raw)", parent: lake }
+  - { id: bq, type: bigquery, label: "BigQuery\n(curated)", parent: lake }
+  - { id: dbt, label: "dbt\n(transforms)", parent: lake }
+
+  - { id: train, label: Training, kind: group }
+  - { id: fs, type: vertexai, label: "Vertex Feature Store", parent: train }
+  - { id: pipe, type: vertexai, label: "Vertex Pipelines", parent: train }
+  - { id: tune, type: vertexai, label: "Vertex Training\n(tuning)", parent: train }
+  - { id: registry, type: vertexai, label: "Model Registry", parent: train }
+  - { id: mlflow, type: mlflow, label: "MLflow\n(experiments)", parent: train }
+
+  - { id: serve, label: Serving, kind: group }
+  - { id: endpoint, type: vertexai, label: "Vertex Endpoint\n(online)", parent: serve }
+  - { id: api, type: cloud-run, label: "inference API", parent: serve }
+  - { id: cache, type: memorystore, label: "Memorystore\n(feature cache)", parent: serve }
+  - { id: monitor, type: cloud-monitoring, label: "Model monitoring", parent: serve }
+
+  - { id: consumers, label: Consumers, kind: group, external: true }
+  - { id: app, label: "Product app", parent: consumers }
+  - { id: analyst, label: "Analysts", parent: consumers }
+
+edges:
+  - { from: events, to: gcs }
+  - { from: crm, to: gcs, label: nightly }
+  - { from: gcs, to: bq, label: load }
+  - { from: bq, to: dbt }
+  - { from: dbt, to: fs, label: materialize }
+  - { from: fs, to: pipe }
+  - { from: pipe, to: tune }
+  - { from: tune, to: registry, label: "best run" }
+  - { from: tune, to: mlflow, style: dashed }
+  - { from: registry, to: endpoint, label: deploy }
+  - { from: app, to: api, label: predict }
+  - { from: api, to: endpoint }
+  - { from: api, to: cache }
+  - { from: fs, to: cache, label: "push features", style: dashed }
+  - { from: endpoint, to: monitor, style: dashed }
+  - { from: monitor, to: bq, label: "drift metrics", style: dashed }
+  - { from: bq, to: analyst, label: SQL }

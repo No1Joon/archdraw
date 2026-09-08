@@ -1,0 +1,60 @@
+# Self-hosted — every mark comes from the product itself, not from a managed offering.
+provider: brands
+title: on-prem Kubernetes — self-hosted stack
+direction: RIGHT
+
+groups:
+  - id: internet
+    label: Internet
+    kind: group
+    external: true
+    children:
+      - { id: user, label: "Customers" }
+      - { id: ops, label: "Operators\n(VPN)" }
+
+  - id: dc
+    label: Datacenter
+    kind: group
+    children:
+      - id: k8s
+        label: Kubernetes cluster
+        kind: cluster
+        type: kubernetes
+        children:
+          - { id: ingress, type: nginx, label: "ingress-nginx" }
+          - { id: web, label: "web" }
+          - { id: api, label: "api" }
+          - { id: billing, label: "billing" }
+          - { id: worker, label: "worker" }
+      - id: data
+        label: Stateful set
+        kind: group
+        children:
+          - { id: pg, type: postgresql, label: "PostgreSQL\n(primary)" }
+          - { id: pgr, type: postgresql, label: "PostgreSQL\n(replica)" }
+          - { id: redis, type: redis, label: "Redis\n(sessions)" }
+          - { id: kafka, type: apachekafka, label: "Kafka" }
+          - { id: minio, type: minio, label: "MinIO\n(objects)" }
+      - id: obs
+        label: Observability
+        kind: group
+        children:
+          - { id: prom, type: prometheus, label: Prometheus }
+          - { id: graf, type: grafana, label: Grafana }
+          - { id: loki, type: grafana, label: "Loki\n(logs)" }
+
+edges:
+  - { from: user, to: ingress, label: https }
+  - { from: ops, to: graf, label: dashboards }
+  - { from: ingress, to: web }
+  - { from: ingress, to: api }
+  - { from: api, to: pg, label: SQL }
+  - { from: api, to: redis }
+  - { from: api, to: kafka, label: publish }
+  - { from: kafka, to: worker, label: consume }
+  - { from: kafka, to: billing }
+  - { from: worker, to: minio }
+  - { from: pg, to: pgr, label: streaming }
+  - { from: k8s, to: prom, style: dashed }
+  - { from: prom, to: graf, style: dashed }
+  - { from: loki, to: graf, style: dashed }
