@@ -17,6 +17,23 @@ interface Span {
   end: number
 }
 
+interface Area {
+  x: Span
+  y: Span
+}
+
+/** An edge from a later row back to an earlier one, and the lanes it takes. */
+interface Back {
+  edge: ElkExtendedEdge
+  from: { box: Area; reach: Area; zone: number }
+  to: { box: Area; reach: Area; zone: number }
+  /** Lane in the gap above the source's row, and in the gap under the target's. */
+  up: number
+  down: number
+  /** Lane on the far left, or -1 when both gaps are the same one. */
+  side: number
+}
+
 /** A stretch of one polyline that stays inside one strip. */
 interface Piece {
   zone: number
@@ -246,11 +263,57 @@ function foldRows(root: ElkNode, aspect: number): void {
   const halves = best.breaks.map((b) => (gaps[b - 1] as { half: number }).half)
   const firsts = [0, ...best.breaks]
 
+  // Where every box sits, so an edge can be drawn from the two boxes it joins.
+  const boxes = new Map<string, { box: Area; reach: Area; zone: number }>()
+  const place = (node: ElkNode, ox: number, oy: number, zone: number) => {
+    const x = ox + (node.x ?? 0)
+    const y = oy + (node.y ?? 0)
+    const reach = extent(node)
+    boxes.set(node.id, {
+      box: {
+        x: { start: x, end: x + (node.width ?? 0) },
+        y: { start: y, end: y + (node.height ?? 0) },
+      },
+      reach: {
+        x: { start: reach.x.start + ox, end: reach.x.end + ox },
+        y: { start: reach.y.start + oy, end: reach.y.end + oy },
+      },
+      zone,
+    })
+    for (const child of node.children ?? []) place(child, x, y, zone)
+  }
+  for (const child of children) place(child, 0, 0, zoneOf(extent(child).x.start, cuts))
+
+  // An edge back to an earlier row is drawn from its own two boxes. ELK's route went the long way
+  // round the unfolded picture, and folded it circles the whole diagram.
+  const back: Back[] = edges.flatMap((edge) => {
+    const from = boxes.get(edge.sources[0] ?? '')
+    const to = boxes.get(edge.targets[0] ?? '')
+    return from && to && from.zone > to.zone ? [{ edge, from, to, up: 0, down: 0, side: -1 }] : []
+  })
+  const backward = new Set(back.map((route) => route.edge))
+  const backLabels = new Set(back.flatMap((route) => route.edge.labels ?? []))
+  // Each takes a lane at the top of the gap above its own row, and one at the top of the gap under
+  // the target's row when that is a different gap; the run between them is on the far left.
+  const extra = cuts.map(() => 0)
+  let sides = 0
+  for (const route of back) {
+    const above = route.from.zone - 1
+    route.up = extra[above] ?? 0
+    extra[above] = route.up + 1
+    if (route.to.zone !== above) {
+      route.down = extra[route.to.zone] ?? 0
+      extra[route.to.zone] = route.down + 1
+      route.side = sides++
+    }
+  }
+
   // Every polyline cut into the strips it passes through.
   const pieces = new Map<ElkEdgeSection, Piece[]>()
   const passes = new Map<ElkEdgeSection, Crossing[]>()
   const atCut: Crossing[][] = cuts.map(() => [])
   for (const edge of edges) {
+    if (backward.has(edge)) continue
     for (const section of edge.sections ?? []) {
       const points = polyline(section)
       const first = points[0] as Point
@@ -310,7 +373,7 @@ function foldRows(root: ElkNode, aspect: number): void {
   const margin = Math.max(
     ...cuts.map((_, cut) => (halves[cut] as number) + lanes(atCut[cut]?.length ?? 0)),
   )
-  const left = start + margin
+  const left = start + margin + sides * LANE
   // A row keeps the heights it had in the whole picture, so it can inherit a band only an edge
   // crosses; each such band shrinks to what its edges need.
   const solids = firsts.map((): Span[] => [])
@@ -319,6 +382,7 @@ function foldRows(root: ElkNode, aspect: number): void {
     solids[zoneOf(box.x.start, cuts)]?.push(box.y)
   }
   for (const label of labels) {
+    if (backLabels.has(label)) continue
     const box = labelExtent(label)
     solids[zoneOf((box.x.start + box.x.end) / 2, cuts)]?.push(box.y)
   }
@@ -341,7 +405,9 @@ function foldRows(root: ElkNode, aspect: number): void {
     const placed =
       row === 0
         ? ceiling
-        : (rowBottom[row - 1] as number) + 2 * CLEARANCE + lanes(atCut[row - 1]?.length ?? 0)
+        : (rowBottom[row - 1] as number) +
+          2 * CLEARANCE +
+          lanes((atCut[row - 1]?.length ?? 0) + (extra[row - 1] ?? 0))
     dy.push(placed - top)
     dx.push(left - (blocks[first] as { x: Span }).x.start)
     rowBottom.push(placed + Math.max(...ys) - top)
@@ -373,7 +439,8 @@ function foldRows(root: ElkNode, aspect: number): void {
         const total = atCut[cut]?.length ?? 1
         const rightX = (cuts[cut] as number) + (dx[cut] as number) + crossing.lane * LANE
         const leftX = left - (halves[cut] as number) - (total - 1 - crossing.lane) * LANE
-        const gapY = (rowBottom[cut] as number) + CLEARANCE + crossing.lane * LANE
+        const gapY =
+          (rowBottom[cut] as number) + CLEARANCE + ((extra[cut] ?? 0) + crossing.lane) * LANE
         const from = out[out.length - 1] as Point
         const into = move(piece.points[0] as Point, piece.zone)
         const [firstX, secondX] = crossing.forward ? [rightX, leftX] : [leftX, rightX]
@@ -398,12 +465,68 @@ function foldRows(root: ElkNode, aspect: number): void {
     }
   }
 
+  // Out of the source's right side and up into the gap above its row, across, and into the
+  // target's left side from the gap under the target's row. Both runs up and down stay beside
+  // the boxes they serve, where the layout left room between layers.
+  const shifted = (area: Area, zone: number): Area => ({
+    x: { start: area.x.start + (dx[zone] as number), end: area.x.end + (dx[zone] as number) },
+    y: { start: lift(area.y.start, zone), end: lift(area.y.end, zone) },
+  })
+  for (const route of back) {
+    const source = shifted(route.from.box, route.from.zone)
+    const sourceReach = shifted(route.from.reach, route.from.zone)
+    const target = shifted(route.to.box, route.to.zone)
+    const targetReach = shifted(route.to.reach, route.to.zone)
+    const fromY = (source.y.start + source.y.end) / 2
+    const toY = (target.y.start + target.y.end) / 2
+    const outX = sourceReach.x.end + CLEARANCE
+    const inX = targetReach.x.start - CLEARANCE
+    const upY = (rowBottom[route.from.zone - 1] as number) + CLEARANCE + route.up * LANE
+    const points: Point[] = [
+      { x: source.x.end, y: fromY },
+      { x: outX, y: fromY },
+      { x: outX, y: upY },
+    ]
+    if (route.side >= 0) {
+      const sideX = start + route.side * LANE
+      const downY = (rowBottom[route.to.zone] as number) + CLEARANCE + route.down * LANE
+      points.push({ x: sideX, y: upY }, { x: sideX, y: downY }, { x: inX, y: downY })
+    } else {
+      points.push({ x: inX, y: upY })
+    }
+    points.push({ x: inX, y: toY }, { x: target.x.start, y: toY })
+    const clean = simplify(points)
+    const first = route.edge.sections?.[0]
+    route.edge.sections = [
+      {
+        id: first?.id ?? `${route.edge.id}_s0`,
+        startPoint: clean[0] as Point,
+        endPoint: clean[clean.length - 1] as Point,
+        bendPoints: clean.slice(1, -1),
+      },
+    ]
+    // The label sits over the longest level run, which is the one a reader follows.
+    const label = route.edge.labels?.[0]
+    if (label) {
+      let run = { length: -1, x: 0, y: 0 }
+      for (let index = 1; index < clean.length; index++) {
+        const a = clean[index - 1] as Point
+        const b = clean[index] as Point
+        if (Math.abs(a.y - b.y) > 0.01 || Math.abs(b.x - a.x) <= run.length) continue
+        run = { length: Math.abs(b.x - a.x), x: (a.x + b.x) / 2, y: a.y }
+      }
+      label.x = run.x - (label.width ?? 0) / 2
+      label.y = run.y - (label.height ?? 0) - 3
+    }
+  }
+
   for (const child of children) {
     const zone = zoneOf(extent(child).x.start, cuts)
     child.x = (child.x ?? 0) + (dx[zone] as number)
     child.y = lift(child.y ?? 0, zone)
   }
   for (const label of labels) {
+    if (backLabels.has(label)) continue
     const zone = zoneOf((label.x ?? 0) + (label.width ?? 0) / 2, cuts)
     label.x = (label.x ?? 0) + (dx[zone] as number)
     label.y = lift(label.y ?? 0, zone)
