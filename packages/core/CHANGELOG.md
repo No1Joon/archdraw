@@ -1,5 +1,63 @@
 # @archdraw/core
 
+## 0.9.0
+
+### Minor Changes
+
+- 0e8ce2b: Let containment decide what a container is. `kind` used to make a group of any entry carrying it, so an agent reaching for it as "what kind of service this is" — `kind: AWS S3` on an ordinary node — turned that node into an empty group, and a whole diagram written that way drew as empty boxes with spilling labels. A container is now an entry that holds something: one with `children`, one listed under `groups`, or one another entry points `parent` at. `kind` still names what a container is and still puts an icon in its header beside `type`; it no longer decides the question.
+  
+  The flat form is untouched — `parent` already promoted its target, so a container declared as a bare `kind` entry with its children pointing at it reads exactly as before. All fourteen bundled examples render byte-identically, including the three written the flat way.
+  
+  The one file this reads differently is one carrying `kind` on an entry that holds nothing and is not under `groups`: it was an empty group and is now the node it looks like. That is the shape the previous release could only make less broken, by keeping its box around its own label. For a group that really holds nothing, list it under `groups`.
+- 9cd3b60: Draw the same system in more than one state. A diagram may now declare `scenarios`, and the animated HTML page grows one button per state:
+  
+  ```yaml
+  scenarios:
+    - { id: normal, label: steady state }
+    - { id: cache-down, label: Redis is down }
+  
+  nodes:
+    - { id: redis, type: redis, label: Redis, down: [cache-down] }
+  edges:
+    - { from: api, to: redis, label: get, when: [normal] }
+    - { from: api, to: rds, label: fallback, when: [cache-down] }
+  ```
+  
+  An element says when it is alive rather than a scenario listing what it changes — `when` on a node or an edge, `down` on a node that has failed in that state. That keeps one line to one element, so the flat form a generator already emits carries scenarios without growing a second list to keep in agreement. Saying nothing means alive in every scenario, which is where every existing file starts.
+  
+  The graph is laid out once with every element present and a scenario only changes what is drawn, so pressing a button never moves the picture. An element absent from the selected scene fades; one marked `down` is drained of colour instead, so failed reads differently from merely not there.
+  
+  A `when` or `down` naming a scenario that was never declared is an error carrying the declared names, rather than a line quietly missing from every scene — `--check` catches it before anything is drawn.
+  
+  SVG and PNG are untouched: they show every element whatever the diagram says about states, and carry none of the markup. All fourteen bundled examples render byte-identically. `examples/cache-failover.yaml` is the fifteenth, and is the one to open with `-o out.html`.
+- 7268c4b: Draw what is built and what is only planned. A node, a group or an edge may now carry `status`, and the picture says so in every target rather than in a label:
+  
+  ```yaml
+  nodes:
+    - { id: redis, type: redis, label: Redis, status: done }
+    - { id: api, type: ecs, label: Go API, status: in_progress }
+  edges:
+    - { from: api, to: redis, label: cache, status: planned }
+  ```
+  
+  `planned | in_progress | blocked | done`. A node takes a mark in its corner, a group one in its header, an edge one beside its label, and each state has its own shape as well as its own colour — a ring, a half disc, a bar, a tick — so a diagram printed in grey still reads. A legend naming the states in words is drawn under the graph, carrying only the states the diagram actually uses. SVG, PNG and HTML all get it: the reason to draw a status is usually to put it in a report.
+  
+  The workaround it replaces was writing `[done]` into a label, which changes the size of the card and the placement of everything around it, and tells the renderer nothing.
+  
+  A node and the edge into it are separate answers, which is the case this came from: a cache that is running and an application that does not talk to it yet is `done` on the node and `planned` on the edge. A group's status is its own and never reaches its children, so a created VM cannot mark the services inside it deployed.
+  
+  Motion is a claim about traffic, so a `planned` or `blocked` edge no longer animates in the HTML target — until now every edge did, including a dashed one that did not exist. `animation: none | flow` overrides that per edge either way.
+  
+  Nothing changes for a diagram that says nothing about status: all fifteen bundled examples render byte-identically, and a `done` edge draws exactly as an ordinary one does. `examples/build-status.yaml` is the sixteenth.
+
+### Patch Changes
+
+- 6c31650: Fold a long chain that lives inside a group. `wrap: true` set the wrapping strategy on the root graph only, and ELK's strategy cuts the layering of the graph it is set on without descending into a compound node — so the moment a chain was grouped, the flag did nothing and the diagram came out as the one flat strip wrapping exists to prevent. The same fourteen-node chain: 1244 × 227 inside a group against 820 × 459 at the top level, with the file validating and the render succeeding either way.
+  
+  The failure was silent, which is what made it worth a release of its own: nothing in the output said the fold had been asked for and skipped, and the agent guidance tells generators to reach for `wrap: true` and to group their nodes in the same breath.
+  
+  A group now carries the same wrapping options as the root when the diagram asks to wrap, so the fold happens at whatever level the chain is on. All fifteen bundled examples render byte-identically — `batch-etl.yaml`, the one that wraps, folds at the top level where it always did.
+
 ## 0.8.1
 
 ### Patch Changes
