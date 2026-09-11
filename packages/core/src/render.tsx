@@ -368,6 +368,11 @@ interface ContainerProps {
   scenes?: boolean
 }
 
+/** What a caller outside the SVG finds an element by: its name, never its position. */
+function nodeMarks(meta: FlatNode): { 'data-node-id': string; 'data-status'?: string } {
+  return { 'data-node-id': meta.id, ...(meta.status ? { 'data-status': meta.status } : {}) }
+}
+
 /** The page reads these back; a list it does not name means "in every scene". */
 function sceneMarks(
   scenes: boolean | undefined,
@@ -392,6 +397,7 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
             <g
               key={child.id}
               transform={`translate(${child.x ?? 0}, ${child.y ?? 0})`}
+              {...nodeMarks(meta)}
               {...sceneMarks(scenes, meta.when, meta.down)}
             >
               {/* A 6 4 dash. Dashed edges are round dots so a boundary never reads as an edge. */}
@@ -491,7 +497,7 @@ function Node({
     const lines = labelLines(meta.label)
     const top = height / 2 - ((lines.length - 1) * LINE_HEIGHT) / 2 + 4
     return (
-      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`} {...nodeMarks(meta)}>
         <rect
           width={width}
           height={height}
@@ -530,7 +536,7 @@ function Node({
   // No icon: draw the label in a box so third parties read as components, not as blanks.
   if (!asset) {
     return (
-      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+      <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`} {...nodeMarks(meta)}>
         <rect
           width={width}
           height={height}
@@ -554,7 +560,7 @@ function Node({
   const top = meta.domain ? DOMAIN_BAND : 0
   const mark = height - top
   return (
-    <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}>
+    <g transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`} {...nodeMarks(meta)}>
       {meta.domain ? (
         <text
           x={width / 2}
@@ -650,7 +656,11 @@ function EdgePath({
       : midpoint(points))
 
   return (
-    <g {...sceneMarks(scenes, meta?.when)}>
+    <g
+      data-edge-id={meta?.id}
+      {...(meta?.status ? { 'data-status': meta.status } : {})}
+      {...sceneMarks(scenes, meta?.when)}
+    >
       <path
         d={d}
         fill="none"

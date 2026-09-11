@@ -21,6 +21,9 @@ export interface FlatNode {
   down?: string[]
 }
 
+/** An edge once its id is settled — the one it was given, or one named for its ends. */
+export type IrEdge = Edge & { id: string }
+
 export interface Ir {
   provider: string
   title?: string
@@ -28,7 +31,7 @@ export interface Ir {
   /** Fold a long chain into several rows instead of letting the canvas run away. */
   wrap: boolean
   nodes: FlatNode[]
-  edges: Edge[]
+  edges: IrEdge[]
   /** Empty unless the diagram names states to read it in. */
   scenarios: Scenario[]
 }
@@ -130,6 +133,29 @@ export function normalize(input: unknown): Ir {
     }
   }
 
+  // Named for its ends rather than its place in the list, so adding or moving another edge never
+  // renames this one. Only a second edge between the same pair takes a suffix. `>` is not an id
+  // character, so a generated name cannot collide with one somebody wrote.
+  const edgeIds = new Set<string>()
+  for (const edge of doc.edges) {
+    if (!edge.id) continue
+    if (edgeIds.has(edge.id)) {
+      throw new DiagramError(
+        `Duplicate edge id '${edge.id}'.`,
+        'Edge ids must be unique among edges.',
+      )
+    }
+    edgeIds.add(edge.id)
+  }
+  const edges: IrEdge[] = doc.edges.map((edge) => {
+    if (edge.id) return { ...edge, id: edge.id }
+    const base = `${edge.from}->${edge.to}`
+    let id = base
+    for (let n = 2; edgeIds.has(id); n++) id = `${base}#${n}`
+    edgeIds.add(id)
+    return { ...edge, id }
+  })
+
   // A named scenario that does not exist would silently drop the element from every scene, so
   // it is an error with the declared names attached rather than a picture missing a line.
   const scenarios = new Set(doc.scenarios.map((scenario) => scenario.id))
@@ -172,7 +198,7 @@ export function normalize(input: unknown): Ir {
     direction: doc.direction,
     wrap: doc.wrap,
     nodes,
-    edges: doc.edges,
+    edges,
     scenarios: doc.scenarios,
   }
 }

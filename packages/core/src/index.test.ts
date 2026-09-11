@@ -671,6 +671,67 @@ describe('status', () => {
   })
 })
 
+describe('stable ids', () => {
+  const chain = `
+provider: test
+nodes:
+  - { id: web, type: ecs }
+  - { id: api, type: ecs }
+  - { id: db, type: rds }
+edges:
+  - { from: web, to: api }
+  - { from: api, to: db, label: write }
+  - { from: api, to: db, label: read }
+`
+  const ids = (svg: string, attr: string) =>
+    [...svg.matchAll(new RegExp(`${attr}="([^"]+)"`, 'g'))].map((match) => match[1]).sort()
+
+  it('names every node and edge in the output, the same way on every render', async () => {
+    const first = await renderToSvg(chain, { icons: pack })
+    const second = await renderToSvg(chain, { icons: pack })
+
+    expect(ids(first, 'data-node-id')).toEqual(['api', 'db', 'web'])
+    // A second edge between the same pair takes a suffix; the first keeps the plain name.
+    expect(ids(first, 'data-edge-id')).toEqual(['api-&gt;db', 'api-&gt;db#2', 'web-&gt;api'])
+    expect(ids(second, 'data-edge-id')).toEqual(ids(first, 'data-edge-id'))
+  })
+
+  it('does not rename an edge when another is added ahead of it', () => {
+    const before = normalize(parseYaml(chain)).edges.map((edge) => edge.id)
+    const after = normalize(
+      parseYaml(chain.replace('edges:\n', 'edges:\n  - { from: web, to: db }\n')),
+    ).edges.map((edge) => edge.id)
+
+    expect(after.slice(1)).toEqual(before)
+  })
+
+  it('keeps an id the file gives an edge', () => {
+    const ir = normalize({
+      nodes: [{ id: 'a' }, { id: 'b' }],
+      edges: [{ id: 'a-to-b', from: 'a', to: 'b' }],
+    })
+    expect(ir.edges[0]?.id).toBe('a-to-b')
+  })
+
+  it('refuses two edges written with the same id', () => {
+    expect(() =>
+      normalize({
+        nodes: [{ id: 'a' }, { id: 'b' }],
+        edges: [
+          { id: 'same', from: 'a', to: 'b' },
+          { id: 'same', from: 'b', to: 'a' },
+        ],
+      }),
+    ).toThrow(/Duplicate edge id 'same'/)
+  })
+
+  it('carries a status beside the id, where there is one', async () => {
+    const svg = await renderToSvg(built, { icons: pack })
+    expect(svg).toContain('data-node-id="api" data-status="in_progress"')
+    expect(svg).toContain('data-edge-id="api-&gt;cache" data-status="planned"')
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')

@@ -49,6 +49,7 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 
 | Field | Type | Required | Description |
 |---|---|---|---|
+| `id` | string | — | A name to find this edge by in the output. **`A-Z a-z 0-9 - _` only**, unique among edges. Without one it is named `from->to`, and a second edge between the same pair `from->to#2` |
 | `from` | string | ✓ | Source node id |
 | `to` | string | ✓ | Target node id |
 | `label` | string | — | Shown on the line |
@@ -87,6 +88,15 @@ Two things it deliberately does not do. A group's status is its own and never re
 An element says when it is alive rather than a scenario listing what it changes, so one line describes one element and a generator can emit it in a single pass. A name no scenario declares is an error, not a silently missing line.
 
 The graph is laid out once with every element present and a scenario only changes what is drawn, so pressing a button never moves the picture. One consequence is deliberate: an element is either alive or not, so a scenario that runs through stages — fails, is detected, recovers — cannot be written as a sequence.
+
+## Finding things in the output
+
+Every rendered node and group carries `data-node-id`, every edge `data-edge-id`, and either carries `data-status` when it has one. They are names, not positions, so the same file gives the same ids on every render and adding an element leaves the others' ids alone. Patch a status from a script, wire a click, or compare two renders by them.
+
+```html
+<g transform="translate(96, 40)" data-node-id="api" data-status="in_progress">
+<g data-edge-id="api-&gt;redis" data-status="planned">
+```
 
 ## The two input shapes
 

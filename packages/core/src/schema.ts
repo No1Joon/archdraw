@@ -50,6 +50,8 @@ export const NodeEntrySchema: z.ZodType<NodeEntry> = z.lazy(() =>
 
 export const EdgeSchema = z
   .object({
+    /** A name to find this edge by in the output. Without one it is named for its two ends. */
+    id: Id.optional(),
     from: Id,
     to: Id,
     label: z.string().optional(),
