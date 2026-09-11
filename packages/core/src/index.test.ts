@@ -199,6 +199,87 @@ describe('wrap', () => {
     expect(detours(ir, root).filter((detour) => detour.from === 'n23')).toEqual([])
   })
 
+  // A group longer than a row took that row to itself and ran on unfolded past the rest.
+  const longGroup = (direction: 'RIGHT' | 'DOWN', nested: boolean) => ({
+    wrap: true,
+    direction,
+    nodes: [
+      { id: 'users' },
+      ...(nested ? [{ id: 'vpc', kind: 'vpc' }] : []),
+      { id: 'pipe', kind: 'group', ...(nested ? { parent: 'vpc' } : {}) },
+      ...Array.from({ length: 10 }, (_, i) => ({ id: `s${i}`, type: 'ecs', parent: 'pipe' })),
+      { id: 'crm' },
+    ],
+    edges: [
+      { from: 'users', to: 's0' },
+      ...Array.from({ length: 9 }, (_, i) => ({ from: `s${i}`, to: `s${i + 1}` })),
+      { from: 's9', to: 'crm' },
+    ],
+  })
+
+  it.each([
+    ['RIGHT', false],
+    ['RIGHT', true],
+    ['DOWN', false],
+  ] as const)(
+    'folds a group longer than a row inside it (%s, nested: %s)',
+    async (direction, nested) => {
+      const { layout } = await import('./index.js')
+      const root = await layout(normalize(longGroup(direction, nested)))
+      const boxes = new Map<string, { x: number; y: number; w: number; h: number }>()
+      const lines = new Map<string, { x: number; y: number }[]>()
+      const walk = (node: ElkNode, ox: number, oy: number) => {
+        for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+          const section = edge.sections?.[0]
+          if (!section) continue
+          const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
+          lines.set(
+            `${edge.sources[0]}>${edge.targets[0]}`,
+            points.map((p) => ({ x: p.x + ox, y: p.y + oy })),
+          )
+        }
+        for (const child of node.children ?? []) {
+          const x = ox + (child.x ?? 0)
+          const y = oy + (child.y ?? 0)
+          boxes.set(child.id, { x, y, w: child.width ?? 0, h: child.height ?? 0 })
+          walk(child, x, y)
+        }
+      }
+      walk(root, 0, 0)
+      const stages = Array.from({ length: 10 }, (_, i) => `s${i}`)
+      const across = direction === 'RIGHT' ? 'y' : 'x'
+      const along = direction === 'RIGHT' ? 'x' : 'y'
+      const read = [...stages].sort(
+        (a, b) =>
+          (boxes.get(a)?.[across] ?? 0) - (boxes.get(b)?.[across] ?? 0) ||
+          (boxes.get(a)?.[along] ?? 0) - (boxes.get(b)?.[along] ?? 0),
+      )
+
+      expect(new Set(stages.map((id) => boxes.get(id)?.[across])).size).toBeGreaterThan(1)
+      expect(read).toEqual(stages)
+      // Each edge that crosses the group's border is one line from one box to the other.
+      const lands = (point: { x: number; y: number } | undefined, id: string) => {
+        const box = boxes.get(id)
+        return (
+          !!point &&
+          !!box &&
+          point.x >= box.x - 1 &&
+          point.x <= box.x + box.w + 1 &&
+          point.y >= box.y - 1 &&
+          point.y <= box.y + box.h + 1
+        )
+      }
+      for (const [from, to] of [
+        ['users', 's0'],
+        ['s9', 'crm'],
+      ] as const) {
+        const line = lines.get(`${from}>${to}`)
+        expect(lands(line?.[0], from)).toBe(true)
+        expect(lands(line?.[line.length - 1], to)).toBe(true)
+      }
+    },
+  )
+
   it('is off unless the diagram asks for it', () => {
     expect(normalize({ nodes: [] }).wrap).toBe(false)
   })

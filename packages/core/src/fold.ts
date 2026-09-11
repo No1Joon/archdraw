@@ -57,10 +57,16 @@ interface Crossing {
  * the hierarchy cannot run in a different direction from its parent, so the fold is ours.
  * A `DOWN` diagram folds into columns the same way, by laying the picture on its side.
  */
-export function fold(root: ElkNode, direction: 'RIGHT' | 'DOWN'): void {
+export function fold(root: ElkNode, direction: 'RIGHT' | 'DOWN', length?: number): void {
   if (direction === 'DOWN') transpose(root)
-  foldRows(root, direction === 'DOWN' ? 1 / ASPECT : ASPECT)
+  foldRows(root, direction === 'DOWN' ? 1 / ASPECT : ASPECT, length)
   if (direction === 'DOWN') transpose(root)
+}
+
+/** How long a row is when the whole picture folds to the aspect wrapping aims at. */
+export function rowLength(root: ElkNode, direction: 'RIGHT' | 'DOWN'): number {
+  const area = (root.width ?? 0) * (root.height ?? 0)
+  return Math.sqrt(direction === 'DOWN' ? area / ASPECT : area * ASPECT)
 }
 
 function swap(point: Point): void {
@@ -121,7 +127,7 @@ function labelExtent(label: ElkLabel): { x: Span; y: Span } {
   }
 }
 
-function foldRows(root: ElkNode, aspect: number): void {
+function foldRows(root: ElkNode, aspect: number, length?: number): void {
   // A diagram drawn inside one group folds inside it; everything above holds that one box.
   const path: ElkNode[] = [root]
   for (let node = root; node.children?.length === 1 && node.children[0]?.children?.length; ) {
@@ -251,7 +257,13 @@ function foldRows(root: ElkNode, aspect: number): void {
     for (const b of breaks) high += 2 * CLEARANCE + lanes(crossings[b - 1] ?? 0)
     if (breaks.length > 0)
       wide += 2 * (CLEARANCE + Math.max(...breaks.map((b) => lanes(crossings[b - 1] ?? 0))))
-    const score = Math.abs(Math.log(wide / high / aspect))
+    // Given a length, the fewest rows that fit it; failing that, the narrowest.
+    const score =
+      length === undefined
+        ? Math.abs(Math.log(wide / high / aspect))
+        : wide <= length
+          ? rows
+          : count + 1 + wide
     if (score < best.score - 1e-9) best = { score, breaks }
   }
   if (best.breaks.length === 0) {
@@ -674,7 +686,7 @@ function trimTail(points: Point[], cut: number, half: number): Point[] {
 }
 
 /** Drops repeated points and the middle of three in a line, so a lane of width zero leaves no stub. */
-function simplify(points: Point[]): Point[] {
+export function simplify(points: Point[]): Point[] {
   const out: Point[] = []
   for (const point of points) {
     const last = out[out.length - 1]
