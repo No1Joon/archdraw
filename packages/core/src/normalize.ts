@@ -1,4 +1,4 @@
-import type { Edge } from './schema.js'
+import type { Edge, Scenario } from './schema.js'
 import { DiagramSchema, type NodeEntry } from './schema.js'
 
 export interface FlatNode {
@@ -13,6 +13,10 @@ export interface FlatNode {
   domain?: string
   /** Outside the system being drawn — resolved, so a child of an external group carries it too. */
   external: boolean
+  /** Scenarios this is alive in; `undefined` means all of them. */
+  when?: string[]
+  /** Scenarios this is failed in. */
+  down?: string[]
 }
 
 export interface Ir {
@@ -23,6 +27,8 @@ export interface Ir {
   wrap: boolean
   nodes: FlatNode[]
   edges: Edge[]
+  /** Empty unless the diagram names states to read it in. */
+  scenarios: Scenario[]
 }
 
 export class DiagramError extends Error {
@@ -72,6 +78,8 @@ export function normalize(input: unknown): Ir {
       parent: entry.parent ?? parent,
       isGroup,
       external: false,
+      when: entry.when,
+      down: entry.down,
     })
     if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
@@ -118,6 +126,27 @@ export function normalize(input: unknown): Ir {
     }
   }
 
+  // A named scenario that does not exist would silently drop the element from every scene, so
+  // it is an error with the declared names attached rather than a picture missing a line.
+  const scenarios = new Set(doc.scenarios.map((scenario) => scenario.id))
+  const known = [...scenarios].join(', ')
+  const checkWhen = (where: string, field: 'when' | 'down', ids: string[] | undefined): void => {
+    for (const id of ids ?? []) {
+      if (scenarios.has(id)) continue
+      throw new DiagramError(
+        `${where} names scenario '${id}' in \`${field}\`, which is not declared.`,
+        known ? `Declared scenarios: ${known}.` : 'The diagram declares no `scenarios`.',
+      )
+    }
+  }
+  for (const node of nodes) {
+    checkWhen(`Node '${node.id}'`, 'when', node.when)
+    checkWhen(`Node '${node.id}'`, 'down', node.down)
+  }
+  for (const edge of doc.edges) {
+    checkWhen(`Edge ${edge.from} -> ${edge.to}`, 'when', edge.when)
+  }
+
   // The nearest word wins: a group says it for everything inside it, a child may say otherwise.
   for (const node of nodes) {
     for (
@@ -140,5 +169,6 @@ export function normalize(input: unknown): Ir {
     wrap: doc.wrap,
     nodes,
     edges: doc.edges,
+    scenarios: doc.scenarios,
   }
 }

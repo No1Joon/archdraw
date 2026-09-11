@@ -544,6 +544,31 @@ describe('title', () => {
   })
 })
 
+describe('scenarios', () => {
+  it('refuses a name no scenario declares, with the declared names attached', () => {
+    expect(() =>
+      normalize({
+        scenarios: [{ id: 'normal' }],
+        nodes: [{ id: 'a', type: 'ecs', when: ['typo'] }],
+      }),
+    ).toThrow(/'typo'.*not declared/s)
+  })
+
+  it('says so when the diagram declares no scenarios at all', () => {
+    expect(() => normalize({ nodes: [{ id: 'a', type: 'ecs', down: ['gone'] }] })).toThrow(
+      /declares no `scenarios`/,
+    )
+  })
+
+  it('leaves the still SVG free of the scenario layer', async () => {
+    const { renderToSvg: draw } = await import('./index.js')
+    const svg = await draw(scened, { icons: pack })
+    // The picture shows every element; only the page can hold a state.
+    expect(svg).not.toContain('data-when')
+    expect(svg).not.toContain('archdraw-off')
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')
@@ -557,6 +582,7 @@ describe('toJsonSchema', () => {
       'groups',
       'nodes',
       'provider',
+      'scenarios',
       'shape',
       'title',
       'wrap',
@@ -608,6 +634,21 @@ describe('external', () => {
   })
 })
 
+const scened = `
+provider: test
+scenarios:
+  - { id: normal, label: steady state }
+  - { id: cache-down, label: Redis is down }
+nodes:
+  - { id: api, type: ecs, label: API }
+  - { id: cache, type: rds, label: Cache, down: [cache-down] }
+  - { id: db, type: rds, label: DB }
+edges:
+  - { from: api, to: cache, label: get, when: [normal] }
+  - { from: api, to: db, label: fallback, when: [cache-down] }
+  - { from: api, to: db, label: write }
+`
+
 describe('renderToHtml', () => {
   it('animates one flow path per edge, over the drawn route', async () => {
     const html = await renderToHtml(nested, { icons: pack })
@@ -639,6 +680,24 @@ describe('renderToHtml', () => {
     const html = await renderToHtml(nested, { icons: pack })
     expect(html).not.toContain('from outside')
     expect(html).not.toContain(String(defaultTheme.flowIn))
+  })
+
+  it('draws a button per scenario and marks only what a scenario rules on', async () => {
+    const html = await renderToHtml(scened, { icons: pack })
+
+    expect(html).toContain('data-scene="normal"')
+    expect(html).toContain('data-scene="cache-down"')
+    expect(html).toContain('steady state')
+    // `write` says nothing, so it is alive in every scene and carries no mark.
+    expect(html.match(/data-when="/g)).toHaveLength(2)
+    expect(html).toContain('data-down="cache-down"')
+  })
+
+  it('leaves the scenario layer out of a diagram that names none', async () => {
+    const html = await renderToHtml(nested, { icons: pack })
+    expect(html).not.toContain('data-when')
+    expect(html).not.toContain('data-scene')
+    expect(html).not.toContain('archdraw-off')
   })
 
   it('paints the page in the theme the diagram was drawn with', async () => {

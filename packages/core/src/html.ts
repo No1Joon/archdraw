@@ -1,4 +1,5 @@
 import { FLOW_KEYS, type Theme } from './render.js'
+import type { Scenario } from './schema.js'
 
 function escape(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -43,6 +44,32 @@ addEventListener('resize', fit)
 fit()
 `
 
+/** Switching a scene only changes what is drawn — the layout was fixed before the page was made. */
+const SCENE_SCRIPT = `
+const marked = document.querySelectorAll('[data-when],[data-down]')
+const buttons = [...document.querySelectorAll('#scenes button')]
+const show = (id) => {
+  for (const el of marked) {
+    const when = el.getAttribute('data-when')
+    const down = el.getAttribute('data-down')
+    // Saying nothing means every scene, so only a named list can rule an element out.
+    el.classList.toggle('archdraw-off', !!when && !when.split(' ').includes(id))
+    el.classList.toggle('archdraw-down', !!down && down.split(' ').includes(id))
+  }
+  for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.scene === id))
+}
+for (const b of buttons) b.addEventListener('click', () => show(b.dataset.scene))
+if (buttons.length) show(buttons[0].dataset.scene)
+`
+
+function scenesHtml(scenarios: Scenario[]): string {
+  const button = (scenario: Scenario) =>
+    `<button type="button" data-scene="${escape(scenario.id)}" aria-pressed="false">${escape(
+      scenario.label ?? scenario.id,
+    )}</button>`
+  return `<div id="scenes">${scenarios.map(button).join('')}</div>`
+}
+
 /** Only worth drawing where the diagram says something is outside; one colour explains itself. */
 function legendHtml(theme: Theme): string {
   const row = ([key, text]: (typeof FLOW_KEYS)[number]) =>
@@ -51,7 +78,13 @@ function legendHtml(theme: Theme): string {
 }
 
 /** One self-contained file: no network, no build step, nothing to serve it from. */
-export function page(svg: string, title: string, theme: Theme, legend: boolean): string {
+export function page(
+  svg: string,
+  title: string,
+  theme: Theme,
+  legend: boolean,
+  scenarios: Scenario[] = [],
+): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -66,13 +99,21 @@ html,body{margin:0;height:100%;background:${theme.background};color:${theme.text
 #hint{position:fixed;left:12px;bottom:10px;font-size:12px;color:${theme.mutedText};pointer-events:none}
 #legend{position:fixed;right:12px;bottom:10px;display:flex;gap:14px;font-size:12px;color:${theme.mutedText}}
 #legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+#scenes{position:fixed;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px}
+#scenes button{font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
+background:${theme.groupFill};color:${theme.mutedText};border:1px solid ${theme.groupStroke}}
+#scenes button[aria-pressed="true"]{background:${theme.flow ?? '#1f6feb'};border-color:${
+    theme.flow ?? '#1f6feb'
+  };color:#fff}
 </style>
 </head>
 <body>
 <div id="stage">${svg}</div>
 <p id="hint">drag to pan · scroll to zoom · double-click to fit</p>
 ${legend ? legendHtml(theme) : ''}
+${scenarios.length ? scenesHtml(scenarios) : ''}
 <script>${SCRIPT}<\/script>
+${scenarios.length ? `<script>${SCENE_SCRIPT}<\/script>` : ''}
 </body>
 </html>
 `

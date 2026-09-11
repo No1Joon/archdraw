@@ -63,6 +63,7 @@ export async function renderToHtml(
     ir.title ?? 'architecture diagram',
     theme,
     ir.nodes.some((n) => n.external),
+    ir.scenarios,
   )
 }
 

@@ -16,6 +16,7 @@
 | `nodes` | Node[] | `[]` | The list of nodes |
 | `groups` | Node[] | `[]` | An alias for `nodes`. Reads better when everything at the top level is a container |
 | `edges` | Edge[] | `[]` | The connections |
+| `scenarios` | Scenario[] | `[]` | States the diagram can be read in. Only an animated HTML render draws them; SVG and PNG always show everything |
 
 ## Node
 
@@ -29,6 +30,8 @@
 | `shape` | `icon` \| `card` | — | This node's presentation. Overrides the diagram default |
 | `domain` | string | — | The address this node answers on. Drawn small **above** the mark, so it does not blend into the service name |
 | `external` | boolean | — | This is outside the system being drawn. Everything inside a group marked so is too, unless it says otherwise. Only an animated HTML render uses it, to colour traffic arriving, staying and leaving |
+| `when` | string[] | — | The scenario ids this is alive in. Omitted means all of them |
+| `down` | string[] | — | The scenario ids this has failed in — drawn drained of colour rather than merely absent |
 | `children` | Node[] | — | Child nodes, in the nested shape |
 
 A multi-line label mirrors how reference architectures write an identifier under the name.
@@ -49,6 +52,18 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 | `to` | string | ✓ | Target node id |
 | `label` | string | — | Shown on the line |
 | `style` | `solid` \| `dashed` | — | Defaults to `solid` |
+| `when` | string[] | — | The scenario ids this edge carries traffic in. Omitted means all of them |
+
+## Scenario
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | ✓ | **`A-Z a-z 0-9 - _` only**, like a node id |
+| `label` | string | — | The button's text. Defaults to `id` |
+
+An element says when it is alive rather than a scenario listing what it changes, so one line describes one element and a generator can emit it in a single pass. A name no scenario declares is an error, not a silently missing line.
+
+The graph is laid out once with every element present and a scenario only changes what is drawn, so pressing a button never moves the picture. One consequence is deliberate: an element is either alive or not, so a scenario that runs through stages — fails, is detected, recovers — cannot be written as a sequence.
 
 ## The two input shapes
 
