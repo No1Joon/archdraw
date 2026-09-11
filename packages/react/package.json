@@ -1,6 +1,6 @@
 {
   "name": "@archdraw/react",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "React component for rendering archdraw diagrams in the browser.",
   "keywords": [
     "architecture-diagram",
