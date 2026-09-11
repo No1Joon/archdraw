@@ -1,7 +1,7 @@
-import type { ElkExtendedEdge, ElkNode } from 'elkjs'
+import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { fold } from './fold.js'
-import type { FlatNode, Ir } from './normalize.js'
+import { fold, rowLength, simplify } from './fold.js'
+import type { FlatNode, Ir, IrEdge } from './normalize.js'
 
 /** The icon is the node; one constant sizes both. */
 export const ICON_SIZE = 64
@@ -71,6 +71,12 @@ export function headerTail(node: FlatNode): number {
 
 const elk = new ELK()
 
+/** A wide group laid out and folded on its own, and where each edge crosses its border. */
+interface Arranged {
+  node: ElkNode
+  ports: Map<string, Point>
+}
+
 /** Runs ELK over the flat IR. Group nesting becomes ELK compound nodes. */
 export async function layout(ir: Ir): Promise<ElkNode> {
   const childrenOf = new Map<string | null, typeof ir.nodes>()
@@ -79,6 +85,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     list.push(node)
     childrenOf.set(node.parent, list)
   }
+  const byId = new Map(ir.nodes.map((node) => [node.id, node]))
 
   // ELK reports edge coordinates relative to the node the edge is declared on.
   const parentOf = new Map(ir.nodes.map((node) => [node.id, node.parent]))
@@ -91,31 +98,60 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     return chain
   }
 
+  // ELK places a label only when given its dimensions.
+  const labelsOf = (edge: IrEdge) =>
+    edge.label
+      ? [
+          {
+            text: edge.label,
+            width: labelWidth(edge.label, EDGE_LABEL_SIZE),
+            height: EDGE_LABEL_SIZE + 4,
+          },
+        ]
+      : []
+
   const edgesOf = new Map<string | null, ElkExtendedEdge[]>()
   ir.edges.forEach((edge, index) => {
     const enclosing = new Set(containersOf(edge.to))
     const lca = containersOf(edge.from).find((id) => enclosing.has(id)) ?? null
     const list = edgesOf.get(lca) ?? []
-    // ELK places a label only when given its dimensions.
-    list.push({
-      id: `e${index}`,
-      sources: [edge.from],
-      targets: [edge.to],
-      labels: edge.label
-        ? [
-            {
-              text: edge.label,
-              width: labelWidth(edge.label, EDGE_LABEL_SIZE),
-              height: EDGE_LABEL_SIZE + 4,
-            },
-          ]
-        : [],
-    })
+    list.push({ id: `e${index}`, sources: [edge.from], targets: [edge.to], labels: labelsOf(edge) })
     edgesOf.set(lca, list)
   })
 
-  const build = (parent: string | null): ElkNode[] =>
+  const groupOptions = (node: FlatNode) => ({
+    // A minimum width, not a label: a sized label would take a layout cell and shove
+    // the children aside.
+    'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+    // The height keeps an empty group's box around its own header: with no children
+    // to push it open the box collapses under the label and the border crosses it.
+    'elk.nodeSize.minimum': `(${
+      GROUP_LABEL_INSET * 2 +
+      (node.type ? GROUP_ICON + 8 : 0) +
+      labelWidth(node.label, GROUP_LABEL_SIZE) +
+      headerTail(node)
+    },${GROUP_HEADER})`,
+    'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
+  })
+
+  const build = (
+    parent: string | null,
+    edges = edgesOf,
+    boxes = new Map<string, Arranged>(),
+  ): ElkNode[] =>
     (childrenOf.get(parent) ?? []).map((node): ElkNode => {
+      // A group already folded on its own is a box of fixed size here, and each edge that
+      // crosses its border meets it at a fixed point.
+      const box = boxes.get(node.id)
+      if (box) {
+        return {
+          id: node.id,
+          width: box.node.width ?? 0,
+          height: box.node.height ?? 0,
+          layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
+          ports: [...box.ports].map(([id, at]) => ({ id, x: at.x, y: at.y, width: 0, height: 0 })),
+        }
+      }
       if (!node.isGroup) {
         if (node.type && node.shape === 'card') {
           const lines = labelLines(node.label)
@@ -149,49 +185,236 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       return {
         id: node.id,
         labels: [{ text: node.label }],
-        layoutOptions: {
-          // A minimum width, not a label: a sized label would take a layout cell and shove
-          // the children aside.
-          'elk.nodeSize.constraints': 'MINIMUM_SIZE',
-          // The height keeps an empty group's box around its own header: with no children
-          // to push it open the box collapses under the label and the border crosses it.
-          'elk.nodeSize.minimum': `(${
-            GROUP_LABEL_INSET * 2 +
-            (node.type ? GROUP_ICON + 8 : 0) +
-            labelWidth(node.label, GROUP_LABEL_SIZE) +
-            headerTail(node)
-          },${GROUP_HEADER})`,
-          'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
-        },
-        children: build(node.id),
-        edges: edgesOf.get(node.id) ?? [],
+        layoutOptions: groupOptions(node),
+        children: build(node.id, edges, boxes),
+        edges: edges.get(node.id) ?? [],
       }
     })
 
+  const rootOptions = {
+    'elk.algorithm': 'layered',
+    'elk.direction': ir.direction,
+    // A fold follows the layout's order, so the edge ELK turns around to break a cycle has to
+    // be the one written against the file's order rather than a link of the chain.
+    ...(ir.wrap ? { 'elk.layered.cycleBreaking.strategy': 'GREEDY_MODEL_ORDER' } : {}),
+    'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+    'elk.edgeRouting': 'ORTHOGONAL',
+    'elk.spacing.nodeNode': '48',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '72',
+    'elk.spacing.edgeNode': '24',
+    'elk.edgeLabels.placement': 'CENTER',
+    'elk.spacing.edgeLabel': '6',
+    'elk.padding': '[top=24,left=24,bottom=24,right=24]',
+  }
+
   const root = await elk.layout({
     id: 'root',
-    layoutOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': ir.direction,
-      // A fold follows the layout's order, so the edge ELK turns around to break a cycle has to
-      // be the one written against the file's order rather than a link of the chain.
-      ...(ir.wrap ? { 'elk.layered.cycleBreaking.strategy': 'GREEDY_MODEL_ORDER' } : {}),
-      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.spacing.nodeNode': '48',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '72',
-      'elk.spacing.edgeNode': '24',
-      'elk.edgeLabels.placement': 'CENTER',
-      'elk.spacing.edgeLabel': '6',
-      'elk.padding': '[top=24,left=24,bottom=24,right=24]',
-    },
+    layoutOptions: rootOptions,
     children: build(null),
     edges: edgesOf.get(null) ?? [],
   })
+  if (!ir.wrap) {
+    reconnect(root)
+    return root
+  }
 
-  if (ir.wrap) fold(root, ir.direction)
-  reconnect(root)
-  return root
+  // A group longer than a row of the folded picture would take a row to itself and still run
+  // past the rest, so it is folded inside first, to that row's length.
+  const length = rowLength(root, ir.direction)
+  const wide = new Set<string>()
+  const measure = (node: ElkNode) => {
+    for (const child of node.children ?? []) {
+      const along = ir.direction === 'RIGHT' ? child.width : child.height
+      if (byId.get(child.id)?.isGroup && (along ?? 0) > length) wide.add(child.id)
+      measure(child)
+    }
+  }
+  measure(root)
+  if (wide.size === 0) {
+    fold(root, ir.direction)
+    reconnect(root)
+    return root
+  }
+
+  const within = (id: string, container: string | null) =>
+    container === null || containersOf(id).includes(container)
+  // The outermost wide group under `container` that holds `id`, or is it.
+  const boxOf = (id: string, container: string | null): string | undefined => {
+    let found: string | undefined
+    for (const cursor of [id, ...containersOf(id)]) {
+      if (cursor === container || cursor === null) break
+      if (wide.has(cursor)) found = cursor
+    }
+    return found
+  }
+  // An edge crosses a group's border at most once, so the pair names the crossing; `>` is not
+  // an id character, so the name cannot collide with a node.
+  const portName = (group: string, index: number) => `${group}>${index}`
+  const sides =
+    ir.direction === 'RIGHT' ? { in: 'WEST', out: 'EAST' } : { in: 'NORTH', out: 'SOUTH' }
+
+  /** Lays out what `container` holds, with every wide group under it already folded. */
+  const place = async (container: string | null): Promise<ElkNode> => {
+    const boxes = new Map<string, Arranged>()
+    for (const id of wide) {
+      if (id !== container && within(id, container) && boxOf(id, container) === id) {
+        boxes.set(id, await arrange(id))
+      }
+    }
+
+    const edges = new Map<string | null, ElkExtendedEdge[]>()
+    const ports: ElkPort[] = []
+    ir.edges.forEach((edge, index) => {
+      const ends = (['from', 'to'] as const).map((end) => {
+        const id = edge[end]
+        if (container !== null && (id === container || !within(id, container))) {
+          return { ref: portName(container, index), owner: id, outside: true, box: undefined }
+        }
+        const box = boxOf(id, container)
+        if (box && box !== id) {
+          return { ref: portName(box, index), owner: box, outside: false, box }
+        }
+        return { ref: id, owner: id, outside: false, box: undefined }
+      })
+      const [from, to] = ends as [(typeof ends)[number], (typeof ends)[number]]
+      if (from.outside && to.outside) return
+      if (from.box && from.box === to.box) return
+      let lca: string | null = container
+      if (!from.outside && !to.outside) {
+        const enclosing = new Set(containersOf(to.owner))
+        lca = containersOf(from.owner).find((id) => enclosing.has(id)) ?? null
+        const inside = lca === container || (lca !== null && within(lca, container))
+        if (!inside) lca = container
+      }
+      if (from.outside) ports.push({ id: from.ref, layoutOptions: { 'elk.port.side': sides.in } })
+      if (to.outside) ports.push({ id: to.ref, layoutOptions: { 'elk.port.side': sides.out } })
+      const list = edges.get(lca) ?? []
+      list.push({
+        id: `e${index}`,
+        sources: [from.ref],
+        targets: [to.ref],
+        // Only the part of an edge drawn outside every border it crosses carries the label.
+        labels: from.outside || to.outside ? [] : labelsOf(edge),
+      })
+      edges.set(lca, list)
+    })
+
+    const children = build(container, edges, boxes)
+    const group = container === null ? undefined : (byId.get(container) as FlatNode)
+    const laid = await elk.layout({
+      id: 'root',
+      layoutOptions: rootOptions,
+      // ELK will not lay out a graph whose own border carries ports, so a group laid out on
+      // its own sits alone inside an empty root.
+      children: group
+        ? [
+            {
+              id: group.id,
+              labels: [{ text: group.label }],
+              layoutOptions: { ...groupOptions(group), 'elk.portConstraints': 'FIXED_SIDE' },
+              ports: ports.map((port) => ({ ...port, width: 0, height: 0 })),
+              children,
+              edges: edges.get(group.id) ?? [],
+            },
+          ]
+        : children,
+      edges: edges.get(null) ?? [],
+    })
+    stitch(laid, boxes)
+    return laid
+  }
+
+  /** Joins each edge cut at a box border to the part drawn inside it, then fills each box. */
+  const stitch = (laid: ElkNode, boxes: Map<string, Arranged>) => {
+    const origin = new Map<string, Point>()
+    const holders: { node: ElkNode; at: Point }[] = []
+    const walk = (node: ElkNode, at: Point) => {
+      origin.set(node.id, at)
+      holders.push({ node, at })
+      for (const child of node.children ?? []) {
+        walk(child, { x: at.x + (child.x ?? 0), y: at.y + (child.y ?? 0) })
+      }
+    }
+    walk(laid, { x: 0, y: 0 })
+
+    for (const { node, at } of holders) {
+      for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+        const section = edge.sections?.[0]
+        const source = ir.edges[Number(edge.id.slice(1))]
+        if (!section || !source) continue
+        let points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
+        const join = (ref: string | undefined, head: boolean) => {
+          const box = ref?.split('>')[0]
+          const inner = box ? boxes.get(box) : undefined
+          const offset = box ? origin.get(box) : undefined
+          if (!box || !inner || !offset || box === ref) return false
+          const list = (inner.node.edges ?? []) as ElkExtendedEdge[]
+          const found = list.findIndex((other) => other.id === edge.id)
+          const part = list[found]?.sections?.[0]
+          if (!part) return false
+          list.splice(found, 1)
+          const moved = [part.startPoint, ...(part.bendPoints ?? []), part.endPoint].map((p) => ({
+            x: p.x + offset.x - at.x,
+            y: p.y + offset.y - at.y,
+          }))
+          points = head ? [...moved, ...points] : [...points, ...moved]
+          return true
+        }
+        if (join(edge.sources[0], true)) edge.sources = [source.from]
+        if (join(edge.targets[0], false)) edge.targets = [source.to]
+        const clean = simplify(points)
+        edge.sections = [
+          {
+            id: section.id,
+            startPoint: clean[0] as Point,
+            endPoint: clean[clean.length - 1] as Point,
+            bendPoints: clean.slice(1, -1),
+          },
+        ]
+      }
+    }
+
+    for (const { node } of holders) {
+      const inner = boxes.get(node.id)
+      if (!inner) continue
+      node.children = inner.node.children
+      node.edges = inner.node.edges
+      node.labels = inner.node.labels
+      node.ports = undefined
+      node.layoutOptions = undefined
+    }
+  }
+
+  /** A wide group folded on its own to a row's length, with its border crossings fixed. */
+  const arrange = async (id: string): Promise<Arranged> => {
+    const laid = await place(id)
+    fold(laid, ir.direction, length)
+    const node = laid.children?.[0] as ElkNode
+    const ports = new Map<string, Point>()
+    // The fold moves where an edge meets the border; each goes back out to the border itself.
+    for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+      const section = edge.sections?.[0]
+      if (!section) continue
+      const inbound = edge.sources[0]
+      const outbound = edge.targets[0]
+      if (inbound?.startsWith(`${id}>`)) {
+        if (ir.direction === 'RIGHT') section.startPoint.x = 0
+        else section.startPoint.y = 0
+        ports.set(inbound, { ...section.startPoint })
+      }
+      if (outbound?.startsWith(`${id}>`)) {
+        if (ir.direction === 'RIGHT') section.endPoint.x = node.width ?? 0
+        else section.endPoint.y = node.height ?? 0
+        ports.set(outbound, { ...section.endPoint })
+      }
+    }
+    return { node, ports }
+  }
+
+  const folded = await place(null)
+  fold(folded, ir.direction)
+  reconnect(folded)
+  return folded
 }
 
 interface Point {
