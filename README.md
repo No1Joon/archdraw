@@ -40,6 +40,7 @@ archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # render. `-` reads st
 archdraw <input> --check                                  # validate only. exits 1 on failure
 archdraw types <query> [-p aws,brands]                    # search the types you can use
 archdraw schema [--flat]                                  # print the input contract as JSON Schema
+archdraw serve <file> --watch [--port 4173]               # a live page that redraws on save
 ```
 
 | Option | |

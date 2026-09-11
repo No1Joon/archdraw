@@ -62,6 +62,30 @@ for (const b of buttons) b.addEventListener('click', () => show(b.dataset.scene)
 if (buttons.length) show(buttons[0].dataset.scene)
 `
 
+/**
+ * Under `archdraw serve`: a redraw reloads the page, and the page puts back where it was looking
+ * and which scene was pressed, so an edit reads as the picture changing rather than starting over.
+ * A broken save keeps the last drawing on screen and says why above it.
+ */
+const LIVE_SCRIPT = `
+const KEY = 'archdraw-view'
+let saved = null
+try { saved = JSON.parse(sessionStorage.getItem(KEY)) } catch {}
+if (saved) {
+  k = saved.k; x = saved.x; y = saved.y; apply()
+  if (saved.scene && typeof show === 'function' && document.querySelector('[data-scene="' + CSS.escape(saved.scene) + '"]')) show(saved.scene)
+}
+const banner = document.getElementById('error')
+const events = new EventSource('/events')
+events.addEventListener('change', () => {
+  const pressed = document.querySelector('#scenes [aria-pressed="true"]')
+  try { sessionStorage.setItem(KEY, JSON.stringify({ k, x, y, scene: pressed && pressed.dataset.scene })) } catch {}
+  location.reload()
+})
+events.addEventListener('broken', (e) => { banner.textContent = JSON.parse(e.data); banner.hidden = false })
+events.addEventListener('ok', () => { banner.hidden = true })
+`
+
 function scenesHtml(scenarios: Scenario[]): string {
   const button = (scenario: Scenario) =>
     `<button type="button" data-scene="${escape(scenario.id)}" aria-pressed="false">${escape(
@@ -84,6 +108,7 @@ export function page(
   theme: Theme,
   legend: boolean,
   scenarios: Scenario[] = [],
+  live = false,
 ): string {
   return `<!doctype html>
 <html lang="en">
@@ -102,6 +127,9 @@ html,body{margin:0;height:100%;background:${theme.background};color:${theme.text
 #scenes{position:fixed;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px}
 #scenes button{font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
 background:${theme.groupFill};color:${theme.mutedText};border:1px solid ${theme.groupStroke}}
+#error{position:fixed;top:12px;right:12px;max-width:min(640px,90vw);margin:0;padding:10px 14px;
+white-space:pre-wrap;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;border-radius:8px;
+background:${theme.background};color:#cf222e;border:1px solid #cf222e}
 #scenes button[aria-pressed="true"]{background:${theme.flow ?? '#1f6feb'};border-color:${
     theme.flow ?? '#1f6feb'
   };color:#fff}
@@ -113,7 +141,9 @@ background:${theme.groupFill};color:${theme.mutedText};border:1px solid ${theme.
 ${legend ? legendHtml(theme) : ''}
 ${scenarios.length ? scenesHtml(scenarios) : ''}
 <script>${SCRIPT}<\/script>
-${scenarios.length ? `<script>${SCENE_SCRIPT}<\/script>` : ''}
+${scenarios.length ? `<script>${SCENE_SCRIPT}<\/script>` : ''}${
+  live ? `\n<pre id="error" hidden></pre>\n<script>${LIVE_SCRIPT}<\/script>` : ''
+}
 </body>
 </html>
 `
