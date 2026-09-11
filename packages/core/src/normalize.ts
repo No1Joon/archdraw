@@ -15,6 +15,8 @@ export interface FlatNode {
   external: boolean
   /** How much of this is built. A group's own; it does not reach the children. */
   status?: Status
+  /** Under `rollup`, how much of what a group holds is finished, counting only what has a status. */
+  rollup?: { done: number; total: number }
   /** Scenarios this is alive in; `undefined` means all of them. */
   when?: string[]
   /** Scenarios this is failed in. */
@@ -188,6 +190,23 @@ export function normalize(input: unknown): Ir {
       if (said !== undefined) {
         node.external = said
         break
+      }
+    }
+  }
+
+  // Every leaf that says anything counts toward each group above it; one with no status is not
+  // outstanding work. `deployed` is finished too. The group's own status is left alone.
+  if (doc.rollup) {
+    const byId = new Map(nodes.map((node) => [node.id, node]))
+    for (const node of nodes) {
+      if (node.isGroup || !node.status) continue
+      const finished = node.status === 'done' || node.status === 'deployed'
+      for (let cursor = node.parent; cursor !== null; cursor = parentOf.get(cursor) ?? null) {
+        const group = byId.get(cursor)
+        if (!group) break
+        group.rollup ??= { done: 0, total: 0 }
+        group.rollup.total++
+        if (finished) group.rollup.done++
       }
     }
   }

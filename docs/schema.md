@@ -13,6 +13,7 @@
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | Flow direction. Applies to the whole diagram; it cannot be set per group |
 | `shape` | `icon` \| `card` | `icon` | Default node presentation. `icon` puts the name under the mark (the AWS convention); `card` puts it beside the mark (the GCP convention) |
 | `wrap` | boolean | `false` | Fold a long chain into several rows. Without it a 200-node chain renders as one strip tens of thousands of pixels wide |
+| `rollup` | boolean | `false` | Count each group's contents by status in its header — `2/3 done`. The group's own status stays its own |
 | `nodes` | Node[] | `[]` | The list of nodes |
 | `groups` | Node[] | `[]` | An alias for `nodes`. Reads better when everything at the top level is a container |
 | `edges` | Edge[] | `[]` | The connections |
@@ -30,7 +31,7 @@
 | `shape` | `icon` \| `card` | — | This node's presentation. Overrides the diagram default |
 | `domain` | string | — | The address this node answers on. Drawn small **above** the mark, so it does not blend into the service name |
 | `external` | boolean | — | This is outside the system being drawn. Everything inside a group marked so is too, unless it says otherwise. Only an animated HTML render uses it, to colour traffic arriving, staying and leaving |
-| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | How much of this is built. A group's own status, never its children's — a VM that exists deploys nothing |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | How much of this is built. A group's own status, never its children's — a VM that exists deploys nothing |
 | `when` | string[] | — | The scenario ids this is alive in. Omitted means all of them |
 | `down` | string[] | — | The scenario ids this has failed in — drawn drained of colour rather than merely absent |
 | `children` | Node[] | — | Child nodes, in the nested shape |
@@ -54,7 +55,7 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 | `to` | string | ✓ | Target node id |
 | `label` | string | — | Shown on the line |
 | `style` | `solid` \| `dashed` | — | Defaults to `solid` |
-| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | Whether this connection exists yet. Independent of the nodes it joins |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | Whether this connection exists yet. Independent of the nodes it joins |
 | `animation` | `none` \| `flow` | — | Travelling dashes in the HTML target. Defaults to off for a `planned` or `blocked` edge, on for every other |
 | `when` | string[] | — | The scenario ids this edge carries traffic in. Omitted means all of them |
 
@@ -70,13 +71,15 @@ edges:
   - { from: api, to: redis, label: get, status: planned }
 ```
 
-A node carries a mark in its corner, a group carries one in its header, and an edge carries one beside its label. Each state has its own shape as well as its own colour — a ring, a half disc, a bar, a tick — so a diagram printed in grey still reads, and a legend naming the states in words is drawn under the graph. Only the states a diagram uses appear in it.
+A node carries a mark in its corner, a group carries one in its header, and an edge carries one beside its label. Each state has its own shape as well as its own colour — a ring, a half disc, a bar, a tick, a play mark — so a diagram printed in grey still reads, and a legend naming the states in words is drawn under the graph. Only the states a diagram uses appear in it.
 
-A `planned` or `blocked` edge takes the status colour and, where it is planned, draws faint. A `done` edge is drawn exactly as an edge with no status at all: a connection that exists is just a line.
+A `planned` or `blocked` edge takes the status colour and, where it is planned, draws faint. A `done` or `deployed` edge is drawn exactly as an edge with no status at all: a connection that exists is just a line.
 
 Motion is treated as a claim about traffic, so a `planned` or `blocked` edge does not animate in the HTML target. `animation: flow` overrides that for an edge whose movement is the point, and `animation: none` silences one that is built.
 
-Two things it deliberately does not do. A group's status is its own and never reaches its children, so a created VM cannot mark the services inside it deployed. And there is one axis, not two: a node that is written but not yet deployed has to choose a word today.
+`done` means written, `deployed` means running where it is meant to run — one ladder rather than two fields, so every element carries one mark. A thing that is running an old version while the new one is being written is `in_progress`.
+
+A group's status is its own and never reaches its children, so a created VM cannot mark the services inside it deployed. To see how far along a group's contents are, set `rollup: true` at the top level: each group header then counts what is inside it at any depth — `2/3 done`, with `deployed` counted as done and anything without a status left out — beside, not instead of, the group's own mark.
 
 ## Scenario
 

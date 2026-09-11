@@ -1,6 +1,6 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
-import type { Ir } from './normalize.js'
+import type { FlatNode, Ir } from './normalize.js'
 
 /** The icon is the node; one constant sizes both. */
 export const ICON_SIZE = 64
@@ -33,6 +33,8 @@ export const STATUS_BADGE = 8
 /** Space under the graph for the status legend. Taken only by a diagram that carries statuses. */
 export const LEGEND_BAND = 36
 export const LEGEND_SIZE = 12
+/** The count a group header carries under `rollup`. */
+export const ROLLUP_SIZE = 11
 /** Layout and render must use the same sizes. */
 export const NODE_LABEL_SIZE = 12
 export const EDGE_LABEL_SIZE = 11
@@ -53,6 +55,17 @@ export function labelWidth(text: string, fontSize: number): number {
 
 export function labelLines(text: string): string[] {
   return text.split('\n')
+}
+
+export function rollupText(rollup: { done: number; total: number }): string {
+  return `${rollup.done}/${rollup.total} done`
+}
+
+/** The right end of a group header: its own status mark, and the rollup count before it. */
+export function headerTail(node: FlatNode): number {
+  const count = node.rollup ? labelWidth(rollupText(node.rollup), ROLLUP_SIZE) + 16 : 0
+  const mark = node.status ? STATUS_BADGE * 2 + 8 : 0
+  return count + mark
 }
 
 /**
@@ -161,7 +174,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
           'elk.nodeSize.minimum': `(${
             GROUP_LABEL_INSET * 2 +
             (node.type ? GROUP_ICON + 8 : 0) +
-            labelWidth(node.label, GROUP_LABEL_SIZE)
+            labelWidth(node.label, GROUP_LABEL_SIZE) +
+            headerTail(node)
           },${GROUP_HEADER})`,
           'elk.padding': `[top=${GROUP_HEADER + 16},left=20,bottom=${20 + LABEL_BAND},right=20]`,
         },

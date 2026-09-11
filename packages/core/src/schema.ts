@@ -9,7 +9,7 @@ const Id = z
  * How much of this exists yet, as against how much is drawn. Saying nothing says nothing —
  * a diagram that never mentions status draws exactly as it did before there was one.
  */
-export const StatusSchema = z.enum(['planned', 'in_progress', 'blocked', 'done'])
+export const StatusSchema = z.enum(['planned', 'in_progress', 'blocked', 'done', 'deployed'])
 
 /** A single entry in the flat form. Non-recursive: structured outputs reject recursion. */
 export const FlatNodeSchema = z
@@ -84,6 +84,8 @@ const Base = {
   shape: z.enum(['icon', 'card']).default('icon'),
   /** Fold a long chain into several rows. Without it the canvas grows in one direction forever. */
   wrap: z.boolean().default(false),
+  /** Count each group's contents by status in its header. The group's own status stays its own. */
+  rollup: z.boolean().default(false),
   /** States the diagram can be read in. Only the HTML page draws them; SVG and PNG show all. */
   scenarios: z.array(ScenarioSchema).default([]),
   edges: z.array(EdgeSchema).default([]),
