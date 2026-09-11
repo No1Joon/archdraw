@@ -167,6 +167,26 @@ describe('wrap', () => {
     expect(normalize({ nodes: [] }).wrap).toBe(false)
   })
 
+  const groupedChain = (wrap: boolean) => ({
+    wrap,
+    nodes: [
+      { id: 'vpc', kind: 'vpc', label: 'one big group' },
+      ...Array.from({ length: 24 }, (_, i) => ({ id: `n${i}`, type: 'ecs', parent: 'vpc' })),
+    ],
+    edges: Array.from({ length: 23 }, (_, i) => ({ from: `n${i}`, to: `n${i + 1}` })),
+  })
+
+  // The same chain one level down used to come out as the flat strip `wrap` exists to prevent,
+  // with nothing said about it: the strategy was set on the root graph only.
+  it('folds a chain inside a group, not only one at the top level', async () => {
+    const { layout } = await import('./index.js')
+    const wide = await layout(normalize(groupedChain(false)))
+    const folded = await layout(normalize(groupedChain(true)))
+
+    expect(folded.width ?? 0).toBeLessThan((wide.width ?? 0) / 2)
+    expect(folded.height ?? 0).toBeGreaterThan(wide.height ?? 0)
+  })
+
   // Wrapping used to route these two to a point on no node, so the arrowhead claimed a
   // connection and showed nowhere. The label sizes decide where the fold falls, so both
   // graphs are kept as the agent runs wrote them.
