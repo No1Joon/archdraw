@@ -15,7 +15,7 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
 - `pnpm icons:sync <aws|gcp> [--from <zip>]`: 공식 아이콘 배포본에서 아이콘 패키지 재생성
 - `pnpm changeset`: 변경마다 changeset 추가. 발행은 CI 몫이라 `pnpm release` 를 손으로 돌리지 않는다
 
-CLI 표면은 넷뿐이다 — `archdraw <input>` 렌더, `archdraw types <query>` 어휘 검색, `archdraw schema` 입력 계약 출력, `--check` 검증. 주 사용자는 YAML 을 쓰는 AI CLI 다.
+CLI 표면은 다섯이다 — `archdraw <input>` 렌더, `archdraw types <query>` 어휘 검색, `archdraw schema` 입력 계약 출력, `--check` 검증, `archdraw serve <file> --watch` 저장 시 다시 그리는 로컬 미리보기. 주 사용자는 YAML 을 쓰는 AI CLI 다.
 
 ## Architecture
 

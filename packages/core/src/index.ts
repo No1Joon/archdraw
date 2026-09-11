@@ -33,6 +33,8 @@ export interface RenderOptions {
   theme?: Theme
   /** Sees the laid-out graph before it is drawn, so a caller can measure it without laying it out twice. */
   onLayout?: (ir: Ir, root: ElkNode) => void
+  /** HTML only: the page follows `archdraw serve`, reloading on a redraw and keeping its view. */
+  live?: boolean
 }
 
 /** Parses YAML or JSON source into the untyped document `normalize` accepts. */
@@ -64,6 +66,7 @@ export async function renderToHtml(
     theme,
     ir.nodes.some((n) => n.external),
     ir.scenarios,
+    options.live,
   )
 }
 

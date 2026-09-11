@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, watch, writeFileSync } from 'node:fs'
+import { createServer, type Server, type ServerResponse } from 'node:http'
 import { createRequire } from 'node:module'
-import { dirname, extname, join } from 'node:path'
+import type { AddressInfo } from 'node:net'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   createResolver,
@@ -184,6 +186,136 @@ program
       write(markup, options.out, scaleFor(options.scale))
     })
   })
+
+/** Nothing is drawn until the file first parses; this page waits for that and shows why not. */
+const WAITING = `<!doctype html>
+<meta charset="utf-8">
+<title>archdraw</title>
+<pre id="error" style="margin:24px;white-space:pre-wrap;font:13px ui-monospace,monospace;color:#cf222e"></pre>
+<script>
+const box = document.getElementById('error')
+const events = new EventSource('/events')
+events.addEventListener('change', () => location.reload())
+events.addEventListener('broken', (e) => { box.textContent = JSON.parse(e.data) })
+</script>
+`
+
+/** After a redraw a burst of saves settles into one, since an editor often writes a file twice. */
+const SETTLE_MS = 80
+
+program
+  .command('serve')
+  .description('Serve a diagram as a live page that redraws when the file is saved.')
+  .argument('<input>', 'diagram YAML or JSON file')
+  .option(
+    '-p, --provider <names>',
+    "icon packs to load, comma separated; defaults to the diagram's own `provider`",
+  )
+  .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
+  .option('--port <n>', 'port to listen on; 0 picks a free one', '4173')
+  .option('--watch', 'redraw whenever the file is saved')
+  .action(async (input: string, options) => {
+    await run(async () => {
+      if (input === '-') throw new Error('serve needs a file it can watch, not stdin.')
+      const path = resolve(input)
+      const theme = themeFor(options.theme)
+      const port = portFor(options.port)
+
+      // The last drawing that worked, and why the latest save did not. A broken save keeps the
+      // last good picture on screen: a blank page says less than a stale one.
+      let good: string | undefined
+      let broken: string | undefined
+      const draw = async (): Promise<boolean> => {
+        try {
+          const document = parse(readFileSync(path, 'utf8'))
+          const ir = normalize(document)
+          const icons = iconsFor(options.provider ?? ir.provider)
+          good = await renderToHtml(document, { icons, theme: theme, live: true })
+          broken = undefined
+          return true
+        } catch (error) {
+          broken = error instanceof Error ? error.message : String(error)
+          return false
+        }
+      }
+
+      const clients = new Set<ServerResponse>()
+      const event = (name: string, data: string) =>
+        `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`
+      const current = () => (broken === undefined ? event('ok', '') : event('broken', broken))
+
+      const server = createServer((request, response) => {
+        if (request.url === '/events') {
+          response.writeHead(200, {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+          })
+          // A page that connects late still learns whether the file is broken right now.
+          response.write(current())
+          clients.add(response)
+          request.on('close', () => clients.delete(response))
+          return
+        }
+        if (request.url === '/') {
+          response.writeHead(200, {
+            'content-type': 'text/html; charset=utf-8',
+            'cache-control': 'no-store',
+          })
+          response.end(good ?? WAITING)
+          return
+        }
+        response.writeHead(404).end()
+      })
+
+      await draw()
+      if (broken !== undefined) {
+        if (!options.watch) throw new Error(broken)
+        console.error(broken)
+      }
+      const bound = await listen(server, port)
+      console.error(
+        `serving ${input} at http://127.0.0.1:${bound}${options.watch ? ', redrawing on save' : ''}`,
+      )
+      if (!options.watch) return
+
+      // Watch the directory, not the file: an editor that saves by renaming a new file over the
+      // old one ends a watch held on the file itself, and the directory sees both.
+      let timer: ReturnType<typeof setTimeout> | undefined
+      watch(dirname(path), (_change, name) => {
+        if (name !== basename(path)) return
+        clearTimeout(timer)
+        timer = setTimeout(async () => {
+          const ok = await draw()
+          console.error(ok ? `redrew ${input}` : broken)
+          const message = ok ? event('change', '') : current()
+          for (const client of clients) client.write(message)
+        }, SETTLE_MS)
+      })
+    })
+  })
+
+/** Resolves with the port actually bound; one someone else holds names the flag that moves it. */
+function listen(server: Server, port: number): Promise<number> {
+  return new Promise((done, fail) => {
+    server.once('error', (error: NodeJS.ErrnoException) =>
+      fail(
+        error.code === 'EADDRINUSE'
+          ? new Error(`Port ${port} is in use. Pick another with --port.`)
+          : error,
+      ),
+    )
+    server.listen(port, '127.0.0.1', () => done((server.address() as AddressInfo).port))
+  })
+}
+
+function portFor(input: string): number {
+  const port = Number(input)
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Port must be a whole number from 0 to 65535, got '${input}'.`)
+  }
+  return port
+}
 
 /** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
 function rank(

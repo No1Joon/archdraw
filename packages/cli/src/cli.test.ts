@@ -1,5 +1,5 @@
-import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -518,5 +518,76 @@ describe('icon packs together', () => {
     const { stdout } = run(['types', 'redis', '-p', 'gcp,brands'])
     expect(stdout).toContain('redis')
     expect(stdout).not.toContain('memorystore')
+  })
+})
+
+describe('serve', () => {
+  it('redraws on save, and keeps the last drawing through a broken one', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-serve-'))
+    const file = join(dir, 'd.yaml')
+    writeFileSync(file, diagram)
+    const child = spawn('node', [cli, 'serve', file, '--watch', '--port', '0'])
+    try {
+      const url = await new Promise<string>((done, fail) => {
+        let said = ''
+        child.stderr.on('data', (chunk) => {
+          said += chunk
+          const found = said.match(/http:\/\/127\.0\.0\.1:\d+/)
+          if (found) done(found[0])
+        })
+        child.on('exit', () => fail(new Error(said)))
+      })
+      const page = () => fetch(url).then((response) => response.text())
+
+      const first = await page()
+      expect(first).toContain('<svg')
+      expect(first).toContain("new EventSource('/events')")
+
+      const stream = await fetch(`${url}/events`)
+      const reader = (stream.body as ReadableStream<Uint8Array>).getReader()
+      const decoder = new TextDecoder()
+      let heard = ''
+      const until = async (name: string, times = 1) => {
+        while (heard.split(`event: ${name}\n`).length - 1 < times) {
+          const { value, done } = await reader.read()
+          if (done) throw new Error(`stream ended before '${name}'`)
+          heard += decoder.decode(value)
+        }
+      }
+
+      await until('ok')
+      writeFileSync(file, diagram.replaceAll('b', 'renamed'))
+      await until('change')
+      expect(await page()).toContain('renamed')
+
+      writeFileSync(file, 'nodes: [{ id: a, type: lambdaa }]\n')
+      await until('broken')
+      // The page stays the last one that drew; the banner is what says the save was bad.
+      expect(await page()).toContain('renamed')
+      expect(heard).toContain('lambdaa')
+      await reader.cancel()
+    } finally {
+      child.kill()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 20000)
+
+  it('refuses stdin, which it could not watch', () => {
+    const { code, stderr } = run(['serve', '-'])
+    expect(code).toBe(1)
+    expect(stderr).toContain('not stdin')
+  })
+
+  it('exits on a broken file when it is not watching for the fix', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-serve-'))
+    const file = join(dir, 'd.yaml')
+    writeFileSync(file, 'nodes: [{ id: a, type: lambdaa }]\n')
+    try {
+      const { code, stderr } = run(['serve', file, '--port', '0'])
+      expect(code).toBe(1)
+      expect(stderr).toContain('lambdaa')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

@@ -40,6 +40,7 @@ archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # 렌더. input 이 - 
 archdraw <input> --check                                  # 검증만. 실패 시 exit 1
 archdraw types <query> [-p aws,brands]                    # 쓸 수 있는 type 검색
 archdraw schema [--flat]                                  # 입력 계약을 JSON Schema 로
+archdraw serve <file> --watch [--port 4173]               # 저장할 때마다 다시 그리는 미리보기
 ```
 
 | 옵션 | |
