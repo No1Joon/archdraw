@@ -70,6 +70,30 @@ describe('normalize', () => {
     expect(ir.nodes.find((node) => node.id === 'g')?.isGroup).toBe(true)
   })
 
+  // Agents reach for `kind` as "what kind of service this is" and write it on ordinary nodes;
+  // reading that as a container turned every one of them into an empty box.
+  it('leaves a node that only carries `kind` a node', () => {
+    const ir = normalize({
+      nodes: [
+        { id: 'a', type: 'ecs', kind: 'Amazon ECS', label: 'Raw Data Lake' },
+        { id: 'b', type: 'rds', kind: 'Amazon RDS', label: 'Normalizer' },
+      ],
+    })
+    expect(ir.nodes.every((node) => !node.isGroup)).toBe(true)
+  })
+
+  it('keeps `kind` on a container that holds something', () => {
+    const ir = normalize({
+      nodes: [
+        { id: 'vpc', kind: 'vpc', label: 'Production VPC' },
+        { id: 'a', type: 'ecs', parent: 'vpc' },
+      ],
+    })
+    const vpc = ir.nodes.find((node) => node.id === 'vpc')
+    expect(vpc?.isGroup).toBe(true)
+    expect(vpc?.kind).toBe('vpc')
+  })
+
   it('lets a container carry a type for its header icon', () => {
     expect(() => normalize({ nodes: [{ id: 'a', kind: 'vpc', type: 'ecs' }] })).not.toThrow()
   })

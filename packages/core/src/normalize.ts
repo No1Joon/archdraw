@@ -58,9 +58,10 @@ export function normalize(input: unknown): Ir {
     }
     seen.add(entry.id)
 
-    // Declared under `groups`, so it is one — the flat form fills a group by pointing children
-    // at it, and reading emptiness as "not a group" loses every one of them.
-    const isGroup = declared || entry.kind !== undefined || (entry.children?.length ?? 0) > 0
+    // What it holds, not what it calls itself: `kind` names a container but does not make one,
+    // so writing it on an ordinary node draws that node rather than an empty box around it.
+    // Anything the flat form points `parent` at is promoted below, once every entry is read.
+    const isGroup = declared || (entry.children?.length ?? 0) > 0
     nodes.push({
       id: entry.id,
       label: entry.label ?? entry.id,
