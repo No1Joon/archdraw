@@ -25,7 +25,7 @@
 | `id` | string | ✓ | **`A-Z a-z 0-9 - _` 만.** 점·공백·한글은 거부된다 |
 | `label` | string | — | 표시 이름. 한글 가능. 생략하면 `id` 를 쓴다. `\n` 으로 줄을 나누면 이름 아래에 식별자·URL 을 붙일 수 있다 |
 | `type` | string | — | 서비스 slug 또는 별칭(`ecs`, `s3`). 리프면 아이콘, 컨테이너면 헤더 배지로 그린다 |
-| `kind` | string | — | 컨테이너 표시(`vpc`, `region`, `account`...). `type` 을 함께 줘 헤더에 아이콘을 붙일 수 있다 |
+| `kind` | string | — | 컨테이너가 무엇인지 이름 붙인다(`vpc`, `region`, `account`...). `type` 을 함께 줘 헤더에 아이콘을 붙일 수 있다. 노드를 컨테이너로 만들지는 않는다 |
 | `parent` | string \| null | — | 평면 형에서 상위 컨테이너 id |
 | `shape` | `icon` \| `card` | — | 이 노드의 표현. 다이어그램 기본값을 덮어쓴다 |
 | `domain` | string | — | 이 노드가 응답하는 주소. 마크 **위**에 작게 그려져 서비스 이름과 섞이지 않는다 |
@@ -40,9 +40,9 @@
 - { id: cdn, type: cloudfront, label: "CloudFront\n(E3B54WIT00QZZG)\n(portal.example.com)" }
 ```
 
-`type` 도 `kind` 도 없으면 **라벨 박스**로 그려진다 — 벤더 아이콘이 없는 서드파티·자체호스팅 구성요소를 표현할 때 쓴다.
+`type` 이 없으면 **라벨 박스**로 그려진다 — 벤더 아이콘이 없는 서드파티·자체호스팅 구성요소를 표현할 때 쓴다.
 
-`kind` 가 있거나 `children` 이 있으면 컨테이너다.
+`children` 이 있거나, `groups` 에 있거나, 무언가가 `parent` 로 가리키면 컨테이너다. `kind` 는 컨테이너에 이름을 붙일 뿐 컨테이너로 만들지 않는다.
 
 ## Edge
 
