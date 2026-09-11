@@ -189,6 +189,13 @@ Rendered the same way. Open one to see it.
 
 </details>
 
+<details>
+<summary><a href="./examples/build-status.yaml"><code>build-status.yaml</code></a> — What exists and what is only planned, drawn on one picture with a legend</summary>
+
+![build-status](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/build-status.png)
+
+</details>
+
 ## Docs
 
 | | |

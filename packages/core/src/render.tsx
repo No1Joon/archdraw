@@ -11,14 +11,18 @@ import {
   GROUP_LABEL_INSET,
   GROUP_LABEL_SIZE,
   LABEL_BAND,
+  LEGEND_BAND,
+  LEGEND_SIZE,
   LINE_HEIGHT,
   labelLines,
   labelWidth,
   NODE_LABEL_SIZE,
+  STATUS_BADGE,
   TITLE_BAND,
   TITLE_SIZE,
 } from './layout.js'
 import type { FlatNode, Ir } from './normalize.js'
+import type { Edge, Status } from './schema.js'
 
 export interface Theme {
   background: string
@@ -34,6 +38,11 @@ export interface Theme {
   /** Traffic arriving from outside the system, and traffic leaving it. */
   flowIn?: string
   flowOut?: string
+  /** How much of a node or an edge is built. Falls back to colours that read on both grounds. */
+  statusPlanned?: string
+  statusInProgress?: string
+  statusBlocked?: string
+  statusDone?: string
   fontFamily: string
 }
 
@@ -49,6 +58,10 @@ export const defaultTheme: Theme = {
   flow: '#1f6feb',
   flowIn: '#1a7f37',
   flowOut: '#bc4c00',
+  statusPlanned: '#8c959f',
+  statusInProgress: '#9a6700',
+  statusBlocked: '#cf222e',
+  statusDone: '#1a7f37',
   // resvg resolves only the first family. Noto ships under both names.
   fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
@@ -66,6 +79,10 @@ export const darkTheme: Theme = {
   flow: '#58a6ff',
   flowIn: '#3fb950',
   flowOut: '#db6d28',
+  statusPlanned: '#8b949e',
+  statusInProgress: '#d29922',
+  statusBlocked: '#f85149',
+  statusDone: '#3fb950',
   fontFamily: defaultTheme.fontFamily,
 }
 
@@ -87,6 +104,63 @@ export function flowColour(theme: Theme, from?: FlatNode, to?: FlatNode): string
   if (from?.external && !to?.external) return theme.flowIn ?? FLOW.flowIn
   if (!from?.external && to?.external) return theme.flowOut ?? FLOW.flowOut
   return theme.flow ?? FLOW.flow
+}
+
+/** Used when a caller's own theme predates the status colours. */
+const STATUS = {
+  planned: '#8c959f',
+  in_progress: '#9a6700',
+  blocked: '#cf222e',
+  done: '#1a7f37',
+} as const satisfies Record<Status, string>
+
+/** The four states, in the order a legend reads them: not started, moving, stuck, finished. */
+export const STATUS_KEYS = [
+  ['planned', 'planned'],
+  ['in_progress', 'in progress'],
+  ['blocked', 'blocked'],
+  ['done', 'done'],
+] as const satisfies readonly (readonly [Status, string])[]
+
+const STATUS_THEME_KEY = {
+  planned: 'statusPlanned',
+  in_progress: 'statusInProgress',
+  blocked: 'statusBlocked',
+  done: 'statusDone',
+} as const satisfies Record<Status, keyof Theme>
+
+export function statusColour(theme: Theme, status: Status): string {
+  return theme[STATUS_THEME_KEY[status]] ?? STATUS[status]
+}
+
+/**
+ * A line that is already there is just a line; one that is not says so in its own colour, so a
+ * planned connection does not read as built in a picture printed without its legend.
+ */
+function edgeColour(theme: Theme, status?: Status): string {
+  return status && status !== 'done' ? statusColour(theme, status) : theme.edge
+}
+
+/** An arrowhead has to match the line it ends, so a coloured edge needs a marker of its own. */
+const MARKED: readonly Status[] = ['planned', 'in_progress', 'blocked']
+
+function markerId(status?: Status): string {
+  return status && status !== 'done' ? `archdraw-arrow-${status}` : 'archdraw-arrow'
+}
+
+/** Motion claims traffic, so a connection that is not built stays still unless the file says otherwise. */
+function animates(meta?: Edge): boolean {
+  if (meta?.animation) return meta.animation === 'flow'
+  return meta?.status !== 'planned' && meta?.status !== 'blocked'
+}
+
+const LEGEND_GAP = 20
+
+function legendWidth(statuses: readonly (readonly [Status, string])[]): number {
+  return statuses.reduce(
+    (sum, [, text]) => sum + STATUS_BADGE * 2 + 6 + labelWidth(text, LEGEND_SIZE) + LEGEND_GAP,
+    -LEGEND_GAP,
+  )
 }
 
 /** Sparse dots, not a dashed line: the drawn edge must still read as the solid or dashed one it is. */
@@ -123,10 +197,21 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
   // Only the page can hold a state, so the marks ride with the animation and never reach a
   // still SVG — that one shows every element, whatever the diagram says about scenes.
   const scenes = flow === true && ir.scenarios.length > 0
+  // Only what the diagram actually uses: a legend naming states nothing is in explains nothing.
+  const statuses = STATUS_KEYS.filter(
+    ([status]) =>
+      ir.nodes.some((node) => node.status === status) ||
+      ir.edges.some((edge) => edge.status === status),
+  )
+  const arrows = MARKED.filter((status) => ir.edges.some((edge) => edge.status === status))
   // The title sits above the graph rather than inside it, so ELK's box is left untouched.
   const band = ir.title ? TITLE_BAND : 0
-  const width = Math.max(root.width ?? 0, ir.title ? labelWidth(ir.title, TITLE_SIZE) + 48 : 0)
-  const height = (root.height ?? 0) + band
+  const width = Math.max(
+    root.width ?? 0,
+    ir.title ? labelWidth(ir.title, TITLE_SIZE) + 48 : 0,
+    statuses.length ? legendWidth(statuses) + 48 : 0,
+  )
+  const height = (root.height ?? 0) + band + (statuses.length ? LEGEND_BAND : 0)
 
   return (
     <svg
@@ -142,19 +227,10 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
       {flow ? <style>{flowCss()}</style> : null}
       {scenes ? <style>{sceneCss()}</style> : null}
       <defs>
-        <marker
-          id="archdraw-arrow"
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="7"
-          markerHeight="7"
-          // Fixed px — stroke multiples let the head outgrow a short final segment.
-          markerUnits="userSpaceOnUse"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.edge} />
-        </marker>
+        <Arrow id="archdraw-arrow" fill={theme.edge} />
+        {arrows.map((status) => (
+          <Arrow key={status} id={markerId(status)} fill={statusColour(theme, status)} />
+        ))}
       </defs>
       <rect width={width} height={height} fill={theme.background} />
       {ir.title ? (
@@ -173,7 +249,112 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
           scenes={scenes}
         />
       </g>
+      {statuses.length ? (
+        <Legend statuses={statuses} theme={theme} y={height - LEGEND_BAND / 2} />
+      ) : null}
     </svg>
+  )
+}
+
+/** One arrowhead per colour in use: a marker paints itself, not the line that calls it. */
+function Arrow({ id, fill }: { id: string; fill: string }) {
+  return (
+    <marker
+      id={id}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      // Fixed px — stroke multiples let the head outgrow a short final segment.
+      markerUnits="userSpaceOnUse"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill={fill} />
+    </marker>
+  )
+}
+
+/**
+ * A ring for what has not started, a half disc for what is moving, a bar for what is stuck, a
+ * tick for what is done: the shape says it as well as the colour does, and the legend says it
+ * in words. A picture read in one colour, or printed in grey, still carries all four.
+ */
+function StatusBadge({
+  x,
+  y,
+  status,
+  theme,
+}: {
+  x: number
+  y: number
+  status: Status
+  theme: Theme
+}) {
+  const colour = statusColour(theme, status)
+  const ground = theme.background
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      {/* The ground disc is what lets a badge sit over an icon without reading into it. */}
+      <circle r={STATUS_BADGE} fill={ground} />
+      <circle
+        r={STATUS_BADGE - 1.5}
+        fill={status === 'planned' ? 'none' : colour}
+        stroke={colour}
+        strokeWidth={2}
+      />
+      {status === 'in_progress' ? (
+        <path d="M 0 -6.5 A 6.5 6.5 0 0 0 0 6.5 Z" fill={ground} />
+      ) : null}
+      {status === 'blocked' ? (
+        <rect x={-4} y={-1.5} width={8} height={3} rx={1.5} fill={ground} />
+      ) : null}
+      {status === 'done' ? (
+        <path
+          d="M -3.4 0.2 L -1.2 2.6 L 3.6 -2.8"
+          fill="none"
+          stroke={ground}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
+    </g>
+  )
+}
+
+/** Drawn into the SVG rather than around it, so a PNG dropped in a document carries it too. */
+function Legend({
+  statuses,
+  theme,
+  y,
+}: {
+  statuses: readonly (readonly [Status, string])[]
+  theme: Theme
+  y: number
+}) {
+  let cursor = 24
+  const rows = statuses.map(([status, text]) => {
+    const x = cursor
+    cursor += STATUS_BADGE * 2 + 6 + labelWidth(text, LEGEND_SIZE) + LEGEND_GAP
+    return { status, text, x }
+  })
+  return (
+    <g>
+      {rows.map(({ status, text, x }) => (
+        <g key={status}>
+          <StatusBadge x={x + STATUS_BADGE} y={y} status={status} theme={theme} />
+          <text
+            x={x + STATUS_BADGE * 2 + 6}
+            y={y + LEGEND_SIZE / 2 - 1}
+            fill={theme.mutedText}
+            fontSize={LEGEND_SIZE}
+          >
+            {text}
+          </text>
+        </g>
+      ))}
+    </g>
   )
 }
 
@@ -243,6 +424,15 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
               >
                 {meta.label}
               </text>
+              {/* In the header, so it reads as the group's own: a VM that exists deploys nothing. */}
+              {meta.status ? (
+                <StatusBadge
+                  x={(child.width ?? 0) - GROUP_LABEL_INSET}
+                  y={GROUP_HEADER / 2}
+                  status={meta.status}
+                  theme={theme}
+                />
+              ) : null}
               <Container
                 node={{ ...child, x: 0, y: 0 }}
                 byId={byId}
@@ -332,6 +522,7 @@ function Node({
             </tspan>
           ))}
         </text>
+        {meta.status ? <StatusBadge x={width} y={0} status={meta.status} theme={theme} /> : null}
       </g>
     )
   }
@@ -355,6 +546,7 @@ function Node({
           fill={theme.text}
           size={NODE_LABEL_SIZE}
         />
+        {meta.status ? <StatusBadge x={width} y={0} status={meta.status} theme={theme} /> : null}
       </g>
     )
   }
@@ -390,6 +582,11 @@ function Node({
         fill={theme.text}
         size={NODE_LABEL_SIZE}
       />
+      {/* The mark's corner, not the cell's: an icon node is wider than its icon when it
+          carries a domain. */}
+      {meta.status ? (
+        <StatusBadge x={(width + mark) / 2} y={top} status={meta.status} theme={theme} />
+      ) : null}
     </g>
   )
 }
@@ -445,19 +642,29 @@ function EdgePath({
   const meta = ir.edges[index]
   const label = edge.labels?.[0]
 
+  // Beside its label where it has one, so the mark and the words read as one statement.
+  const mark =
+    meta?.status &&
+    (meta.label && label
+      ? { x: (label.x ?? 0) - STATUS_BADGE - 4, y: (label.y ?? 0) + (label.height ?? 0) / 2 }
+      : midpoint(points))
+
   return (
     <g {...sceneMarks(scenes, meta?.when)}>
       <path
         d={d}
         fill="none"
-        stroke={theme.edge}
+        stroke={edgeColour(theme, meta?.status)}
+        // Faint for a line that is not there yet. On the element, not the stroke, so the
+        // arrowhead fades with it. `blocked` keeps full weight: it is a thing to look at.
+        opacity={meta?.status === 'planned' ? 0.55 : undefined}
         strokeWidth={1.5}
         strokeDasharray={meta?.style === 'dashed' ? '1 5' : undefined}
         strokeLinecap={meta?.style === 'dashed' ? 'round' : undefined}
-        markerEnd="url(#archdraw-arrow)"
+        markerEnd={`url(#${markerId(meta?.status)})`}
       />
       {/* A second path over the first: the line stays where it was and only the dashes travel. */}
-      {flow ? (
+      {flow && animates(meta) ? (
         <path
           className="archdraw-flow"
           d={d}
@@ -476,6 +683,39 @@ function EdgePath({
           {meta.label}
         </text>
       ) : null}
+      {meta?.status && mark ? (
+        <StatusBadge x={mark.x} y={mark.y} status={meta.status} theme={theme} />
+      ) : null}
     </g>
   )
+}
+
+interface Point {
+  x: number
+  y: number
+}
+
+/** Half way along the route, not half way between the ends — a bent edge would put the mark off it. */
+function midpoint(points: Point[]): Point {
+  const last = points[points.length - 1] ?? { x: 0, y: 0 }
+  const leg = (a: Point, b: Point) => Math.abs(b.x - a.x) + Math.abs(b.y - a.y)
+  let total = 0
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    if (a && b) total += leg(a, b)
+  }
+  let run = 0
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    if (!a || !b) continue
+    const length = leg(a, b)
+    if (run + length >= total / 2) {
+      const t = length === 0 ? 0 : (total / 2 - run) / length
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
+    }
+    run += length
+  }
+  return last
 }

@@ -5,6 +5,12 @@ const Id = z
   .min(1)
   .regex(/^[A-Za-z0-9_-]+$/, 'id must be alphanumeric with - or _')
 
+/**
+ * How much of this exists yet, as against how much is drawn. Saying nothing says nothing —
+ * a diagram that never mentions status draws exactly as it did before there was one.
+ */
+export const StatusSchema = z.enum(['planned', 'in_progress', 'blocked', 'done'])
+
 /** A single entry in the flat form. Non-recursive: structured outputs reject recursion. */
 export const FlatNodeSchema = z
   .object({
@@ -22,6 +28,8 @@ export const FlatNodeSchema = z
     domain: z.string().optional(),
     /** Outside the system being drawn. Everything inside a group marked this way is too. */
     external: z.boolean().optional(),
+    /** Built, being built, or not yet. A group's own status; it never reaches its children. */
+    status: StatusSchema.optional(),
     /** Scenarios this is alive in. Omitted means every one of them. */
     when: z.array(Id).optional(),
     /** Scenarios this is failed in — drawn as down rather than merely absent. */
@@ -46,6 +54,13 @@ export const EdgeSchema = z
     to: Id,
     label: z.string().optional(),
     style: z.enum(['solid', 'dashed']).default('solid'),
+    /** Whether this connection exists yet. Independent of the nodes it joins. */
+    status: StatusSchema.optional(),
+    /**
+     * Travelling dashes in the HTML target. Defaults to off for a connection that is not
+     * built, so motion never claims traffic through something that does not run yet.
+     */
+    animation: z.enum(['none', 'flow']).optional(),
     /** Scenarios this edge carries traffic in. Omitted means every one of them. */
     when: z.array(Id).optional(),
   })
@@ -103,4 +118,5 @@ export function toJsonSchema(form: 'input' | 'flat' = 'input'): Record<string, u
 export type Diagram = z.infer<typeof DiagramSchema>
 export type FlatDiagram = z.infer<typeof FlatDiagramSchema>
 export type Edge = z.infer<typeof EdgeSchema>
+export type Status = z.infer<typeof StatusSchema>
 export type Scenario = z.infer<typeof ScenarioSchema>

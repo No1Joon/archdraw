@@ -1,0 +1,24 @@
+provider: aws,brands
+title: Orders API — what is built
+direction: RIGHT
+
+groups:
+  - id: host
+    label: Lightsail instance
+    kind: vm
+    type: amazon-lightsail
+    status: done
+    children:
+      - { id: caddy, type: caddy, label: "Caddy\n(TLS termination)", status: done }
+      - { id: api, type: go, label: Go API, status: in_progress }
+      - { id: redis, type: redis, label: "Redis\n(AOF on)", status: done }
+
+nodes:
+  - { id: users, label: browsers, external: true }
+  - { id: supabase, type: supabase, label: Supabase, status: blocked }
+
+edges:
+  - { from: users, to: caddy, label: https, status: done }
+  - { from: caddy, to: api, label: proxy, status: in_progress }
+  - { from: api, to: redis, label: cache, status: planned }
+  - { from: api, to: supabase, label: sql, status: planned }
