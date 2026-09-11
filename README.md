@@ -182,6 +182,13 @@ Rendered the same way. Open one to see it.
 
 </details>
 
+<details>
+<summary><a href="./examples/cache-failover.yaml"><code>cache-failover.yaml</code></a> — Three scenarios over one layout — render it with <code>-o x.html</code> and press the buttons</summary>
+
+![cache-failover](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/cache-failover.png)
+
+</details>
+
 ## Docs
 
 | | |

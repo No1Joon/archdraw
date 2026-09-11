@@ -180,6 +180,13 @@ npx archdraw examples/startup.yaml -o startup.png
 
 </details>
 
+<details>
+<summary><a href="./examples/cache-failover.yaml"><code>cache-failover.yaml</code></a> — 한 레이아웃 위에 시나리오 셋 — <code>-o x.html</code> 로 내보내 버튼을 눌러 본다</summary>
+
+![cache-failover](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/cache-failover.png)
+
+</details>
+
 ## 문서
 
 | | |
