@@ -1,5 +1,33 @@
 # archdraw
 
+## 0.10.0
+
+### Minor Changes
+
+- 0307387: Watch a diagram while editing it. `archdraw serve diagram.yaml --watch` serves the animated page on a local port and redraws it every time the file is saved:
+  
+  ```
+  archdraw serve diagram.yaml --watch            # http://127.0.0.1:4173
+  archdraw serve diagram.yaml --watch --port 0   # any free port
+  ```
+  
+  The page reloads on a redraw and puts back where it was looking — the zoom, the pan, the scene that was pressed — so an edit reads as the picture changing rather than starting over. A save that does not parse or validate keeps the last good drawing on screen and shows the error above it; the next good save clears it. Iterating on a diagram used to mean re-running the render and re-opening the file, and a separate server to do it for you was the thing every user wrote for themselves.
+  
+  It watches the directory rather than the file, so an editor that saves by renaming a new file over the old one does not end the watch. Without `--watch` it serves the file once, and a broken file is an error instead of a page waiting for a fix. A `-` for stdin is refused: there is nothing to watch.
+  
+  The core gains one HTML option, `live`, which is what `serve` renders with. A page rendered without it is unchanged.
+- 6d80890: Name every element in the output. Each rendered node and group now carries `data-node-id`, each edge `data-edge-id`, and either one `data-status` when it has a status — so a script can patch a status, wire a click or compare two renders without guessing from coordinates, which are exactly what changes between renders.
+  
+  An edge may now take an `id` of its own. Without one it is named for its two ends — `api->redis` — rather than its place in the list, so adding or moving another edge no longer renames it; only a second edge between the same pair takes a suffix, `api->redis#2`. Two edges written with the same id is an error.
+  
+  The attributes are the only change to the SVG. All sixteen bundled examples rasterise to byte-identical PNGs.
+
+### Patch Changes
+
+- Updated dependencies [0307387]
+- Updated dependencies [6d80890]
+  - @archdraw/core@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes
