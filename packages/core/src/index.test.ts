@@ -188,6 +188,17 @@ describe('wrap', () => {
     expect(read).toEqual(chain(true).nodes.map((node) => node.id))
   })
 
+  // Folded, ELK's route for an edge back to the start went round the whole picture.
+  it('draws an edge back to an earlier row without circling the diagram', async () => {
+    const { detours, layout } = await import('./index.js')
+    const looped = chain(true)
+    looped.edges.push({ from: 'n23', to: 'n0' })
+    const ir = normalize(looped)
+    const root = await layout(ir)
+
+    expect(detours(ir, root).filter((detour) => detour.from === 'n23')).toEqual([])
+  })
+
   it('is off unless the diagram asks for it', () => {
     expect(normalize({ nodes: [] }).wrap).toBe(false)
   })
