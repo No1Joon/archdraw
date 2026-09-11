@@ -17,6 +17,8 @@ import {
   labelLines,
   labelWidth,
   NODE_LABEL_SIZE,
+  ROLLUP_SIZE,
+  rollupText,
   STATUS_BADGE,
   TITLE_BAND,
   TITLE_SIZE,
@@ -43,6 +45,7 @@ export interface Theme {
   statusInProgress?: string
   statusBlocked?: string
   statusDone?: string
+  statusDeployed?: string
   fontFamily: string
 }
 
@@ -62,6 +65,7 @@ export const defaultTheme: Theme = {
   statusInProgress: '#9a6700',
   statusBlocked: '#cf222e',
   statusDone: '#1a7f37',
+  statusDeployed: '#0969da',
   // resvg resolves only the first family. Noto ships under both names.
   fontFamily: "'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, -apple-system, sans-serif",
 }
@@ -83,6 +87,7 @@ export const darkTheme: Theme = {
   statusInProgress: '#d29922',
   statusBlocked: '#f85149',
   statusDone: '#3fb950',
+  statusDeployed: '#58a6ff',
   fontFamily: defaultTheme.fontFamily,
 }
 
@@ -112,14 +117,16 @@ const STATUS = {
   in_progress: '#9a6700',
   blocked: '#cf222e',
   done: '#1a7f37',
+  deployed: '#0969da',
 } as const satisfies Record<Status, string>
 
-/** The four states, in the order a legend reads them: not started, moving, stuck, finished. */
+/** The states in the order a legend reads them: not started, moving, stuck, written, running. */
 export const STATUS_KEYS = [
   ['planned', 'planned'],
   ['in_progress', 'in progress'],
   ['blocked', 'blocked'],
   ['done', 'done'],
+  ['deployed', 'deployed'],
 ] as const satisfies readonly (readonly [Status, string])[]
 
 const STATUS_THEME_KEY = {
@@ -127,10 +134,18 @@ const STATUS_THEME_KEY = {
   in_progress: 'statusInProgress',
   blocked: 'statusBlocked',
   done: 'statusDone',
+  deployed: 'statusDeployed',
 } as const satisfies Record<Status, keyof Theme>
 
 export function statusColour(theme: Theme, status: Status): string {
   return theme[STATUS_THEME_KEY[status]] ?? STATUS[status]
+}
+
+/** The states that say a connection is not built yet; the others draw as the plain line. */
+const MARKED: readonly Status[] = ['planned', 'in_progress', 'blocked']
+
+function unbuilt(status?: Status): status is Status {
+  return status !== undefined && MARKED.includes(status)
 }
 
 /**
@@ -138,14 +153,12 @@ export function statusColour(theme: Theme, status: Status): string {
  * planned connection does not read as built in a picture printed without its legend.
  */
 function edgeColour(theme: Theme, status?: Status): string {
-  return status && status !== 'done' ? statusColour(theme, status) : theme.edge
+  return unbuilt(status) ? statusColour(theme, status) : theme.edge
 }
 
 /** An arrowhead has to match the line it ends, so a coloured edge needs a marker of its own. */
-const MARKED: readonly Status[] = ['planned', 'in_progress', 'blocked']
-
 function markerId(status?: Status): string {
-  return status && status !== 'done' ? `archdraw-arrow-${status}` : 'archdraw-arrow'
+  return unbuilt(status) ? `archdraw-arrow-${status}` : 'archdraw-arrow'
 }
 
 /** Motion claims traffic, so a connection that is not built stays still unless the file says otherwise. */
@@ -277,8 +290,8 @@ function Arrow({ id, fill }: { id: string; fill: string }) {
 
 /**
  * A ring for what has not started, a half disc for what is moving, a bar for what is stuck, a
- * tick for what is done: the shape says it as well as the colour does, and the legend says it
- * in words. A picture read in one colour, or printed in grey, still carries all four.
+ * tick for what is written, a play mark for what is running: the shape says it as well as the
+ * colour does, and the legend says it in words. A picture printed in grey still carries all five.
  */
 function StatusBadge({
   x,
@@ -319,6 +332,7 @@ function StatusBadge({
           strokeLinejoin="round"
         />
       ) : null}
+      {status === 'deployed' ? <path d="M -2.2 -3.6 L 3.8 0 L -2.2 3.6 Z" fill={ground} /> : null}
     </g>
   )
 }
@@ -438,6 +452,22 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
                   status={meta.status}
                   theme={theme}
                 />
+              ) : null}
+              {/* Words, not a mark: this is a count of what is inside, not a state of the group. */}
+              {meta.rollup ? (
+                <text
+                  x={
+                    (child.width ?? 0) -
+                    GROUP_LABEL_INSET -
+                    (meta.status ? STATUS_BADGE * 2 + 8 : 0)
+                  }
+                  y={GROUP_HEADER - 8}
+                  textAnchor="end"
+                  fill={theme.mutedText}
+                  fontSize={ROLLUP_SIZE}
+                >
+                  {rollupText(meta.rollup)}
+                </text>
               ) : null}
               <Container
                 node={{ ...child, x: 0, y: 0 }}

@@ -732,6 +732,63 @@ edges:
   })
 })
 
+const rolled = `
+provider: test
+rollup: true
+groups:
+  - id: host
+    label: the host
+    status: done
+    children:
+      - { id: a, type: ecs, status: deployed }
+      - { id: b, type: ecs, status: in_progress }
+      - { id: c, type: rds }
+      - id: inner
+        children:
+          - { id: d, type: rds, status: done }
+`
+
+describe('deployed and rollup', () => {
+  it("counts a group's contents at any depth, and only what says anything", () => {
+    const ir = normalize(parseYaml(rolled))
+    // `a` and `d` are finished — deployed counts as done — `b` is not, and `c` says nothing.
+    expect(ir.nodes.find((node) => node.id === 'host')?.rollup).toEqual({ done: 2, total: 3 })
+    expect(ir.nodes.find((node) => node.id === 'inner')?.rollup).toEqual({ done: 1, total: 1 })
+  })
+
+  it("writes the count in the header, apart from the group's own status", async () => {
+    const svg = await renderToSvg(rolled, { icons: pack })
+    expect(svg).toContain('2/3 done')
+    expect(svg).toContain('data-node-id="host" data-status="done"')
+  })
+
+  it('stays off unless the diagram asks for it', async () => {
+    const plain = rolled.replace('rollup: true\n', '')
+    expect(normalize(parseYaml(plain)).nodes.every((node) => !node.rollup)).toBe(true)
+    expect(await renderToSvg(plain, { icons: pack })).not.toContain('/3 done')
+  })
+
+  const running = `
+provider: test
+nodes:
+  - { id: a, type: ecs }
+  - { id: b, type: rds, status: deployed }
+edges:
+  - { from: a, to: b, status: deployed }
+`
+
+  it('names deployed in the legend and draws a deployed connection as a plain line', async () => {
+    const svg = await renderToSvg(running, { icons: pack })
+    expect(svg).toContain('>deployed<')
+    expect(svg).not.toContain('archdraw-arrow-deployed')
+  })
+
+  it('animates a deployed connection', async () => {
+    const html = await renderToHtml(running, { icons: pack })
+    expect(html.match(/class="archdraw-flow"/g)).toHaveLength(1)
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')
@@ -745,6 +802,7 @@ describe('toJsonSchema', () => {
       'groups',
       'nodes',
       'provider',
+      'rollup',
       'scenarios',
       'shape',
       'title',
