@@ -187,6 +187,13 @@ npx archdraw examples/startup.yaml -o startup.png
 
 </details>
 
+<details>
+<summary><a href="./examples/build-status.yaml"><code>build-status.yaml</code></a> — 무엇이 만들어졌고 무엇이 아직인지를 한 그림에 — 상태 표식과 범례</summary>
+
+![build-status](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/build-status.png)
+
+</details>
+
 ## 문서
 
 | | |

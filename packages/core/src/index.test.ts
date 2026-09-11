@@ -589,6 +589,88 @@ describe('scenarios', () => {
   })
 })
 
+const built = `
+provider: test
+groups:
+  - id: box
+    kind: vm
+    label: the host
+    status: done
+    children:
+      - { id: api, type: ecs, label: API, status: in_progress }
+      - { id: cache, type: rds, label: Cache, status: done }
+nodes:
+  - { id: warehouse, type: rds, label: Warehouse, status: blocked }
+edges:
+  - { from: api, to: cache, label: get, status: planned }
+  - { from: api, to: warehouse, label: load, status: done }
+`
+
+/** One per done badge: the tick is drawn, not written, so it survives a render with no fonts. */
+const ticks = (svg: string) => svg.match(/M -3\.4 0\.2/g) ?? []
+
+describe('status', () => {
+  it('draws a legend naming only the states the diagram uses', async () => {
+    const svg = await renderToSvg(built, { icons: pack })
+
+    expect(svg).toContain('planned')
+    expect(svg).toContain('in progress')
+    expect(svg).toContain('blocked')
+    expect(svg).toContain('done')
+    // Nothing is `in_progress` in the legend: it reads in words, not in field values.
+    expect(svg).not.toContain('in_progress<')
+  })
+
+  it('leaves a diagram that says nothing about status exactly as it was', async () => {
+    const svg = await renderToSvg(nested, { icons: pack })
+    expect(svg).not.toContain('archdraw-arrow-')
+    expect(ticks(svg)).toHaveLength(0)
+    // No legend band, so the drawing keeps the height ELK gave it.
+    expect(svg).not.toContain('planned')
+  })
+
+  it('keeps a group status off the children inside it', async () => {
+    const svg = await renderToSvg(built, { icons: pack })
+    // Four ticks, all accounted for: the group, `cache`, the `load` edge, and the legend row.
+    // `api` sits inside a done group and is not one of them.
+    expect(ticks(svg)).toHaveLength(4)
+  })
+
+  it('draws an unbuilt connection in its own colour and a built one as a plain line', async () => {
+    const svg = await renderToSvg(built, { icons: pack })
+    expect(svg).toContain('archdraw-arrow-planned')
+    expect(svg).toContain(String(defaultTheme.statusPlanned))
+    // `done` is the ordinary line: a connection that exists needs no special reading.
+    expect(svg).not.toContain('archdraw-arrow-done')
+  })
+
+  it('refuses a state that is not one of the four', async () => {
+    expect(() => normalize({ nodes: [{ id: 'a', type: 'ecs', status: 'shipped' }] })).toThrow(
+      DiagramError,
+    )
+  })
+
+  it('does not animate a connection that is not built', async () => {
+    const html = await renderToHtml(built, { icons: pack })
+    // Two edges, one of them planned: only the built one moves.
+    expect(html.match(/class="archdraw-flow"/g)).toHaveLength(1)
+  })
+
+  it('animates an unbuilt connection when the file asks it to', async () => {
+    const asked = built.replace(
+      'label: get, status: planned',
+      'label: get, status: planned, animation: flow',
+    )
+    const html = await renderToHtml(asked, { icons: pack })
+    expect(html.match(/class="archdraw-flow"/g)).toHaveLength(2)
+  })
+
+  it('carries the legend into every target, unlike the scenario layer', async () => {
+    const html = await renderToHtml(built, { icons: pack })
+    expect(html).toContain('in progress')
+  })
+})
+
 describe('toJsonSchema', () => {
   it('carries the same field set the zod schema enforces', async () => {
     const { toJsonSchema } = await import('./index.js')

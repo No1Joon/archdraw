@@ -28,6 +28,11 @@ export const GROUP_ICON = 18
 /** A diagram's own name, drawn above the graph. */
 export const TITLE_SIZE = 18
 export const TITLE_BAND = 44
+/** Radius of a status mark, on a node, an edge or a legend row alike. */
+export const STATUS_BADGE = 8
+/** Space under the graph for the status legend. Taken only by a diagram that carries statuses. */
+export const LEGEND_BAND = 36
+export const LEGEND_SIZE = 12
 /** Layout and render must use the same sizes. */
 export const NODE_LABEL_SIZE = 12
 export const EDGE_LABEL_SIZE = 11

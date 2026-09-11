@@ -30,6 +30,7 @@
 | `shape` | `icon` \| `card` | — | 이 노드의 표현. 다이어그램 기본값을 덮어쓴다 |
 | `domain` | string | — | 이 노드가 응답하는 주소. 마크 **위**에 작게 그려져 서비스 이름과 섞이지 않는다 |
 | `external` | boolean | — | 그리는 시스템 바깥의 것. 이렇게 표시한 그룹 안은 스스로 달리 말하지 않는 한 전부 바깥이다. 애니메이션 HTML 렌더에서만 쓰여 들어오는·머무는·나가는 트래픽의 색을 가른다 |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | 얼마나 만들어졌는지. 그룹 자신의 상태이고 자식에게 내려가지 않는다 — VM 이 있다고 그 안의 것이 배포된 것은 아니다 |
 | `when` | string[] | — | 이것이 살아 있는 시나리오 id 들. 안 쓰면 전부 |
 | `down` | string[] | — | 이것이 죽은 시나리오 id 들 — 그냥 없는 것이 아니라 색이 빠진 채로 그려진다 |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
@@ -52,7 +53,29 @@
 | `to` | string | ✓ | 도착 노드 id |
 | `label` | string | — | 선 위에 표시 |
 | `style` | `solid` \| `dashed` | — | 기본 `solid` |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | 이 연결이 존재하는지. 양 끝 노드의 상태와 무관하다 |
+| `animation` | `none` \| `flow` | — | HTML 에서 흐르는 점선. `planned`·`blocked` 엣지는 기본 꺼짐, 나머지는 켜짐 |
 | `when` | string[] | — | 이 엣지가 트래픽을 나르는 시나리오 id 들. 안 쓰면 전부 |
+
+## Status
+
+`status` 는 그것이 **얼마나 존재하는가**를 말한다 — 돌아가고 있는가(`scenarios`)와도, 경계 어느 쪽인가(`external`)와도 다른 축이다. SVG·PNG·HTML 어디에나 그려진다. 상태를 그리는 이유가 대개 보고서에 넣기 위해서이기 때문이다.
+
+```yaml
+nodes:
+  - { id: redis, type: redis, label: Redis, status: done }
+  - { id: api, type: ecs, label: Go API, status: in_progress }
+edges:
+  - { from: api, to: redis, label: get, status: planned }
+```
+
+노드는 모서리에, 그룹은 헤더에, 엣지는 라벨 옆에 배지를 단다. 상태마다 색뿐 아니라 모양이 다르다 — 고리·반원·막대·체크 — 그래서 흑백으로 인쇄해도 읽히고, 그래프 아래에 상태 이름을 글자로 적은 범례가 함께 그려진다. 그 도면이 실제로 쓴 상태만 나온다.
+
+`planned`·`blocked` 엣지는 상태 색을 입고, `planned` 은 옅게 그려진다. `done` 엣지는 상태가 없는 엣지와 똑같이 그린다 — 존재하는 연결은 그냥 선이다.
+
+움직임은 트래픽에 대한 주장으로 다룬다. 그래서 `planned`·`blocked` 엣지는 HTML 에서 애니메이션이 붙지 않는다. 움직임 자체가 요점인 엣지는 `animation: flow` 로 되살리고, 만들어졌지만 조용히 두고 싶으면 `animation: none` 을 쓴다.
+
+일부러 하지 않는 것 둘. 그룹 상태는 그룹의 것이고 자식에게 내려가지 않는다 — VM 을 만들었다고 그 안의 서비스가 배포되지 않는다. 그리고 축은 하나다 — 코드는 끝났지만 배포 전인 노드는 오늘은 한 단어를 골라야 한다.
 
 ## Scenario
 

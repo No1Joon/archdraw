@@ -1,4 +1,4 @@
-import type { Edge, Scenario } from './schema.js'
+import type { Edge, Scenario, Status } from './schema.js'
 import { DiagramSchema, type NodeEntry } from './schema.js'
 
 export interface FlatNode {
@@ -13,6 +13,8 @@ export interface FlatNode {
   domain?: string
   /** Outside the system being drawn — resolved, so a child of an external group carries it too. */
   external: boolean
+  /** How much of this is built. A group's own; it does not reach the children. */
+  status?: Status
   /** Scenarios this is alive in; `undefined` means all of them. */
   when?: string[]
   /** Scenarios this is failed in. */
@@ -78,6 +80,8 @@ export function normalize(input: unknown): Ir {
       parent: entry.parent ?? parent,
       isGroup,
       external: false,
+      // Unlike `external`, this is not inherited: a VM that exists does not deploy what is in it.
+      status: entry.status,
       when: entry.when,
       down: entry.down,
     })

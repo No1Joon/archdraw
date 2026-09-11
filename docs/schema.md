@@ -30,6 +30,7 @@
 | `shape` | `icon` \| `card` | — | This node's presentation. Overrides the diagram default |
 | `domain` | string | — | The address this node answers on. Drawn small **above** the mark, so it does not blend into the service name |
 | `external` | boolean | — | This is outside the system being drawn. Everything inside a group marked so is too, unless it says otherwise. Only an animated HTML render uses it, to colour traffic arriving, staying and leaving |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | How much of this is built. A group's own status, never its children's — a VM that exists deploys nothing |
 | `when` | string[] | — | The scenario ids this is alive in. Omitted means all of them |
 | `down` | string[] | — | The scenario ids this has failed in — drawn drained of colour rather than merely absent |
 | `children` | Node[] | — | Child nodes, in the nested shape |
@@ -52,7 +53,29 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 | `to` | string | ✓ | Target node id |
 | `label` | string | — | Shown on the line |
 | `style` | `solid` \| `dashed` | — | Defaults to `solid` |
+| `status` | `planned` \| `in_progress` \| `blocked` \| `done` | — | Whether this connection exists yet. Independent of the nodes it joins |
+| `animation` | `none` \| `flow` | — | Travelling dashes in the HTML target. Defaults to off for a `planned` or `blocked` edge, on for every other |
 | `when` | string[] | — | The scenario ids this edge carries traffic in. Omitted means all of them |
+
+## Status
+
+`status` says how much of a thing exists, which is a different question from whether it is running (`scenarios`) or which way traffic crosses the boundary (`external`). It is drawn in every target — SVG, PNG and HTML alike — because the reason to draw it is usually to put it in a report.
+
+```yaml
+nodes:
+  - { id: redis, type: redis, label: Redis, status: done }
+  - { id: api, type: ecs, label: Go API, status: in_progress }
+edges:
+  - { from: api, to: redis, label: get, status: planned }
+```
+
+A node carries a mark in its corner, a group carries one in its header, and an edge carries one beside its label. Each state has its own shape as well as its own colour — a ring, a half disc, a bar, a tick — so a diagram printed in grey still reads, and a legend naming the states in words is drawn under the graph. Only the states a diagram uses appear in it.
+
+A `planned` or `blocked` edge takes the status colour and, where it is planned, draws faint. A `done` edge is drawn exactly as an edge with no status at all: a connection that exists is just a line.
+
+Motion is treated as a claim about traffic, so a `planned` or `blocked` edge does not animate in the HTML target. `animation: flow` overrides that for an edge whose movement is the point, and `animation: none` silences one that is built.
+
+Two things it deliberately does not do. A group's status is its own and never reaches its children, so a created VM cannot mark the services inside it deployed. And there is one axis, not two: a node that is written but not yet deployed has to choose a word today.
 
 ## Scenario
 
