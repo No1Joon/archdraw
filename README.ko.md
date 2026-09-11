@@ -168,7 +168,7 @@ npx archdraw examples/startup.yaml -o startup.png
 </details>
 
 <details>
-<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> 가 긴 사슬을 접는 모습과 그 대가인 읽는 순서</summary>
+<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> 가 긴 사슬을 순서대로 읽히는 여러 줄로 접는 모습</summary>
 
 ![batch-etl](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/batch-etl.png)
 

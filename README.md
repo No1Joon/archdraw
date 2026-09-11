@@ -170,7 +170,7 @@ Rendered the same way. Open one to see it.
 </details>
 
 <details>
-<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> folding a long chain, and the reading order that costs</summary>
+<summary><a href="./examples/batch-etl.yaml"><code>batch-etl.yaml</code></a> — <code>wrap: true</code> folding a long chain into rows that read in order</summary>
 
 ![batch-etl](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/batch-etl.png)
 

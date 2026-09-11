@@ -163,6 +163,31 @@ describe('wrap', () => {
     expect(folded.height ?? 0).toBeGreaterThan(wide.height ?? 0)
   })
 
+  // ELK's own wrapping cut by layer index and could send the reader back up the page; the
+  // fold now cuts the laid-out line into rows, so each row picks up where the last one ended.
+  it('keeps a folded chain in reading order, row by row', async () => {
+    const { layout } = await import('./index.js')
+    const root = await layout(normalize(chain(true)))
+    const read = [...(root.children ?? [])]
+      .sort((a, b) => (a.y ?? 0) - (b.y ?? 0) || (a.x ?? 0) - (b.x ?? 0))
+      .map((node) => node.id)
+
+    expect(new Set(root.children?.map((node) => node.y)).size).toBeGreaterThan(1)
+    expect(read).toEqual(chain(true).nodes.map((node) => node.id))
+  })
+
+  it('folds a downward chain into columns', async () => {
+    const { layout } = await import('./index.js')
+    const tall = await layout(normalize({ ...chain(false), direction: 'DOWN' }))
+    const folded = await layout(normalize({ ...chain(true), direction: 'DOWN' }))
+    const read = [...(folded.children ?? [])]
+      .sort((a, b) => (a.x ?? 0) - (b.x ?? 0) || (a.y ?? 0) - (b.y ?? 0))
+      .map((node) => node.id)
+
+    expect(folded.height ?? 0).toBeLessThan((tall.height ?? 0) / 2)
+    expect(read).toEqual(chain(true).nodes.map((node) => node.id))
+  })
+
   it('is off unless the diagram asks for it', () => {
     expect(normalize({ nodes: [] }).wrap).toBe(false)
   })
