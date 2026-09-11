@@ -50,6 +50,20 @@ export function labelLines(text: string): string[] {
   return text.split('\n')
 }
 
+/**
+ * Wrapping needs a shape to aim at; 1.6 is a landscape that fits a README or a slide.
+ * MULTI_EDGE, not SINGLE_EDGE: the latter throws NoSuchElementException on a wrapped graph
+ * whose groups an edge passes through.
+ */
+const WRAPPING = {
+  'elk.layered.wrapping.strategy': 'MULTI_EDGE',
+  'elk.aspectRatio': '1.6',
+  // ELK's pass that reroutes a wrapped edge is what strands its arrowhead in open space;
+  // without it the same graphs wrap to within ten pixels of the same box. It does not cover
+  // an edge that runs against `direction`, so `reconnect` still has work to do.
+  'elk.layered.wrapping.multiEdge.improveWrappedEdges': 'false',
+} as const
+
 const elk = new ELK()
 
 /** Runs ELK over the flat IR. Group nesting becomes ELK compound nodes. */
@@ -131,6 +145,9 @@ export async function layout(ir: Ir): Promise<ElkNode> {
         id: node.id,
         labels: [{ text: node.label }],
         layoutOptions: {
+          // The strategy cuts the layering of the graph it is set on and does not descend into
+          // a compound node, so a chain inside a group folds only if the group asks too.
+          ...(ir.wrap ? WRAPPING : {}),
           // A minimum width, not a label: a sized label would take a layout cell and shove
           // the children aside.
           'elk.nodeSize.constraints': 'MINIMUM_SIZE',
@@ -153,20 +170,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': ir.direction,
-      // Wrapping needs a shape to aim at; 1.6 is a landscape that fits a README or a slide.
-      // MULTI_EDGE, not SINGLE_EDGE: the latter throws NoSuchElementException on a wrapped
-      // graph whose groups an edge passes through.
-      ...(ir.wrap
-        ? {
-            'elk.layered.wrapping.strategy': 'MULTI_EDGE',
-            'elk.aspectRatio': '1.6',
-            // ELK's pass that reroutes a wrapped edge is what strands its arrowhead in
-            // open space; without it the same graphs wrap to within ten pixels of the
-            // same box. It does not cover an edge that runs against `direction`, so
-            // `reconnect` still has work to do.
-            'elk.layered.wrapping.multiEdge.improveWrappedEdges': 'false',
-          }
-        : {}),
+      ...(ir.wrap ? WRAPPING : {}),
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.spacing.nodeNode': '48',
