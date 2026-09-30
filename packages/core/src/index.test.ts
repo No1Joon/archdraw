@@ -2,7 +2,7 @@ import type { ElkExtendedEdge, ElkNode } from 'elkjs'
 import { describe, expect, it } from 'vitest'
 import { createResolver, type IconPack } from './icons.js'
 import { darkTheme, defaultTheme, parse as parseYaml, renderToHtml, renderToSvg } from './index.js'
-import { GROUP_HEADER } from './layout.js'
+import { GROUP_HEADER, GROUP_LABEL_INSET, GROUP_LABEL_SIZE, labelWidth } from './layout.js'
 import { DiagramError, normalize } from './normalize.js'
 
 const pack: IconPack = {
@@ -241,7 +241,9 @@ describe('wrap', () => {
         for (const child of node.children ?? []) {
           const x = ox + (child.x ?? 0)
           const y = oy + (child.y ?? 0)
-          boxes.set(child.id, { x, y, w: child.width ?? 0, h: child.height ?? 0 })
+          // A line leaving an icon from below starts at its label's foot.
+          const band = child.children?.length ? 0 : (child.labels?.[0]?.height ?? 0)
+          boxes.set(child.id, { x, y, w: child.width ?? 0, h: (child.height ?? 0) + band })
           walk(child, x, y)
         }
       }
@@ -522,6 +524,51 @@ describe('layout', () => {
     for (const child of root.children ?? []) {
       expect(child.height ?? 0).toBeGreaterThanOrEqual(GROUP_HEADER)
     }
+  })
+
+  it('starts a line leaving an icon from below at the foot of its label', async () => {
+    const { layout } = await import('./index.js')
+    const root = await layout(
+      normalize({
+        provider: 'test',
+        direction: 'DOWN',
+        nodes: [
+          { id: 'a', type: 'ecs', label: 'api\n(Fargate)' },
+          { id: 'b', type: 'rds' },
+        ],
+        edges: [{ from: 'a', to: 'b' }],
+      }),
+    )
+    const a = root.children?.find((child) => child.id === 'a') as ElkNode
+    const start = (root.edges?.[0] as ElkExtendedEdge).sections?.[0]?.startPoint
+
+    expect(start?.y).toBe((a.y ?? 0) + (a.height ?? 0) + (a.labels?.[0]?.height ?? 0))
+  })
+
+  it('moves a group title off a line that crosses its header', async () => {
+    const { layout } = await import('./index.js')
+    const root = await layout(
+      normalize({
+        provider: 'test',
+        direction: 'DOWN',
+        nodes: [
+          { id: 'users', type: 'ecs' },
+          { id: 'g', kind: 'group', label: 'Production workload' },
+          { id: 'a', type: 'ecs', parent: 'g' },
+          { id: 'b', type: 'rds', parent: 'g' },
+          { id: 'c', type: 'rds', parent: 'g' },
+        ],
+        edges: [{ from: 'users', to: 'a' }],
+      }),
+    )
+    const g = root.children?.find((child) => child.id === 'g') as ElkNode
+    const end = (root.edges?.[0] as ElkExtendedEdge).sections?.[0]?.endPoint as { x: number }
+    const shift = g.labels?.[0]?.x ?? 0
+    const left = (g.x ?? 0) + GROUP_LABEL_INSET + shift
+    const right = left + labelWidth('Production workload', GROUP_LABEL_SIZE)
+
+    expect(shift).toBeGreaterThan(0)
+    expect(end.x < left || end.x > right).toBe(true)
   })
 })
 

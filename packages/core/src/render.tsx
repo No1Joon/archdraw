@@ -407,6 +407,8 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
         const meta = byId.get(child.id)
         if (meta?.isGroup) {
           const badge = meta.type ? icons.resolve(meta.type) : undefined
+          // Layout moves a title right, off any line that crosses the header.
+          const shift = child.labels?.[0]?.x ?? 0
           return (
             <g
               key={child.id}
@@ -426,7 +428,7 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
               />
               {badge ? (
                 <svg
-                  x={GROUP_LABEL_INSET}
+                  x={GROUP_LABEL_INSET + shift}
                   y={(GROUP_HEADER - GROUP_ICON) / 2}
                   width={GROUP_ICON}
                   height={GROUP_ICON}
@@ -436,7 +438,7 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
                 />
               ) : null}
               <text
-                x={GROUP_LABEL_INSET + (badge ? GROUP_ICON + 8 : 0)}
+                x={GROUP_LABEL_INSET + shift + (badge ? GROUP_ICON + 8 : 0)}
                 y={GROUP_HEADER - 8}
                 fill={theme.mutedText}
                 fontSize={GROUP_LABEL_SIZE}
