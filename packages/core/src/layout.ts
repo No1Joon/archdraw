@@ -215,6 +215,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   })
   if (!ir.wrap) {
     reconnect(root)
+    clearLabels(root)
+    clearTitles(root, byId)
     return root
   }
 
@@ -233,6 +235,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   if (wide.size === 0) {
     fold(root, ir.direction)
     reconnect(root)
+    clearLabels(root)
+    clearTitles(root, byId)
     return root
   }
 
@@ -414,6 +418,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   const folded = await place(null)
   fold(folded, ir.direction)
   reconnect(folded)
+  clearLabels(folded)
+  clearTitles(folded, byId)
   return folded
 }
 
@@ -521,6 +527,109 @@ function reconnect(root: ElkNode): void {
     }
     for (const child of node.children ?? []) {
       walk(child, ox + (child.x ?? 0), oy + (child.y ?? 0))
+    }
+  }
+  walk(root)
+}
+
+/**
+ * An icon's label hangs outside its box, under it, so a line meeting the box from below runs
+ * through the text. Such an end moves down to the label's foot. Runs after `reconnect`, which
+ * would take an end off the box for a miss.
+ */
+function clearLabels(root: ElkNode): void {
+  const bands = new Map<string, Box>()
+  const measure = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const child of node.children ?? []) {
+      const x = ox + (child.x ?? 0)
+      const y = oy + (child.y ?? 0)
+      // Only an icon's label is sized; a group's carries text alone.
+      const label = child.children?.length ? undefined : child.labels?.[0]
+      if (label?.height) {
+        bands.set(child.id, { x, y: y + (child.height ?? 0), w: child.width ?? 0, h: label.height })
+      }
+      measure(child, x, y)
+    }
+  }
+  measure(root)
+
+  const walk = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+      for (const section of edge.sections ?? []) {
+        const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
+        const ends = [
+          { id: edge.sources[0], end: section.startPoint, next: points[1] },
+          { id: edge.targets[0], end: section.endPoint, next: points[points.length - 2] },
+        ]
+        for (const { id, end, next } of ends) {
+          const band = id ? bands.get(id) : undefined
+          if (!band || !next) continue
+          const bottom = band.y - oy
+          // Only a vertical run leaving the bottom that clears the label can be shortened.
+          if (Math.abs(end.y - bottom) > ON_BOX || Math.abs(next.x - end.x) > ON_BOX) continue
+          if (next.y < bottom + band.h) continue
+          end.y = bottom + band.h
+        }
+      }
+    }
+    for (const child of node.children ?? []) {
+      walk(child, ox + (child.x ?? 0), oy + (child.y ?? 0))
+    }
+  }
+  walk(root)
+}
+
+/** Clear space kept between a group's title and a line through its header. */
+const TITLE_GAP = 6
+
+/**
+ * A line entering a group from above crosses its header wherever the node it runs to sits, so
+ * the title moves right past such lines instead, as far as the header's tail allows. The shift
+ * is left in the title's `x` for the renderer; a title with nowhere clear to go stays put.
+ */
+function clearTitles(root: ElkNode, byId: Map<string, FlatNode>): void {
+  const runs: { x: number; top: number; bottom: number }[] = []
+  const collect = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
+      for (const section of edge.sections ?? []) {
+        const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint]
+        for (let i = 1; i < points.length; i++) {
+          const [a, b] = [points[i - 1] as Point, points[i] as Point]
+          if (Math.abs(a.x - b.x) > ON_BOX) continue
+          runs.push({ x: ox + a.x, top: oy + Math.min(a.y, b.y), bottom: oy + Math.max(a.y, b.y) })
+        }
+      }
+    }
+    for (const child of node.children ?? []) {
+      collect(child, ox + (child.x ?? 0), oy + (child.y ?? 0))
+    }
+  }
+  collect(root)
+
+  const walk = (node: ElkNode, ox = 0, oy = 0) => {
+    for (const child of node.children ?? []) {
+      const x = ox + (child.x ?? 0)
+      const y = oy + (child.y ?? 0)
+      const group = byId.get(child.id)
+      const label = child.labels?.[0]
+      if (group?.isGroup && label) {
+        const title = (group.type ? GROUP_ICON + 8 : 0) + labelWidth(group.label, GROUP_LABEL_SIZE)
+        const room = (child.width ?? 0) - GROUP_LABEL_INSET * 2 - headerTail(group) - title
+        const crossings = runs
+          .filter((run) => run.top < y + GROUP_HEADER && run.bottom > y)
+          .map((run) => run.x - x)
+        const clear = (shift: number) =>
+          crossings.every(
+            (at) =>
+              at < GROUP_LABEL_INSET + shift - TITLE_GAP ||
+              at > GROUP_LABEL_INSET + shift + title + TITLE_GAP,
+          )
+        const shifts = [0, ...crossings.map((at) => at + TITLE_GAP - GROUP_LABEL_INSET + 1)]
+          .filter((shift) => shift >= 0 && shift <= room)
+          .sort((a, b) => a - b)
+        label.x = shifts.find(clear) ?? 0
+      }
+      walk(child, x, y)
     }
   }
   walk(root)
