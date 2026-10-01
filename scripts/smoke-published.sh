@@ -12,11 +12,11 @@ VERSION="${1:?usage: smoke-published.sh <version>}"
 DIR="$(mktemp -d)"
 trap 'rm -rf "$DIR"' EXIT
 
-# A freshly published scoped package can take minutes to appear, and the CLI is only as
-# installable as its slowest dependency — so retry the install itself, not a metadata read.
+# A freshly published scoped package can take over ten minutes to appear, and the CLI is only
+# as installable as its slowest dependency — so retry the install itself, not a metadata read.
 install() {
-  for attempt in $(seq 1 "${SMOKE_ATTEMPTS:-40}"); do
-    if npm install --prefix "$DIR" --no-audit --no-fund --loglevel=error \
+  for attempt in $(seq 1 "${SMOKE_ATTEMPTS:-120}"); do
+    if npm install --prefix "$DIR" --prefer-online --no-audit --no-fund --loglevel=error \
       "archdraw@$VERSION" >"$DIR/install.log" 2>&1; then
       echo "installed archdraw@$VERSION (attempt $attempt)"
       return 0
