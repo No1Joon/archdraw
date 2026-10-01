@@ -52,6 +52,7 @@ jobs:
       # The step's own `published` output is not used: it is parsed from a "New tag:" line
       # that @changesets/cli no longer prints, so it reads false after a real publish.
       - name: Smoke-test the published CLI
+        timeout-minutes: 40
         run: |
           version=$(node -p "require('./packages/cli/package.json').version")
           if [ "$version" != "${{ steps.before.outputs.tree }}" ]; then
