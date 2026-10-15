@@ -196,6 +196,33 @@ function sceneCss(): string {
   ].join('')
 }
 
+/** Static exports use the same effective visibility as the HTML scene selector. */
+function scenarioCss(ir: Ir, scenario: string): string {
+  const byId = new Map(ir.nodes.map((node) => [node.id, node]))
+  const active = (id: string): boolean => {
+    const node = byId.get(id)
+    return (
+      !!node &&
+      (!node.when || node.when.includes(scenario) || !!node.down?.includes(scenario)) &&
+      (node.parent === null || active(node.parent))
+    )
+  }
+  const rules: string[] = []
+  for (const node of ir.nodes) {
+    const selector = `[data-node-id="${node.id}"]`
+    if (!active(node.id)) rules.push(`${selector}{opacity:.12}`)
+    else if (node.down?.includes(scenario))
+      rules.push(`${selector}{filter:grayscale(1);opacity:.45}`)
+  }
+  for (const edge of ir.edges) {
+    if ((!edge.when || edge.when.includes(scenario)) && active(edge.from) && active(edge.to))
+      continue
+    const id = edge.id.replaceAll('>', '\\3e ').replaceAll('#', '\\23 ')
+    rules.push(`[data-edge-id="${id}"]{opacity:.12}`)
+  }
+  return rules.join('')
+}
+
 export interface DiagramProps {
   root: ElkNode
   ir: Ir
@@ -203,9 +230,10 @@ export interface DiagramProps {
   theme?: Theme
   /** Draw travelling dashes along every edge. Off by default: a still SVG must stay byte-identical. */
   flow?: boolean
+  scenario?: string
 }
 
-export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: DiagramProps) {
+export function Diagram({ root, ir, icons, theme = defaultTheme, flow, scenario }: DiagramProps) {
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
   // Only the page can hold a state, so the marks ride with the animation and never reach a
   // still SVG — that one shows every element, whatever the diagram says about scenes.
@@ -238,7 +266,8 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow }: Diagram
     >
       <title>{ir.title ?? 'architecture diagram'}</title>
       {flow ? <style>{flowCss()}</style> : null}
-      {scenes ? <style>{sceneCss()}</style> : null}
+      {scenes || scenario ? <style>{sceneCss()}</style> : null}
+      {scenario ? <style>{scenarioCss(ir, scenario)}</style> : null}
       <defs>
         <Arrow id="archdraw-arrow" fill={theme.edge} />
         {arrows.map((status) => (
@@ -690,6 +719,7 @@ function EdgePath({
   return (
     <g
       data-edge-id={meta?.id}
+      {...(scenes ? { 'data-from': meta?.from, 'data-to': meta?.to } : {})}
       {...(meta?.status ? { 'data-status': meta.status } : {})}
       {...sceneMarks(scenes, meta?.when)}
     >

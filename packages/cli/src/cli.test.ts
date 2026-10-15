@@ -591,3 +591,17 @@ describe('serve', () => {
     }
   })
 })
+
+describe('scenario selection', () => {
+  const scenes =
+    'scenarios: [{ id: normal }, { id: failure }]\nnodes: [{ id: app }, { id: backup, when: [failure] }]'
+  it('writes a focused static export and rejects an unknown selection', () => {
+    const selected = run(['-', '--scenario', 'normal', '--focus'], scenes)
+    expect(selected.code).toBe(0)
+    expect(selected.stdout).toContain('data-node-id="app"')
+    expect(selected.stdout).not.toContain('data-node-id="backup"')
+    const invalid = run(['-', '--scenario', 'typo'], scenes)
+    expect(invalid.code).toBe(1)
+    expect(invalid.stderr).toContain('Unknown scenario')
+  })
+})

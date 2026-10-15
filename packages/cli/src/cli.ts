@@ -159,6 +159,8 @@ program
   .option('-s, --scale <n>', 'PNG scale factor', '2')
   .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
   .option('--check', 'validate the diagram and write nothing')
+  .option('--scenario <id>', 'select one declared scenario')
+  .option('--focus', 'hide inactive elements and lay out the selected scenario again')
   .action(async (input: string, options) => {
     await run(async () => {
       const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
@@ -180,6 +182,8 @@ program
         extname(options.out ?? '').toLowerCase() === '.html' ? renderToHtml : renderToSvg
       const markup = await render(document, {
         icons,
+        scenario: options.scenario,
+        focus: options.focus,
         theme: themeFor(options.theme),
         onLayout: (laid, root) => reportDetours(detours(laid, root), laid),
       })

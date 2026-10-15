@@ -8,7 +8,7 @@ function escape(text: string): string {
 /** Pan and zoom over the drawing, in the page rather than in the SVG so the diagram is untouched. */
 const SCRIPT = `
 const stage = document.getElementById('stage')
-const art = stage.firstElementChild
+let art = stage.firstElementChild
 let k = 1, x = 0, y = 0, drag = null
 const apply = () => { art.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')' }
 const fit = () => {
@@ -46,20 +46,62 @@ fit()
 
 /** Switching a scene only changes what is drawn — the layout was fixed before the page was made. */
 const SCENE_SCRIPT = `
-const marked = document.querySelectorAll('[data-when],[data-down]')
-const buttons = [...document.querySelectorAll('#scenes button')]
+const buttons = [...document.querySelectorAll('#scenes [data-scene]')]
+const variants = JSON.parse(document.getElementById('views').textContent)
+const original = art.outerHTML
+let selected = document.querySelector('#scenes').dataset.initial || buttons[0]?.dataset.scene
+const focus = document.getElementById('focus')
 const show = (id) => {
-  for (const el of marked) {
+  selected = id
+  stage.innerHTML = focus.checked ? variants[id] : original
+  art = stage.firstElementChild
+  for (const el of art.querySelectorAll('[data-when],[data-down]')) {
     const when = el.getAttribute('data-when')
     const down = el.getAttribute('data-down')
-    // Saying nothing means every scene, so only a named list can rule an element out.
-    el.classList.toggle('archdraw-off', !!when && !when.split(' ').includes(id))
-    el.classList.toggle('archdraw-down', !!down && down.split(' ').includes(id))
+    const failed = !!down && down.split(' ').includes(id)
+    el.classList.toggle('archdraw-off', !!when && !when.split(' ').includes(id) && !failed)
+    el.classList.toggle('archdraw-down', failed)
+  }
+  for (const edge of art.querySelectorAll('[data-edge-id]')) {
+    const absent = ['from', 'to'].some((end) => {
+      const node = art.querySelector('[data-node-id="' + CSS.escape(edge.dataset[end]) + '"]')
+      return !node || !!node.closest('.archdraw-off')
+    })
+    if (absent) edge.classList.add('archdraw-off')
   }
   for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.scene === id))
+  if (focus.checked) fit(); else apply()
 }
 for (const b of buttons) b.addEventListener('click', () => show(b.dataset.scene))
-if (buttons.length) show(buttons[0].dataset.scene)
+focus.addEventListener('change', () => { show(selected); fit() })
+if (buttons.length) show(selected)
+const download = (blob, extension) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url; link.download = 'architecture-' + selected + '.' + extension
+  link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+const exportSvg = () => {
+  const copy = art.cloneNode(true)
+  copy.style.removeProperty('transform')
+  copy.querySelectorAll('.archdraw-flow').forEach((el) => el.remove())
+  return copy
+}
+document.getElementById('export-svg').addEventListener('click', () =>
+  download(new Blob([new XMLSerializer().serializeToString(exportSvg())], { type: 'image/svg+xml' }), 'svg'))
+document.getElementById('export-png').addEventListener('click', async () => {
+  const copy = exportSvg()
+  const blob = new Blob([new XMLSerializer().serializeToString(copy)], { type: 'image/svg+xml' })
+  const url = URL.createObjectURL(blob)
+  const image = new Image()
+  try {
+    image.src = url; await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.width * 2; canvas.height = image.height * 2
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
+    canvas.toBlob((png) => { if (png) download(png, 'png') })
+  } finally { URL.revokeObjectURL(url) }
+})
 `
 
 /**
@@ -86,12 +128,14 @@ events.addEventListener('broken', (e) => { banner.textContent = JSON.parse(e.dat
 events.addEventListener('ok', () => { banner.hidden = true })
 `
 
-function scenesHtml(scenarios: Scenario[]): string {
+function scenesHtml(scenarios: Scenario[], initial?: string, focus = false): string {
   const button = (scenario: Scenario) =>
     `<button type="button" data-scene="${escape(scenario.id)}" aria-pressed="false">${escape(
       scenario.label ?? scenario.id,
     )}</button>`
-  return `<div id="scenes">${scenarios.map(button).join('')}</div>`
+  return `<div id="scenes" data-initial="${escape(initial ?? scenarios[0]?.id ?? '')}">${scenarios.map(button).join('')}
+<label><input id="focus" type="checkbox" ${focus ? 'checked' : ''}>Focus</label>
+<button id="export-svg" type="button">Export SVG</button><button id="export-png" type="button">Export PNG</button></div>`
 }
 
 /** Only worth drawing where the diagram says something is outside; one colour explains itself. */
@@ -109,6 +153,9 @@ export function page(
   legend: boolean,
   scenarios: Scenario[] = [],
   live = false,
+  variants: Record<string, string> = {},
+  initial?: string,
+  focus = false,
 ): string {
   return `<!doctype html>
 <html lang="en">
@@ -139,7 +186,8 @@ background:${theme.background};color:#cf222e;border:1px solid #cf222e}
 <div id="stage">${svg}</div>
 <p id="hint">drag to pan · scroll to zoom · double-click to fit</p>
 ${legend ? legendHtml(theme) : ''}
-${scenarios.length ? scenesHtml(scenarios) : ''}
+${scenarios.length ? scenesHtml(scenarios, initial, focus) : ''}
+<script id="views" type="application/json">${JSON.stringify(variants).replaceAll('<', '\\u003c')}</script>
 <script>${SCRIPT}<\/script>
 ${scenarios.length ? `<script>${SCENE_SCRIPT}<\/script>` : ''}${
   live ? `\n<pre id="error" hidden></pre>\n<script>${LIVE_SCRIPT}<\/script>` : ''
