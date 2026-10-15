@@ -1,5 +1,16 @@
 # @archdraw/core
 
+## 0.12.0
+
+### Minor Changes
+
+- bc2d3e2: Add collapsed group overviews and independent offline HTML toggles using the same layout and SVG renderer as Node.
+- a52c3c6: Add scenario focus with fresh layout and selected-scenario SVG/PNG exports in the CLI and offline HTML viewer.
+- dedeea1: Support inherited per-group layout directions and named boundary ports while preserving cross-group connections.
+- db13efe: Add versioned JSON quality diagnostics for detours, label overlap/clipping and edge crossings, distinguishing explicitly declared reverse response routes.
+  
+  Expose scenario, focus and collapsed view controls on the React Architecture component.
+
 ## 0.11.4
 
 ### Patch Changes
