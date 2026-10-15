@@ -75,3 +75,10 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 - `docs/schema.md` — 입력 계약(필드·두 형태·거부 규칙). `archdraw schema` 가 같은 계약을 JSON Schema 로 낸다
 - `docs/agents.md` — 에이전트 사용법. `packages/cli/AGENTS.md` 가 이걸 자족형으로 줄인 사본이고 그쪽만 npm tarball 에 실린다 — 규칙을 고치면 둘 다 고친다
 - `scripts/icon-sources.json` — 프로바이더별 아이콘 배포본 URL·슬러그 규칙
+
+## AMP 요청·회신
+
+프로젝트 간 통신은 `/Users/joon/Documents/projects/all-my-projects/docs/projects/README.md`의 POP 접수함을 사용한다.
+Archdraw 담당은 `archdraw-request.md`를 작성하고 AMP가 작성한 `archdraw-amp.md`는 읽는다.
+결과·결정은 프로젝트 정본에 보존하며, 상대 인수 확인 뒤 각 작성자가 자기 파일의 완료 본문만 비운다.
+수신·구현·로컬 검사·운영 적용은 구분하고 기존 작업 승인 범위를 유지한다.
