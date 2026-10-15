@@ -1064,7 +1064,9 @@ describe('renderToHtml', () => {
   it('leaves the legend off a diagram that names nothing outside', async () => {
     const html = await renderToHtml(nested, { icons: pack })
     expect(html).not.toContain('from outside')
-    expect(html).not.toContain(String(defaultTheme.flowIn))
+    expect(html.split('<div id="stage">')[1]?.split('</div>')[0]).not.toContain(
+      String(defaultTheme.flowIn),
+    )
   })
 
   it('draws a button per scenario and marks only what a scenario rules on', async () => {
@@ -1080,9 +1082,9 @@ describe('renderToHtml', () => {
 
   it('leaves the scenario layer out of a diagram that names none', async () => {
     const html = await renderToHtml(nested, { icons: pack })
-    expect(html).not.toContain('data-when')
-    expect(html).not.toContain('data-scene')
-    expect(html).not.toContain('archdraw-off')
+    expect(html.split('<div id="stage">')[1]?.split('</div>')[0]).not.toContain('data-when')
+    expect(html).not.toContain('data-scene=')
+    expect(html.split('<div id="stage">')[1]?.split('</div>')[0]).not.toContain('archdraw-off')
   })
 
   it('paints the page in the theme the diagram was drawn with', async () => {

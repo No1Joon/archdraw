@@ -1,5 +1,9 @@
+import type { IconPack } from './icons.js'
+import type { Ir } from './normalize.js'
 import { FLOW_KEYS, type Theme } from './render.js'
 import type { Scenario } from './schema.js'
+import type { ViewOptions } from './view.js'
+import viewerRuntime from './viewer-bundle.generated.js'
 
 function escape(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -12,8 +16,7 @@ let art = stage.firstElementChild
 let k = 1, x = 0, y = 0, drag = null
 const apply = () => { art.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')' }
 const fit = () => {
-  const box = art.getBoundingClientRect()
-  const w = box.width / k, h = box.height / k
+  const w = Number(art.getAttribute('width')), h = Number(art.getAttribute('height'))
   k = Math.min(1, (innerWidth - 32) / w, (innerHeight - 32) / h)
   x = (innerWidth - w * k) / 2
   y = (innerHeight - h * k) / 2
@@ -46,39 +49,48 @@ fit()
 
 /** Switching a scene only changes what is drawn — the layout was fixed before the page was made. */
 const SCENE_SCRIPT = `
+const data = JSON.parse(document.getElementById('views').textContent)
 const buttons = [...document.querySelectorAll('#scenes [data-scene]')]
-const variants = JSON.parse(document.getElementById('views').textContent)
-const original = art.outerHTML
-let selected = document.querySelector('#scenes').dataset.initial || buttons[0]?.dataset.scene
+let selected = data.options.scenario || buttons[0]?.dataset.scene
 const focus = document.getElementById('focus')
-const show = (id) => {
+const collapsed = new Set(data.options.collapsed || data.ir.nodes.filter((n) => n.collapsed).map((n) => n.id))
+let generation = 0
+const show = async (id, refit = true) => {
   selected = id
-  stage.innerHTML = focus.checked ? variants[id] : original
-  art = stage.firstElementChild
-  for (const el of art.querySelectorAll('[data-when],[data-down]')) {
-    const when = el.getAttribute('data-when')
-    const down = el.getAttribute('data-down')
-    const failed = !!down && down.split(' ').includes(id)
-    el.classList.toggle('archdraw-off', !!when && !when.split(' ').includes(id) && !failed)
-    el.classList.toggle('archdraw-down', failed)
+  const revision = ++generation
+  document.getElementById('view-status').textContent = 'Drawing…'
+  document.querySelectorAll('#export-svg,#export-png').forEach((b) => { b.disabled = true })
+  try {
+    const markup = await ArchdrawViewer.renderView(data.ir, data.icons, data.theme,
+      { scenario: id, focus: !!focus?.checked, collapsed: [...collapsed] })
+    if (revision !== generation) return
+    stage.innerHTML = markup
+    art = stage.firstElementChild
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.scene === id))
+    for (const box of document.querySelectorAll('[data-group]')) box.checked = !collapsed.has(box.dataset.group)
+    if (refit) fit(); else apply()
+    document.getElementById('view-status').textContent = ''
+  } catch (error) {
+    if (revision === generation) document.getElementById('view-status').textContent = error.message
+  } finally {
+    if (revision === generation) document.querySelectorAll('#export-svg,#export-png').forEach((b) => { b.disabled = false })
   }
-  for (const edge of art.querySelectorAll('[data-edge-id]')) {
-    const absent = ['from', 'to'].some((end) => {
-      const node = art.querySelector('[data-node-id="' + CSS.escape(edge.dataset[end]) + '"]')
-      return !node || !!node.closest('.archdraw-off')
-    })
-    if (absent) edge.classList.add('archdraw-off')
-  }
-  for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.scene === id))
-  if (focus.checked) fit(); else apply()
 }
-for (const b of buttons) b.addEventListener('click', () => show(b.dataset.scene))
-focus.addEventListener('change', () => { show(selected); fit() })
-if (buttons.length) show(selected)
+for (const b of buttons) b.addEventListener('click', () => show(b.dataset.scene, !!focus?.checked))
+focus?.addEventListener('change', () => show(selected))
+for (const box of document.querySelectorAll('[data-group]')) box.addEventListener('change', () => {
+  if (box.checked) collapsed.delete(box.dataset.group); else collapsed.add(box.dataset.group)
+  show(selected)
+})
+document.getElementById('collapse-all')?.addEventListener('click', () => {
+  data.ir.nodes.filter((n) => n.isGroup).forEach((n) => collapsed.add(n.id)); show(selected)
+})
+document.getElementById('expand-all')?.addEventListener('click', () => { collapsed.clear(); show(selected) })
+if (buttons.length && !data.options.scenario) show(selected, false)
 const download = (blob, extension) => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  link.href = url; link.download = 'architecture-' + selected + '.' + extension
+  link.href = url; link.download = 'architecture' + (selected ? '-' + selected : '') + '.' + extension
   link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 const exportSvg = () => {
@@ -115,27 +127,50 @@ let saved = null
 try { saved = JSON.parse(sessionStorage.getItem(KEY)) } catch {}
 if (saved) {
   k = saved.k; x = saved.x; y = saved.y; apply()
-  if (saved.scene && typeof show === 'function' && document.querySelector('[data-scene="' + CSS.escape(saved.scene) + '"]')) show(saved.scene)
+  if (typeof show === 'function') {
+    if (focus) focus.checked = !!saved.focus
+    if (Array.isArray(saved.collapsed)) { collapsed.clear(); saved.collapsed.forEach((id) => {
+      if (data.ir.nodes.some((n) => n.id === id && n.isGroup)) collapsed.add(id)
+    }) }
+    const scene = data.ir.scenarios.some((s) => s.id === saved.scene) ? saved.scene : selected
+    show(scene, false)
+  }
 }
 const banner = document.getElementById('error')
 const events = new EventSource('/events')
 events.addEventListener('change', () => {
   const pressed = document.querySelector('#scenes [aria-pressed="true"]')
-  try { sessionStorage.setItem(KEY, JSON.stringify({ k, x, y, scene: pressed && pressed.dataset.scene })) } catch {}
+  try { sessionStorage.setItem(KEY, JSON.stringify({ k, x, y, scene: pressed && pressed.dataset.scene, focus: typeof focus !== 'undefined' && !!focus?.checked, collapsed: typeof collapsed !== 'undefined' ? [...collapsed] : undefined })) } catch {}
   location.reload()
 })
 events.addEventListener('broken', (e) => { banner.textContent = JSON.parse(e.data); banner.hidden = false })
 events.addEventListener('ok', () => { banner.hidden = true })
 `
 
-function scenesHtml(scenarios: Scenario[], initial?: string, focus = false): string {
+interface PageData {
+  ir: Ir
+  icons: IconPack
+  options: ViewOptions
+}
+
+function scenesHtml(scenarios: Scenario[], options: ViewOptions): string {
   const button = (scenario: Scenario) =>
-    `<button type="button" data-scene="${escape(scenario.id)}" aria-pressed="false">${escape(
-      scenario.label ?? scenario.id,
-    )}</button>`
-  return `<div id="scenes" data-initial="${escape(initial ?? scenarios[0]?.id ?? '')}">${scenarios.map(button).join('')}
-<label><input id="focus" type="checkbox" ${focus ? 'checked' : ''}>Focus</label>
-<button id="export-svg" type="button">Export SVG</button><button id="export-png" type="button">Export PNG</button></div>`
+    `<button type="button" data-scene="${escape(scenario.id)}" aria-pressed="${scenario.id === options.scenario}">${escape(scenario.label ?? scenario.id)}</button>`
+  return `<div id="scenes" data-initial="${escape(options.scenario ?? scenarios[0]?.id ?? '')}">${scenarios.map(button).join('')}
+${scenarios.length ? `<label><input id="focus" type="checkbox" ${options.focus ? 'checked' : ''}>Focus</label>` : ''}
+<button id="export-svg" type="button">Export SVG</button><button id="export-png" type="button">Export PNG</button>
+<span id="view-status" role="status"></span></div>`
+}
+
+function groupsHtml(ir: Ir, options: ViewOptions): string {
+  const groups = ir.nodes.filter((node) => node.isGroup)
+  if (!groups.length) return ''
+  const collapsed = new Set(
+    options.collapsed ?? groups.filter((node) => node.collapsed).map((node) => node.id),
+  )
+  return `<details id="groups"><summary>Groups</summary>
+<button id="collapse-all" type="button">Collapse all</button><button id="expand-all" type="button">Expand all</button>
+${groups.map((node) => `<label><input type="checkbox" data-group="${escape(node.id)}" ${collapsed.has(node.id) ? '' : 'checked'}>${escape(node.label)}</label>`).join('')}</details>`
 }
 
 /** Only worth drawing where the diagram says something is outside; one colour explains itself. */
@@ -153,10 +188,9 @@ export function page(
   legend: boolean,
   scenarios: Scenario[] = [],
   live = false,
-  variants: Record<string, string> = {},
-  initial?: string,
-  focus = false,
+  data?: PageData,
 ): string {
+  const interactive = !!data && (scenarios.length > 0 || data.ir.nodes.some((node) => node.isGroup))
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -171,7 +205,9 @@ html,body{margin:0;height:100%;background:${theme.background};color:${theme.text
 #hint{position:fixed;left:12px;bottom:10px;font-size:12px;color:${theme.mutedText};pointer-events:none}
 #legend{position:fixed;right:12px;bottom:10px;display:flex;gap:14px;font-size:12px;color:${theme.mutedText}}
 #legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
-#scenes{position:fixed;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px}
+#groups{position:fixed;right:12px;top:12px;background:${theme.background};padding:8px;border:1px solid ${theme.groupStroke};border-radius:8px;max-height:70vh;overflow:auto}
+#groups label{display:block;font-size:13px;padding:6px}
+#scenes{max-width:calc(100vw - 140px);position:fixed;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px}
 #scenes button{font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
 background:${theme.groupFill};color:${theme.mutedText};border:1px solid ${theme.groupStroke}}
 #error{position:fixed;top:12px;right:12px;max-width:min(640px,90vw);margin:0;padding:10px 14px;
@@ -186,10 +222,10 @@ background:${theme.background};color:#cf222e;border:1px solid #cf222e}
 <div id="stage">${svg}</div>
 <p id="hint">drag to pan · scroll to zoom · double-click to fit</p>
 ${legend ? legendHtml(theme) : ''}
-${scenarios.length ? scenesHtml(scenarios, initial, focus) : ''}
-<script id="views" type="application/json">${JSON.stringify(variants).replaceAll('<', '\\u003c')}</script>
+${interactive && data ? scenesHtml(scenarios, data.options) + groupsHtml(data.ir, data.options) : ''}
+<script id="views" type="application/json">${JSON.stringify(data ? { ...data, theme } : {}).replaceAll('<', '\\u003c')}</script>
 <script>${SCRIPT}<\/script>
-${scenarios.length ? `<script>${SCENE_SCRIPT}<\/script>` : ''}${
+${interactive ? `<script>${viewerRuntime.replace(/<\/script/gi, '<\\/script')}</script><script>${SCENE_SCRIPT}<\/script>` : ''}${
   live ? `\n<pre id="error" hidden></pre>\n<script>${LIVE_SCRIPT}<\/script>` : ''
 }
 </body>

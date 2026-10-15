@@ -34,6 +34,8 @@ export const FlatNodeSchema = z
     when: z.array(Id).optional(),
     /** Scenarios this is failed in — drawn as down rather than merely absent. */
     down: z.array(Id).optional(),
+    /** Show this group as a compact overview until it is expanded. */
+    collapsed: z.boolean().optional(),
   })
   .strict()
 

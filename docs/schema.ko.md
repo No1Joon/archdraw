@@ -147,3 +147,11 @@ edges:
 `archdraw diagram.yaml --scenario normal --focus -o normal.png`는 선택한 시나리오에서 제외된 노드·선을 숨기고 다시 배치한다. `down`으로 지정한 장애 노드는 장애 표시로 남긴다. 상위 그룹이 제외되면 자식과 연결선도 제외된다. `--focus`를 생략하면 기존 배치를 유지하고 제외 대상을 흐리게 한다. 두 옵션을 모두 생략하면 전체 그래프를 내보낸다.
 
 HTML에는 기존 흐림 보기와 함께 Focus 전환 및 Export SVG / Export PNG 버튼이 있다. 현재 선택과 보기를 내보내며 이동·확대 변환과 트래픽 애니메이션은 제거한다. HTML PNG는 브라우저의 글꼴을 사용해 2배 크기로 저장하며 CLI PNG는 번들 글꼴을 사용한다. 외부 네트워크 없이 동작한다.
+
+## 그룹 접기·펼치기
+
+그룹에 `collapsed: true`를 지정하면 내부를 접은 개요로 시작한다. 숨긴 자식의 외부 연결은 가장 바깥쪽 접힌 그룹으로 연결하며 선의 id·라벨을 보존한다. 내부 연결은 숨기고 다시 배치한다. 일반 노드에는 이 필드를 지정할 수 없다.
+
+HTML의 Groups 패널에서 그룹별 전환, Collapse all / Expand all을 사용할 수 있다. 브라우저에서도 같은 배치·SVG 렌더 코드를 실행하며 외부 통신이 없다. 시나리오와 내보내기에 함께 적용되고 저장 후 새로고침에도 유지한다. 인터랙티브 HTML은 약 1.7 MB의 배치 런타임과 사용한 아이콘만 포함한다.
+
+CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한다. Core의 `RenderOptions.collapsed`에는 그룹 id 배열을 전달하며 `[]`는 모두 펼친다.

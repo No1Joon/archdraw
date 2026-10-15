@@ -605,3 +605,19 @@ describe('scenario selection', () => {
     expect(invalid.stderr).toContain('Unknown scenario')
   })
 })
+
+describe('group overviews', () => {
+  const grouped =
+    'groups: [{ id: project, collapsed: true, children: [{ id: api }] }]\nnodes: [{ id: monitor }]\nedges: [{ from: monitor, to: api }]'
+  it('honors input collapse and command-line expansion overrides', () => {
+    const overview = run(['-'], grouped)
+    expect(overview.code).toBe(0)
+    expect(overview.stdout).not.toContain('data-node-id="api"')
+    const expanded = run(['-', '--expand-all'], grouped)
+    expect(expanded.code).toBe(0)
+    expect(expanded.stdout).toContain('data-node-id="api"')
+    const invalid = run(['-', '--collapse', 'missing'], grouped)
+    expect(invalid.code).toBe(1)
+    expect(invalid.stderr).toContain('not a group')
+  })
+})

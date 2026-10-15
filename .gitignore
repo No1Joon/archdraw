@@ -10,3 +10,5 @@ temp-memory.md
 coverage/
 .cache/
 out/
+
+packages/core/src/viewer-bundle.generated.ts

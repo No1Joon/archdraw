@@ -161,6 +161,8 @@ program
   .option('--check', 'validate the diagram and write nothing')
   .option('--scenario <id>', 'select one declared scenario')
   .option('--focus', 'hide inactive elements and lay out the selected scenario again')
+  .option('--collapse <ids>', 'collapse comma-separated group ids; all collapses every group')
+  .option('--expand-all', 'override collapsed groups in the input')
   .action(async (input: string, options) => {
     await run(async () => {
       const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
@@ -184,6 +186,11 @@ program
         icons,
         scenario: options.scenario,
         focus: options.focus,
+        collapsed: options.expandAll
+          ? []
+          : options.collapse === 'all'
+            ? ir.nodes.filter((node) => node.isGroup).map((node) => node.id)
+            : options.collapse?.split(',').map((id: string) => id.trim()),
         theme: themeFor(options.theme),
         onLayout: (laid, root) => reportDetours(detours(laid, root), laid),
       })

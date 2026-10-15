@@ -21,6 +21,7 @@ export interface FlatNode {
   when?: string[]
   /** Scenarios this is failed in. */
   down?: string[]
+  collapsed?: boolean
 }
 
 /** An edge once its id is settled — the one it was given, or one named for its ends. */
@@ -89,6 +90,7 @@ export function normalize(input: unknown): Ir {
       status: entry.status,
       when: entry.when,
       down: entry.down,
+      collapsed: entry.collapsed,
     })
     if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
@@ -106,6 +108,12 @@ export function normalize(input: unknown): Ir {
   }
 
   for (const node of nodes) {
+    if (node.collapsed !== undefined && !node.isGroup) {
+      throw new DiagramError(
+        `Node '${node.id}' has \`collapsed\` but is not a group.`,
+        'Add children or declare it under `groups`.',
+      )
+    }
     if (node.parent !== null && !seen.has(node.parent)) {
       throw new DiagramError(`Node '${node.id}' has parent '${node.parent}', which does not exist.`)
     }
