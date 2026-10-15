@@ -10,7 +10,7 @@
 |---|---|---|---|
 | `provider` | `aws` \| `gcp` \| `brands` | `aws` | Icon packs to draw with. The CLI uses this unless `-p` is given, and `-p aws,brands` loads several |
 | `title` | string | — | The SVG `<title>` and the accessible label |
-| `direction` | `RIGHT` \| `DOWN` | `RIGHT` | Flow direction. Applies to the whole diagram; it cannot be set per group |
+| `direction` | `RIGHT` \| `DOWN` | `RIGHT` | Default flow direction; a group may override it |
 | `shape` | `icon` \| `card` | `icon` | Default node presentation. `icon` puts the name under the mark (the AWS convention); `card` puts it beside the mark (the GCP convention) |
 | `wrap` | boolean | `false` | Fold a long chain into several rows. Without it a 200-node chain renders as one strip tens of thousands of pixels wide |
 | `rollup` | boolean | `false` | Count each group's contents by status in its header — `2/3 done`. The group's own status stays its own |
@@ -155,3 +155,24 @@ Set `collapsed: true` on a group to start with a compact overview. Hidden descen
 HTML's Groups panel toggles groups independently, with Collapse all / Expand all controls. Every change runs the same layout and SVG renderer locally; no service or network is needed. Scenario focus, export and live-reload view restoration retain the collapse selection. Interactive HTML embeds the layout runtime (about 1.7 MB before compression) and only the icons used by the diagram.
 
 CLI: `archdraw diagram.yaml --collapse all -o overview.svg`, `--collapse project,other` to select groups, or `--expand-all` to override the input. Core: `RenderOptions.collapsed` accepts group ids; `[]` expands everything.
+
+## Group directions and boundary ports
+
+Groups may set `direction: RIGHT | DOWN`. Nested groups inherit the nearest direction unless they override it. Groups with a local direction or explicit ports are laid out independently, then their boundary crossings are joined into the enclosing graph; cross-boundary edges remain connected to their original endpoints.
+
+Declare `ports: [{ id: ssh, side: WEST }]` on a group; sides are `NORTH | EAST | SOUTH | WEST`. Connect an edge to that group with `fromPort` or `toPort` (the endpoint id remains the group id). Connect the same port to an internal node with a second edge when the boundary hop should be explicit. Port ids are unique within a group, and a reference to an undeclared port is rejected. Ports and local direction are group-only fields. The boundary dots carry `data-port-id` in the SVG.
+
+```yaml
+groups:
+  - id: project
+    direction: DOWN
+    ports: [{ id: ssh, side: WEST }]
+    children: [{ id: api }, { id: db }]
+nodes: [{ id: monitor }]
+edges:
+  - { from: monitor, to: project, toPort: ssh, label: SSH }
+  - { from: project, fromPort: ssh, to: api }
+  - { from: api, to: db }
+```
+
+Keep security boundaries that describe the system. Use ports to choose entry/exit sides instead of moving services into another security group just to shorten a route. With `wrap`, a group with an explicit direction/ports stays intact while the enclosing graph folds.

@@ -18,13 +18,14 @@ export type { FlatNode, Ir, IrEdge } from './normalize.js'
 export { DiagramError, normalize } from './normalize.js'
 export type { DiagramProps, Theme } from './render.js'
 export { Diagram, darkTheme, defaultTheme } from './render.js'
-export type { Diagram as DiagramInput, Edge, FlatDiagram, NodeEntry } from './schema.js'
+export type { Diagram as DiagramInput, Edge, FlatDiagram, NodeEntry, Port } from './schema.js'
 export {
   DiagramSchema,
   EdgeSchema,
   FlatDiagramSchema,
   FlatNodeSchema,
   NodeEntrySchema,
+  PortSchema,
   toJsonSchema,
 } from './schema.js'
 export type { ViewOptions } from './view.js'

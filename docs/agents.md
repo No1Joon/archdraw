@@ -84,7 +84,7 @@ edges:
 - **But grouping has a price.** An edge whose ends sit in different groups is routed around every group in between, so a boundary drawn between two things that talk a lot makes the picture wider, not narrower. After a render archdraw names any edge that travelled more than twice its direct distance, and says which of the two causes it was — a boundary between a talkative pair, which regrouping fixes, or an edge running against `direction`, which it does not.
 - **Say what is built with `status`, not in the label.** `status: planned | in_progress | blocked | done | deployed` on a node or an edge draws a mark, in every target, with a legend naming the states in words. Writing `[done]` into a label instead changes the size of the card and moves everything around it, and tells the renderer nothing. A node and the edge into it are separate answers — a cache that is up and an application that does not talk to it yet is `status: done` on the node and `status: planned` on the edge.
 - **`status` is about the work, not about the run.** `done` is written, `deployed` is running where it is meant to; whether it is up right now is `scenarios`. A group's status is its own and never reaches its children — `rollup: true` counts them in its header instead.
-- **`direction` is global.** It cannot vary per group. `RIGHT` usually suits a flow that runs in one line; `DOWN` suits stacked tiers.
+- **`direction` sets the default.** Groups may override it: `RIGHT` suits a flow in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - Draw only what is true. Leave out any component you could not confirm.
 
@@ -101,3 +101,24 @@ Set `collapsed: true` on a group to start with a compact overview. Hidden descen
 HTML's Groups panel toggles groups independently, with Collapse all / Expand all controls. Every change runs the same layout and SVG renderer locally; no service or network is needed. Scenario focus, export and live-reload view restoration retain the collapse selection. Interactive HTML embeds the layout runtime (about 1.7 MB before compression) and only the icons used by the diagram.
 
 CLI: `archdraw diagram.yaml --collapse all -o overview.svg`, `--collapse project,other` to select groups, or `--expand-all` to override the input. Core: `RenderOptions.collapsed` accepts group ids; `[]` expands everything.
+
+## Group directions and boundary ports
+
+Groups may set `direction: RIGHT | DOWN`. Nested groups inherit the nearest direction unless they override it. Groups with a local direction or explicit ports are laid out independently, then their boundary crossings are joined into the enclosing graph; cross-boundary edges remain connected to their original endpoints.
+
+Declare `ports: [{ id: ssh, side: WEST }]` on a group; sides are `NORTH | EAST | SOUTH | WEST`. Connect an edge to that group with `fromPort` or `toPort` (the endpoint id remains the group id). Connect the same port to an internal node with a second edge when the boundary hop should be explicit. Port ids are unique within a group, and a reference to an undeclared port is rejected. Ports and local direction are group-only fields. The boundary dots carry `data-port-id` in the SVG.
+
+```yaml
+groups:
+  - id: project
+    direction: DOWN
+    ports: [{ id: ssh, side: WEST }]
+    children: [{ id: api }, { id: db }]
+nodes: [{ id: monitor }]
+edges:
+  - { from: monitor, to: project, toPort: ssh, label: SSH }
+  - { from: project, fromPort: ssh, to: api }
+  - { from: api, to: db }
+```
+
+Keep security boundaries that describe the system. Use ports to choose entry/exit sides instead of moving services into another security group just to shorten a route. With `wrap`, a group with an explicit direction/ports stays intact while the enclosing graph folds.

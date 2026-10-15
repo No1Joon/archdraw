@@ -39,7 +39,7 @@ archdraw schema [--flat]                                   # input contract as J
 - **The file's `provider` lists every pack the diagram draws from.** `-p` overrides it for one run, so a file that renders only with the flag is broken for whoever opens it next. archdraw says so after a render.
 - **A label breaks a line with a real break**, `"one\ntwo"` in a quoted label or a `|-` block. Written with two backslashes it draws `\n` as text and makes the node wider.
 - **Say what is built with `status`, not in the label.** `status: planned | in_progress | blocked | done | deployed` on a node or an edge draws a mark in every target, with a legend naming the states in words; `[done]` written into a label resizes the card and tells the renderer nothing. A node and the edge into it are separate answers. `done` is written and `deployed` is running; whether it is up right now is `scenarios`. A group's status never reaches its children — `rollup: true` counts them in its header.
-- **`direction` is global**, not per-group. `RIGHT` suits a flow in one line; `DOWN` suits stacked tiers.
+- **`direction` sets the default**, and groups may override it. `RIGHT` suits a flow in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - **Draw only what is true.** Leave out any component you could not confirm.
 
@@ -87,3 +87,24 @@ Set `collapsed: true` on a group to start with a compact overview. Hidden descen
 HTML's Groups panel toggles groups independently, with Collapse all / Expand all controls. Every change runs the same layout and SVG renderer locally; no service or network is needed. Scenario focus, export and live-reload view restoration retain the collapse selection. Interactive HTML embeds the layout runtime (about 1.7 MB before compression) and only the icons used by the diagram.
 
 CLI: `archdraw diagram.yaml --collapse all -o overview.svg`, `--collapse project,other` to select groups, or `--expand-all` to override the input. Core: `RenderOptions.collapsed` accepts group ids; `[]` expands everything.
+
+## Group directions and boundary ports
+
+Groups may set `direction: RIGHT | DOWN`. Nested groups inherit the nearest direction unless they override it. Groups with a local direction or explicit ports are laid out independently, then their boundary crossings are joined into the enclosing graph; cross-boundary edges remain connected to their original endpoints.
+
+Declare `ports: [{ id: ssh, side: WEST }]` on a group; sides are `NORTH | EAST | SOUTH | WEST`. Connect an edge to that group with `fromPort` or `toPort` (the endpoint id remains the group id). Connect the same port to an internal node with a second edge when the boundary hop should be explicit. Port ids are unique within a group, and a reference to an undeclared port is rejected. Ports and local direction are group-only fields. The boundary dots carry `data-port-id` in the SVG.
+
+```yaml
+groups:
+  - id: project
+    direction: DOWN
+    ports: [{ id: ssh, side: WEST }]
+    children: [{ id: api }, { id: db }]
+nodes: [{ id: monitor }]
+edges:
+  - { from: monitor, to: project, toPort: ssh, label: SSH }
+  - { from: project, fromPort: ssh, to: api }
+  - { from: api, to: db }
+```
+
+Keep security boundaries that describe the system. Use ports to choose entry/exit sides instead of moving services into another security group just to shorten a route. With `wrap`, a group with an explicit direction/ports stays intact while the enclosing graph folds.

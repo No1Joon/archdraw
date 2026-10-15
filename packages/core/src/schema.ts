@@ -11,6 +11,13 @@ const Id = z
  */
 export const StatusSchema = z.enum(['planned', 'in_progress', 'blocked', 'done', 'deployed'])
 
+export const PortSchema = z
+  .object({
+    id: Id,
+    side: z.enum(['NORTH', 'EAST', 'SOUTH', 'WEST']),
+  })
+  .strict()
+
 /** A single entry in the flat form. Non-recursive: structured outputs reject recursion. */
 export const FlatNodeSchema = z
   .object({
@@ -36,6 +43,10 @@ export const FlatNodeSchema = z
     down: z.array(Id).optional(),
     /** Show this group as a compact overview until it is expanded. */
     collapsed: z.boolean().optional(),
+    /** Direction within this group, inherited by nested groups unless overridden. */
+    direction: z.enum(['RIGHT', 'DOWN']).optional(),
+    /** Named connection points on this group boundary. */
+    ports: z.array(PortSchema).optional(),
   })
   .strict()
 
@@ -56,6 +67,8 @@ export const EdgeSchema = z
     id: Id.optional(),
     from: Id,
     to: Id,
+    fromPort: Id.optional(),
+    toPort: Id.optional(),
     label: z.string().optional(),
     style: z.enum(['solid', 'dashed']).default('solid'),
     /** Whether this connection exists yet. Independent of the nodes it joins. */
@@ -125,4 +138,5 @@ export type Diagram = z.infer<typeof DiagramSchema>
 export type FlatDiagram = z.infer<typeof FlatDiagramSchema>
 export type Edge = z.infer<typeof EdgeSchema>
 export type Status = z.infer<typeof StatusSchema>
+export type Port = z.infer<typeof PortSchema>
 export type Scenario = z.infer<typeof ScenarioSchema>

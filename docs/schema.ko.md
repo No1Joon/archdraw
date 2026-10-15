@@ -155,3 +155,11 @@ HTML에는 기존 흐림 보기와 함께 Focus 전환 및 Export SVG / Export P
 HTML의 Groups 패널에서 그룹별 전환, Collapse all / Expand all을 사용할 수 있다. 브라우저에서도 같은 배치·SVG 렌더 코드를 실행하며 외부 통신이 없다. 시나리오와 내보내기에 함께 적용되고 저장 후 새로고침에도 유지한다. 인터랙티브 HTML은 약 1.7 MB의 배치 런타임과 사용한 아이콘만 포함한다.
 
 CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한다. Core의 `RenderOptions.collapsed`에는 그룹 id 배열을 전달하며 `[]`는 모두 펼친다.
+
+## 그룹별 방향과 경계 연결점
+
+그룹의 `direction: RIGHT | DOWN`은 그 그룹 내부 배치에 적용되며 하위 그룹은 가장 가까운 방향을 상속한다. 별도 방향이나 포트가 있는 그룹을 독립 배치한 뒤 경계를 가로지르는 선을 이어 붙인다. `wrap`에서도 이런 그룹은 내부를 접지 않고 바깥 그래프를 접는다.
+
+그룹에 `ports: [{ id: ssh, side: WEST }]`를 선언하고 선의 `fromPort`·`toPort`에 포트 id를 지정한다. 방향은 `NORTH | EAST | SOUTH | WEST`다. 선의 `from`·`to`는 그룹 id이며, 경계에서 내부 노드까지 별도 선으로 연결할 수 있다. 포트 이름은 그룹 안에서 고유해야 하고 선언되지 않은 포트는 오류다. 일반 노드에는 포트·배치 방향을 지정할 수 없다. SVG 연결점에는 `data-port-id`가 붙는다.
+
+예: `from: monitor, to: project, toPort: ssh`와 `from: project, fromPort: ssh, to: api`를 연결한다. 배치만을 위해 보안 그룹을 합치지 않고 경계 연결 위치를 지정할 수 있다.

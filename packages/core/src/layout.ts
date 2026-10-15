@@ -87,6 +87,20 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   }
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
 
+  const custom = new Set(
+    ir.nodes
+      .filter((node) => node.isGroup && (node.direction || node.ports?.length))
+      .map((node) => node.id),
+  )
+  const directionOf = (id: string | null): 'RIGHT' | 'DOWN' => {
+    for (let cursor = id; cursor !== null; cursor = byId.get(cursor)?.parent ?? null) {
+      const direction = byId.get(cursor)?.direction
+      if (direction) return direction
+    }
+    return ir.direction
+  }
+  const namedPort = (group: string, port: string) => `${group}>port:${port}`
+
   // ELK reports edge coordinates relative to the node the edge is declared on.
   const parentOf = new Map(ir.nodes.map((node) => [node.id, node.parent]))
   const containersOf = (id: string): (string | null)[] => {
@@ -213,7 +227,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     children: build(null),
     edges: edgesOf.get(null) ?? [],
   })
-  if (!ir.wrap) {
+  if (!ir.wrap && custom.size === 0) {
     reconnect(root)
     clearLabels(root)
     clearTitles(root, byId)
@@ -223,7 +237,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   // A group longer than a row of the folded picture would take a row to itself and still run
   // past the rest, so it is folded inside first, to that row's length.
   const length = rowLength(root, ir.direction)
-  const wide = new Set<string>()
+  const wide = new Set<string>(custom)
   const measure = (node: ElkNode) => {
     for (const child of node.children ?? []) {
       const along = ir.direction === 'RIGHT' ? child.width : child.height
@@ -231,7 +245,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       measure(child)
     }
   }
-  measure(root)
+  if (ir.wrap) measure(root)
   if (wide.size === 0) {
     fold(root, ir.direction)
     reconnect(root)
@@ -254,8 +268,6 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   // An edge crosses a group's border at most once, so the pair names the crossing; `>` is not
   // an id character, so the name cannot collide with a node.
   const portName = (group: string, index: number) => `${group}>${index}`
-  const sides =
-    ir.direction === 'RIGHT' ? { in: 'WEST', out: 'EAST' } : { in: 'NORTH', out: 'SOUTH' }
 
   /** Lays out what `container` holds, with every wide group under it already folded. */
   const place = async (container: string | null): Promise<ElkNode> => {
@@ -267,18 +279,32 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     }
 
     const edges = new Map<string | null, ElkExtendedEdge[]>()
-    const ports: ElkPort[] = []
+    const direction = directionOf(container)
+    const sides =
+      direction === 'RIGHT' ? { in: 'WEST', out: 'EAST' } : { in: 'NORTH', out: 'SOUTH' }
+    const declared = container ? (byId.get(container)?.ports ?? []) : []
+    const ports: ElkPort[] = declared.map((port) => ({
+      id: namedPort(container as string, port.id),
+      layoutOptions: { 'elk.port.side': port.side },
+    }))
     ir.edges.forEach((edge, index) => {
       const ends = (['from', 'to'] as const).map((end) => {
         const id = edge[end]
+        const port = edge[end === 'from' ? 'fromPort' : 'toPort']
+        const ref = port ? namedPort(id, port) : id
         if (container !== null && (id === container || !within(id, container))) {
-          return { ref: portName(container, index), owner: id, outside: true, box: undefined }
+          return {
+            ref: id === container && port ? ref : portName(container, index),
+            owner: id,
+            outside: true,
+            box: undefined,
+          }
         }
         const box = boxOf(id, container)
         if (box && box !== id) {
           return { ref: portName(box, index), owner: box, outside: false, box }
         }
-        return { ref: id, owner: id, outside: false, box: undefined }
+        return { ref, owner: id, outside: false, box }
       })
       const [from, to] = ends as [(typeof ends)[number], (typeof ends)[number]]
       if (from.outside && to.outside) return
@@ -290,15 +316,20 @@ export async function layout(ir: Ir): Promise<ElkNode> {
         const inside = lca === container || (lca !== null && within(lca, container))
         if (!inside) lca = container
       }
-      if (from.outside) ports.push({ id: from.ref, layoutOptions: { 'elk.port.side': sides.in } })
-      if (to.outside) ports.push({ id: to.ref, layoutOptions: { 'elk.port.side': sides.out } })
+      if (from.outside && !ports.some((port) => port.id === from.ref))
+        ports.push({ id: from.ref, layoutOptions: { 'elk.port.side': sides.in } })
+      if (to.outside && !ports.some((port) => port.id === to.ref))
+        ports.push({ id: to.ref, layoutOptions: { 'elk.port.side': sides.out } })
       const list = edges.get(lca) ?? []
       list.push({
         id: `e${index}`,
         sources: [from.ref],
         targets: [to.ref],
         // Only the part of an edge drawn outside every border it crosses carries the label.
-        labels: from.outside || to.outside ? [] : labelsOf(edge),
+        labels:
+          (from.outside && from.owner !== container) || (to.outside && to.owner !== container)
+            ? []
+            : labelsOf(edge),
       })
       edges.set(lca, list)
     })
@@ -307,7 +338,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     const group = container === null ? undefined : (byId.get(container) as FlatNode)
     const laid = await elk.layout({
       id: 'root',
-      layoutOptions: rootOptions,
+      layoutOptions: { ...rootOptions, 'elk.direction': direction },
       // ELK will not lay out a graph whose own border carries ports, so a group laid out on
       // its own sits alone inside an empty root.
       children: group
@@ -384,7 +415,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       node.children = inner.node.children
       node.edges = inner.node.edges
       node.labels = inner.node.labels
-      node.ports = undefined
+      node.ports = inner.node.ports
       node.layoutOptions = undefined
     }
   }
@@ -392,9 +423,13 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   /** A wide group folded on its own to a row's length, with its border crossings fixed. */
   const arrange = async (id: string): Promise<Arranged> => {
     const laid = await place(id)
-    fold(laid, ir.direction, length)
+    const direction = directionOf(id)
+    if (ir.wrap && !custom.has(id)) fold(laid, direction, length)
     const node = laid.children?.[0] as ElkNode
     const ports = new Map<string, Point>()
+    for (const port of node.ports ?? []) {
+      if (port.id.includes('>port:')) ports.set(port.id, { x: port.x ?? 0, y: port.y ?? 0 })
+    }
     // The fold moves where an edge meets the border; each goes back out to the border itself.
     for (const edge of (node.edges ?? []) as ElkExtendedEdge[]) {
       const section = edge.sections?.[0]
@@ -402,12 +437,14 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       const inbound = edge.sources[0]
       const outbound = edge.targets[0]
       if (inbound?.startsWith(`${id}>`)) {
-        if (ir.direction === 'RIGHT') section.startPoint.x = 0
+        if (inbound?.includes('>port:')) continue
+        if (direction === 'RIGHT') section.startPoint.x = 0
         else section.startPoint.y = 0
         ports.set(inbound, { ...section.startPoint })
       }
       if (outbound?.startsWith(`${id}>`)) {
-        if (ir.direction === 'RIGHT') section.endPoint.x = node.width ?? 0
+        if (outbound?.includes('>port:')) continue
+        if (direction === 'RIGHT') section.endPoint.x = node.width ?? 0
         else section.endPoint.y = node.height ?? 0
         ports.set(outbound, { ...section.endPoint })
       }
@@ -416,7 +453,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   }
 
   const folded = await place(null)
-  fold(folded, ir.direction)
+  if (ir.wrap) fold(folded, ir.direction)
   reconnect(folded)
   clearLabels(folded)
   clearTitles(folded, byId)
