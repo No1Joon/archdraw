@@ -32,10 +32,12 @@ export function Diagram() {
 | `source` | YAML·JSON 문자열이나 이미 파싱된 문서 |
 | `icons` | 아이콘 팩 하나, 팩 배열, 또는 직접 만든 `IconResolver` |
 | `theme` | 색·폰트. 생략하면 `defaultTheme` |
+| `scenario` / `focus` | 선언된 시나리오 선택 및 제외 요소를 숨긴 뒤 재배치 |
+| `collapsed` | 접을 그룹 id 배열. `[]`는 모두 펼침 |
 | `fallback` | ELK 가 레이아웃하는 동안 그릴 것 |
 | `renderError` | 검증 실패 시 그릴 것. 기본은 오류 메시지 |
 
-레이아웃은 비동기라 첫 렌더에서 `fallback` 이 먼저 나온다. 다시 계산하는 것은 `source` 가 바뀔 때뿐이고, `icons` 와 `theme` 은 레이아웃에 영향을 주지 않으므로 다시 그리기만 한다.
+레이아웃은 비동기라 첫 렌더에서 `fallback` 이 먼저 나온다. `source`·아이콘 resolver·보기 선택이 바뀌면 다시 배치한다. `theme` 변경은 배치 없이 다시 그리기만 한다.
 
 ## 서버에서 그리려면
 

@@ -17,7 +17,7 @@
 | `nodes` | Node[] | `[]` | 노드 목록 |
 | `groups` | Node[] | `[]` | `nodes` 의 별칭. 최상위가 전부 컨테이너일 때 읽기 좋다 |
 | `edges` | Edge[] | `[]` | 연결 |
-| `scenarios` | Scenario[] | `[]` | 다이어그램을 읽을 수 있는 상태들. 애니메이션 HTML 렌더에서만 그려지고 SVG·PNG 는 항상 전부 보여준다 |
+| `scenarios` | Scenario[] | `[]` | 다이어그램을 읽을 수 있는 상태들. HTML에는 상태 버튼이 생기며 SVG·PNG는 `--scenario`로 선택 가능 |
 
 ## Node
 
