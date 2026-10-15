@@ -147,3 +147,11 @@ edges:
 `archdraw diagram.yaml --scenario normal --focus -o normal.png` selects a declared scenario, removes inactive nodes and edges, and lays out the remaining graph again. Failed nodes named by `down` stay visible with failure styling. Ancestor visibility applies to descendants, and an edge cannot remain active when an endpoint is absent. Omit `--focus` to retain the full layout and fade inactive elements. Omit both flags to export the complete graph as before.
 
 HTML keeps the existing fade view and adds a **Focus** switch and **Export SVG / Export PNG** buttons. Exports include the selected scenario and current view, without pan/zoom transforms or animated traffic. PNG uses the browser's available fonts at 2×; CLI PNG uses the bundled fonts. The page remains self-contained and works offline.
+
+## Collapsing groups
+
+Set `collapsed: true` on a group to start with a compact overview. Hidden descendants are omitted before layout; their external edges land on the outermost collapsed group, retaining edge ids and labels. Internal edges disappear. A leaf cannot use `collapsed`.
+
+HTML's Groups panel toggles groups independently, with Collapse all / Expand all controls. Every change runs the same layout and SVG renderer locally; no service or network is needed. Scenario focus, export and live-reload view restoration retain the collapse selection. Interactive HTML embeds the layout runtime (about 1.7 MB before compression) and only the icons used by the diagram.
+
+CLI: `archdraw diagram.yaml --collapse all -o overview.svg`, `--collapse project,other` to select groups, or `--expand-all` to override the input. Core: `RenderOptions.collapsed` accepts group ids; `[]` expands everything.

@@ -40,6 +40,52 @@ describe('scenario views', () => {
     expect(html).toContain('id="export-png"')
     expect(html).toContain('data-initial="failure"')
     expect(html).toContain('id="focus" type="checkbox" checked')
-    expect(html).toContain('\\u003csvg')
+    expect(html).toContain('ArchdrawViewer.renderView')
+  })
+})
+
+describe('collapsed groups', () => {
+  const grouped = {
+    groups: [
+      {
+        id: 'project',
+        collapsed: true,
+        children: [{ id: 'api' }, { id: 'nested', children: [{ id: 'db' }] }],
+      },
+    ],
+    nodes: [{ id: 'monitor' }],
+    edges: [
+      { id: 'external', from: 'monitor', to: 'db' },
+      { from: 'api', to: 'db' },
+    ],
+  }
+  it('keeps boundaries and external edge ids, redirects hidden endpoints, and removes internal edges', () => {
+    const ir = normalize(grouped)
+    const view = selectView(ir)
+    expect(view.nodes.map((node) => node.id)).toEqual(['project', 'monitor'])
+    expect(view.edges).toMatchObject([{ id: 'external', from: 'monitor', to: 'project' }])
+    expect(view.edges).toHaveLength(1)
+    expect(selectView(ir, { collapsed: [] }).nodes).toHaveLength(5)
+  })
+  it('supports independent nested collapse and refuses unknown groups', () => {
+    const ir = normalize(grouped)
+    const view = selectView(ir, { collapsed: ['nested'] })
+    expect(view.nodes.map((node) => node.id)).toEqual(['project', 'api', 'nested', 'monitor'])
+    expect(view.edges[0]?.to).toBe('nested')
+    expect(() => selectView(ir, { collapsed: ['api'] })).toThrow('not a group')
+    expect(() => normalize({ nodes: [{ id: 'leaf', collapsed: true }] })).toThrow('not a group')
+  })
+  it('renders a compact overview and an expandable offline page', async () => {
+    const compact = await renderToSvg(grouped)
+    const full = await renderToSvg(grouped, { collapsed: [] })
+    expect(compact).not.toContain('data-node-id="db"')
+    expect(full).toContain('data-node-id="db"')
+    expect(Number(/width="([\d.]+)"/.exec(compact)?.[1])).toBeLessThan(
+      Number(/width="([\d.]+)"/.exec(full)?.[1]),
+    )
+    const html = await renderToHtml(grouped)
+    expect(html).toContain('data-group="project"')
+    expect(html).toContain('Collapse all')
+    expect(html).toContain('ArchdrawViewer.renderView')
   })
 })

@@ -1,0 +1,6 @@
+Interactive HTML embeds the same layout and rendering code used by the core pipeline.
+The embedded runtime includes elkjs (Eclipse Public License 2.0), React and React DOM (MIT).
+Their license texts are distributed in licenses/.
+ELK source: https://github.com/kieler/elkjs
+React source: https://github.com/facebook/react
+Icon assets are supplied by the caller and retain their provider licenses.

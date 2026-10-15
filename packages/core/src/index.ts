@@ -57,27 +57,17 @@ export async function renderToHtml(
   options: RenderOptions = {},
 ): Promise<string> {
   const full = normalize(typeof source === 'string' ? parse(source) : source)
-  selectView(full, options)
-  const ir = full
+  const ir = selectView(full, options)
   const root = await layout(ir)
   options.onLayout?.(ir, root)
   const theme = options.theme ?? defaultTheme
+  const resolver = toResolver(options.icons)
   const svg = renderToStaticMarkup(
-    Diagram({ root, ir, icons: toResolver(options.icons), theme, flow: true }),
+    Diagram({ root, ir, icons: resolver, theme, flow: true, scenario: options.scenario }),
   )
-  const variants: Record<string, string> = {}
-  for (const scenario of full.scenarios) {
-    const focused = selectView(full, { scenario: scenario.id, focus: true })
-    variants[scenario.id] = renderToStaticMarkup(
-      Diagram({
-        root: await layout(focused),
-        ir: focused,
-        icons: toResolver(options.icons),
-        theme,
-        flow: true,
-        scenario: scenario.id,
-      }),
-    )
+  const icons: IconPack = { provider: full.provider, icons: {}, aliases: {} }
+  for (const node of full.nodes) {
+    if (node.type) icons.icons[node.type] = resolver.resolve(node.type)
   }
   return page(
     svg,
@@ -86,9 +76,11 @@ export async function renderToHtml(
     ir.nodes.some((n) => n.external),
     ir.scenarios,
     options.live,
-    variants,
-    options.scenario,
-    options.focus,
+    {
+      ir: full,
+      icons,
+      options: { scenario: options.scenario, focus: options.focus, collapsed: options.collapsed },
+    },
   )
 }
 

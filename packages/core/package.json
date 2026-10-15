@@ -29,10 +29,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE",
+    "licenses"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --clean",
+    "build": "tsx ../../scripts/build-viewer.ts && tsdown src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
