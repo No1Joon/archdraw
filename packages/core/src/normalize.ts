@@ -1,4 +1,4 @@
-import type { Edge, Scenario, Status } from './schema.js'
+import type { Edge, Port, Scenario, Status } from './schema.js'
 import { DiagramSchema, type NodeEntry } from './schema.js'
 
 export interface FlatNode {
@@ -22,6 +22,8 @@ export interface FlatNode {
   /** Scenarios this is failed in. */
   down?: string[]
   collapsed?: boolean
+  direction?: 'RIGHT' | 'DOWN'
+  ports?: Port[]
 }
 
 /** An edge once its id is settled — the one it was given, or one named for its ends. */
@@ -91,6 +93,8 @@ export function normalize(input: unknown): Ir {
       when: entry.when,
       down: entry.down,
       collapsed: entry.collapsed,
+      direction: entry.direction,
+      ports: entry.ports,
     })
     if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
@@ -108,6 +112,18 @@ export function normalize(input: unknown): Ir {
   }
 
   for (const node of nodes) {
+    if ((node.direction !== undefined || node.ports !== undefined) && !node.isGroup) {
+      throw new DiagramError(
+        `Node '${node.id}' has group-only direction or ports.`,
+        'Add children or declare it under `groups`.',
+      )
+    }
+    const ports = new Set<string>()
+    for (const port of node.ports ?? []) {
+      if (ports.has(port.id))
+        throw new DiagramError(`Duplicate port '${port.id}' on group '${node.id}'.`)
+      ports.add(port.id)
+    }
     if (node.collapsed !== undefined && !node.isGroup) {
       throw new DiagramError(
         `Node '${node.id}' has \`collapsed\` but is not a group.`,
@@ -139,6 +155,24 @@ export function normalize(input: unknown): Ir {
     for (const end of [edge.from, edge.to] as const) {
       if (!seen.has(end)) {
         throw new DiagramError(`Edge ${edge.from} -> ${edge.to} references unknown node '${end}'.`)
+      }
+    }
+  }
+
+  for (const edge of doc.edges) {
+    for (const [end, field] of [
+      ['from', 'fromPort'],
+      ['to', 'toPort'],
+    ] as const) {
+      const port = edge[field]
+      if (
+        port &&
+        !nodes.find((node) => node.id === edge[end])?.ports?.some((entry) => entry.id === port)
+      ) {
+        throw new DiagramError(
+          `Edge ${edge.from} -> ${edge.to} names unknown port '${port}' on '${edge[end]}'.`,
+          'Declare the port on the endpoint group with an id and side.',
+        )
       }
     }
   }

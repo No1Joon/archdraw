@@ -1,0 +1,19 @@
+title: Group boundary routing
+direction: RIGHT
+groups:
+  - id: project
+    label: Project
+    direction: DOWN
+    ports: [{ id: ssh, side: WEST }, { id: status, side: EAST }]
+    children:
+      - { id: api, label: Collector }
+      - { id: db, label: Database }
+nodes:
+  - { id: monitor, label: Monitor }
+  - { id: sink, label: Status service }
+edges:
+  - { from: monitor, to: project, toPort: ssh, label: SSH }
+  - { from: project, fromPort: ssh, to: api, label: Forward }
+  - { from: api, to: db, label: Store }
+  - { from: db, to: project, toPort: status }
+  - { from: project, fromPort: status, to: sink, label: Result }

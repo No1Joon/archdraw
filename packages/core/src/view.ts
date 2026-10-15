@@ -72,7 +72,15 @@ function collapseGroups(ir: Ir, override: string[] | undefined, full: Ir): Ir {
       const from = visible(edge.from),
         to = visible(edge.to)
       if (from === to && (from !== edge.from || to !== edge.to)) return []
-      return [{ ...edge, from, to }]
+      return [
+        {
+          ...edge,
+          from,
+          to,
+          fromPort: from === edge.from ? edge.fromPort : undefined,
+          toPort: to === edge.to ? edge.toPort : undefined,
+        },
+      ]
     }),
   }
 }

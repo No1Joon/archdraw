@@ -500,6 +500,19 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
                   {rollupText(meta.rollup)}
                 </text>
               ) : null}
+              {child.ports
+                ?.filter((port) => port.id.includes('>port:'))
+                .map((port) => (
+                  <circle
+                    key={port.id}
+                    data-port-id={port.id.split('>port:')[1]}
+                    cx={port.x ?? 0}
+                    cy={port.y ?? 0}
+                    r={3}
+                    fill={theme.background}
+                    stroke={theme.groupStroke}
+                  />
+                ))}
               <Container
                 node={{ ...child, x: 0, y: 0 }}
                 byId={byId}
