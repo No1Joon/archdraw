@@ -621,3 +621,31 @@ describe('group overviews', () => {
     expect(invalid.stderr).toContain('not a group')
   })
 })
+
+describe('quality report output', () => {
+  it('writes JSON alone on stdout and keeps SVG stdout clean when writing a report file', () => {
+    const json = run(['-', '--diagnostics', '-'], diagram)
+    expect(json.code).toBe(0)
+    expect(JSON.parse(json.stdout)).toMatchObject({ version: 1, coordinateSpace: 'layout' })
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-quality-'))
+    try {
+      const report = join(dir, 'quality.json')
+      const rendered = run(['-', '--diagnostics', report], diagram)
+      expect(rendered.code).toBe(0)
+      expect(rendered.stdout.startsWith('<svg')).toBe(true)
+      expect(JSON.parse(readFileSync(report, 'utf8')).version).toBe(1)
+      const conflict = run(['-', '--diagnostics', report, '-o', report], diagram)
+      expect(conflict.code).toBe(1)
+      expect(conflict.stderr).toContain('must differ')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+  it('rejects layout diagnostics combined with validation-only and validates view options under --check', () => {
+    expect(run(['-', '--check', '--diagnostics', '-'], diagram).code).toBe(1)
+    expect(run(['-', '--check', '--focus'], diagram).stderr).toContain('Focus requires')
+    expect(run(['-', '--check', '--scenario', 'typo'], diagram).stderr).toContain(
+      'Unknown scenario',
+    )
+  })
+})

@@ -33,6 +33,8 @@ edges:
 | `renderToSvg(source, options?)` | A YAML/JSON string or a parsed document → an SVG string |
 | `parse(source)` | YAML/JSON → an unvalidated document |
 | `normalize(doc)` | Validate and flatten to the IR. Throws `DiagramError` on failure |
+| `selectView(ir, options?)` | Select scenario/focus/collapsed groups before layout |
+| `diagnose(ir, root)` | Versioned quality report for the same layout result |
 | `layout(ir)` | Run the ELK layout, returning an `ElkNode` tree |
 | `Diagram(props)` | The React element that draws a layout result |
 | `createResolver(...packs)` | Fold icon packs into one `IconResolver` |
@@ -84,3 +86,15 @@ To use it as a CLI instead, [`archdraw`](https://www.npmjs.com/package/archdraw)
 ## Licence
 
 MIT
+
+```ts
+import { diagnose, renderToSvg } from '@archdraw/core'
+
+const svg = await renderToSvg(diagram, {
+  icons,
+  scenario: 'normal',
+  focus: true,
+  collapsed: ['project'],
+  onLayout: (ir, root) => console.log(diagnose(ir, root)),
+})
+```

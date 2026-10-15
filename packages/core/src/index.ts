@@ -10,6 +10,8 @@ import { Diagram, defaultTheme, type Theme } from './render.js'
 import { selectView, type ViewOptions } from './view.js'
 
 export type { ElkNode } from 'elkjs'
+export type { Bounds, Diagnostic, ElementRef, Point, QualityReport } from './diagnostics.js'
+export { diagnose } from './diagnostics.js'
 export type { IconAsset, IconPack, IconResolver } from './icons.js'
 export { createResolver } from './icons.js'
 export type { Detour } from './layout.js'
@@ -58,15 +60,18 @@ export async function renderToHtml(
   options: RenderOptions = {},
 ): Promise<string> {
   const full = normalize(typeof source === 'string' ? parse(source) : source)
+  const resolver = toResolver(options.icons)
+  for (const node of full.nodes) {
+    if (node.type) resolver.resolve(node.type)
+  }
   const ir = selectView(full, options)
   const root = await layout(ir)
   options.onLayout?.(ir, root)
   const theme = options.theme ?? defaultTheme
-  const resolver = toResolver(options.icons)
   const svg = renderToStaticMarkup(
     Diagram({ root, ir, icons: resolver, theme, flow: true, scenario: options.scenario }),
   )
-  const icons: IconPack = { provider: full.provider, icons: {}, aliases: {} }
+  const icons: IconPack = { provider: full.provider, icons: Object.create(null), aliases: {} }
   for (const node of full.nodes) {
     if (node.type) icons.icons[node.type] = resolver.resolve(node.type)
   }
@@ -91,13 +96,17 @@ export async function renderToSvg(
   options: RenderOptions = {},
 ): Promise<string> {
   const full = normalize(typeof source === 'string' ? parse(source) : source)
+  const resolver = toResolver(options.icons)
+  for (const node of full.nodes) {
+    if (node.type) resolver.resolve(node.type)
+  }
   const ir = selectView(full, options)
   const root = await layout(ir)
   options.onLayout?.(ir, root)
   const element = Diagram({
     root,
     ir,
-    icons: toResolver(options.icons),
+    icons: resolver,
     theme: options.theme ?? defaultTheme,
     scenario: options.scenario,
   })

@@ -202,7 +202,12 @@ export function normalize(input: unknown): Ir {
 
   // A named scenario that does not exist would silently drop the element from every scene, so
   // it is an error with the declared names attached rather than a picture missing a line.
-  const scenarios = new Set(doc.scenarios.map((scenario) => scenario.id))
+  const scenarios = new Set<string>()
+  for (const scenario of doc.scenarios) {
+    if (scenarios.has(scenario.id))
+      throw new DiagramError(`Duplicate scenario id '${scenario.id}'.`)
+    scenarios.add(scenario.id)
+  }
   const known = [...scenarios].join(', ')
   const checkWhen = (where: string, field: 'when' | 'down', ids: string[] | undefined): void => {
     for (const id of ids ?? []) {

@@ -17,9 +17,11 @@ let k = 1, x = 0, y = 0, drag = null
 const apply = () => { art.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')' }
 const fit = () => {
   const w = Number(art.getAttribute('width')), h = Number(art.getAttribute('height'))
-  k = Math.min(1, (innerWidth - 32) / w, (innerHeight - 32) / h)
+  const top = (document.getElementById('scenes')?.offsetHeight || 0) + 24
+  const available = Math.max(1, innerHeight - top - 32)
+  k = Math.min(document.getElementById('focus')?.checked ? 2 : 1, (innerWidth - 32) / w, available / h)
   x = (innerWidth - w * k) / 2
-  y = (innerHeight - h * k) / 2
+  y = top + (available - h * k) / 2
   apply()
 }
 stage.addEventListener('wheel', (e) => {
@@ -112,6 +114,7 @@ document.getElementById('export-png').addEventListener('click', async () => {
     canvas.width = image.width * 2; canvas.height = image.height * 2
     canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
     canvas.toBlob((png) => { if (png) download(png, 'png') })
+  } catch (error) { document.getElementById('view-status').textContent = 'Could not export PNG: ' + error.message
   } finally { URL.revokeObjectURL(url) }
 })
 `

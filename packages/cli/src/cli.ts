@@ -12,12 +12,15 @@ import {
   darkTheme,
   defaultTheme,
   detours,
+  diagnose,
   type IconPack,
   type Ir,
   normalize,
   parse,
+  type QualityReport,
   renderToHtml,
   renderToSvg,
+  selectView,
   type Theme,
   toJsonSchema,
 } from '@archdraw/core'
@@ -66,6 +69,7 @@ function detourCause(detour: Detour, ir: Ir): 'backward' | 'boundary' | 'wrap' |
 
 /** Never fatal and never on stdout — stdout may be the SVG. */
 function reportDetours(found: Detour[], ir: Ir) {
+  found = found.filter((entry) => !entry.response)
   if (found.length === 0) return
   const noted = found.map((detour) => ({ detour, cause: detourCause(detour, ir) }))
   const why: Record<ReturnType<typeof detourCause>, string> = {
@@ -86,7 +90,8 @@ function reportDetours(found: Detour[], ir: Ir) {
   if (found.length > DETOUR_LIST) console.error(`  ... ${found.length - DETOUR_LIST} more`)
   const advice: Record<ReturnType<typeof detourCause>, string> = {
     backward: 'An edge against the direction is only shortened by `direction` or the edge itself.',
-    boundary: 'An edge across a boundary is shortened by putting the pair in one group.',
+    boundary:
+      'Choose boundary ports or a local group direction while retaining security boundaries.',
     wrap: '`wrap: true` folds the chain into rows; an edge between rows is shortened by ordering the pair together, or by dropping `wrap`.',
     layout: 'Ordering the pair next to each other in `nodes` is what shortens one of these.',
   }
@@ -163,11 +168,34 @@ program
   .option('--focus', 'hide inactive elements and lay out the selected scenario again')
   .option('--collapse <ids>', 'collapse comma-separated group ids; all collapses every group')
   .option('--expand-all', 'override collapsed groups in the input')
+  .option('--diagnostics <file>', 'write quality diagnostics as JSON; - prints JSON instead of SVG')
   .action(async (input: string, options) => {
     await run(async () => {
       const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
       const document = parse(source)
       const ir = normalize(document)
+      const viewOptions = {
+        scenario: options.scenario,
+        focus: options.focus,
+        collapsed: options.expandAll
+          ? []
+          : options.collapse === 'all'
+            ? ir.nodes.filter((node) => node.isGroup).map((node) => node.id)
+            : options.collapse?.split(',').map((id: string) => id.trim()),
+      }
+      selectView(ir, viewOptions)
+      if (options.check && options.diagnostics)
+        throw new Error(
+          'Quality diagnostics require layout. Omit --check when using --diagnostics.',
+        )
+      if (
+        options.diagnostics &&
+        options.diagnostics !== '-' &&
+        ((options.out && resolve(options.out) === resolve(options.diagnostics)) ||
+          (input !== '-' && resolve(input) === resolve(options.diagnostics)))
+      ) {
+        throw new Error('The diagnostics file must differ from the input and rendered output.')
+      }
       // The flag wins when given; otherwise the diagram says which packs it needs.
       const icons = iconsFor(options.provider ?? ir.provider)
       reportProviderDrift(ir, options.provider)
@@ -182,19 +210,23 @@ program
       // Only the page can hold motion, so the extension picks the renderer, not just the writer.
       const render =
         extname(options.out ?? '').toLowerCase() === '.html' ? renderToHtml : renderToSvg
+      let quality: QualityReport | undefined
       const markup = await render(document, {
         icons,
-        scenario: options.scenario,
-        focus: options.focus,
-        collapsed: options.expandAll
-          ? []
-          : options.collapse === 'all'
-            ? ir.nodes.filter((node) => node.isGroup).map((node) => node.id)
-            : options.collapse?.split(',').map((id: string) => id.trim()),
+        ...viewOptions,
         theme: themeFor(options.theme),
-        onLayout: (laid, root) => reportDetours(detours(laid, root), laid),
+        onLayout: (laid, root) => {
+          reportDetours(detours(laid, root), laid)
+          if (options.diagnostics) quality = diagnose(laid, root)
+        },
       })
-      write(markup, options.out, scaleFor(options.scale))
+      if (quality) {
+        const json = `${JSON.stringify(quality, null, 2)}\n`
+        if (options.diagnostics === '-') process.stdout.write(json)
+        else writeFileSync(options.diagnostics, json)
+      }
+      if (options.diagnostics !== '-' || options.out)
+        write(markup, options.out, scaleFor(options.scale))
     })
   })
 

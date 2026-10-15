@@ -57,9 +57,14 @@ interface Crossing {
  * the hierarchy cannot run in a different direction from its parent, so the fold is ours.
  * A `DOWN` diagram folds into columns the same way, by laying the picture on its side.
  */
-export function fold(root: ElkNode, direction: 'RIGHT' | 'DOWN', length?: number): void {
+export function fold(
+  root: ElkNode,
+  direction: 'RIGHT' | 'DOWN',
+  length?: number,
+  protectedGroups: ReadonlySet<string> = new Set(),
+): void {
   if (direction === 'DOWN') transpose(root)
-  foldRows(root, direction === 'DOWN' ? 1 / ASPECT : ASPECT, length)
+  foldRows(root, direction === 'DOWN' ? 1 / ASPECT : ASPECT, length, protectedGroups)
   if (direction === 'DOWN') transpose(root)
 }
 
@@ -127,10 +132,20 @@ function labelExtent(label: ElkLabel): { x: Span; y: Span } {
   }
 }
 
-function foldRows(root: ElkNode, aspect: number, length?: number): void {
+function foldRows(
+  root: ElkNode,
+  aspect: number,
+  length: number | undefined,
+  protectedGroups: ReadonlySet<string>,
+): void {
   // A diagram drawn inside one group folds inside it; everything above holds that one box.
   const path: ElkNode[] = [root]
-  for (let node = root; node.children?.length === 1 && node.children[0]?.children?.length; ) {
+  for (
+    let node = root;
+    node.children?.length === 1 &&
+    node.children[0]?.children?.length &&
+    !protectedGroups.has(node.children[0].id);
+  ) {
     node = node.children[0]
     path.push(node)
   }

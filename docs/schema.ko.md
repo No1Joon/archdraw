@@ -10,7 +10,7 @@
 |---|---|---|---|
 | `provider` | `aws` \| `gcp` \| `brands` | `aws` | 그릴 때 쓸 아이콘 팩. CLI 는 `-p` 가 없으면 이 값을 쓰고, `-p aws,brands` 로 여러 개를 건다 |
 | `title` | string | — | SVG `<title>` 과 접근성 라벨 |
-| `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 흐름 방향. 다이어그램 전체에 적용된다(그룹별 지정은 불가) |
+| `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 기본 흐름 방향. 그룹에서 별도 방향을 지정할 수 있다 |
 | `shape` | `icon` \| `card` | `icon` | 노드 기본 표현. `icon` 은 마크 아래 이름(AWS 관례), `card` 는 마크 옆 이름(GCP 관례) |
 | `wrap` | boolean | `false` | 긴 사슬을 여러 줄로 접는다. 끄면 200 노드 사슬이 폭 수만 픽셀짜리 띠가 된다 |
 | `rollup` | boolean | `false` | 그룹 헤더에 안에 든 것의 상태 집계를 적는다 — `2/3 done`. 그룹 자신의 상태는 따로 남는다 |
@@ -34,6 +34,9 @@
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | 얼마나 만들어졌는지. 그룹 자신의 상태이고 자식에게 내려가지 않는다 — VM 이 있다고 그 안의 것이 배포된 것은 아니다 |
 | `when` | string[] | — | 이것이 살아 있는 시나리오 id 들. 안 쓰면 전부 |
 | `down` | string[] | — | 이것이 죽은 시나리오 id 들 — 그냥 없는 것이 아니라 색이 빠진 채로 그려진다 |
+| `collapsed` | boolean | — | 그룹 내부를 접은 개요로 시작하며 일반 노드에는 사용 불가 |
+| `direction` | `RIGHT` \| `DOWN` | — | 그룹 내부 방향. 하위 그룹에서 상속 |
+| `ports` | `{ id, side }[]` | — | 그룹 경계 연결점. side는 `NORTH`, `EAST`, `SOUTH`, `WEST` |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
 
 여러 줄 라벨은 참조 아키텍처가 이름 아래 식별자를 적는 방식과 같다.
@@ -53,6 +56,8 @@
 | `id` | string | — | 출력에서 이 엣지를 찾을 이름. **`A-Z a-z 0-9 - _` 만**, 엣지끼리 겹치면 안 된다. 안 쓰면 `from->to` 로 이름 붙고, 같은 쌍의 두 번째 엣지는 `from->to#2` 다 |
 | `from` | string | ✓ | 출발 노드 id |
 | `to` | string | ✓ | 도착 노드 id |
+| `fromPort` / `toPort` | string | — | 해당 끝점 그룹에 선언한 포트 id |
+| `role` | `request` \| `response` | — | 실제 응답선의 역방향 경로를 info로 구분 |
 | `label` | string | — | 선 위에 표시 |
 | `style` | `solid` \| `dashed` | — | 기본 `solid` |
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | 이 연결이 존재하는지. 양 끝 노드의 상태와 무관하다 |
@@ -163,3 +168,11 @@ CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한
 그룹에 `ports: [{ id: ssh, side: WEST }]`를 선언하고 선의 `fromPort`·`toPort`에 포트 id를 지정한다. 방향은 `NORTH | EAST | SOUTH | WEST`다. 선의 `from`·`to`는 그룹 id이며, 경계에서 내부 노드까지 별도 선으로 연결할 수 있다. 포트 이름은 그룹 안에서 고유해야 하고 선언되지 않은 포트는 오류다. 일반 노드에는 포트·배치 방향을 지정할 수 없다. SVG 연결점에는 `data-port-id`가 붙는다.
 
 예: `from: monitor, to: project, toPort: ssh`와 `from: project, fromPort: ssh, to: api`를 연결한다. 배치만을 위해 보안 그룹을 합치지 않고 경계 연결 위치를 지정할 수 있다.
+
+## JSON 품질 진단
+
+`archdraw diagram.yaml --diagnostics quality.json -o diagram.png`는 렌더와 JSON 보고서를 함께 저장한다. `--diagnostics -`는 SVG 대신 JSON만 표준 출력으로 내보내며 `-o`를 함께 주면 렌더 파일도 만든다. 현재 선택한 시나리오·그룹 접기에 적용한다. 품질 경고 자체로 종료 코드는 바뀌지 않으며 잘못된 입력은 1이다. 배치가 필요한 진단과 검증 전용 `--check`는 함께 사용할 수 없다.
+
+보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 평행 중첩선과 의도적으로 공유한 끝점은 교차에서 제외한다.
+
+실제 응답선에는 `role: response`를 지정한다(`request`도 가능). 역방향의 긴 응답선은 info인 `response-route`로 구분하며 stderr 우회 경고에서 제외한다. 역방향이라는 이유만으로 응답이라고 추측하지 않고, 정방향 응답의 불필요한 우회는 계속 경고한다. Core는 `onLayout` 안에서 `diagnose(ir, root)`를 호출하면 두 번 배치하지 않고 같은 결과를 진단한다.

@@ -69,6 +69,8 @@ export const EdgeSchema = z
     to: Id,
     fromPort: Id.optional(),
     toPort: Id.optional(),
+    /** A response may intentionally travel against the layout direction. */
+    role: z.enum(['request', 'response']).optional(),
     label: z.string().optional(),
     style: z.enum(['solid', 'dashed']).default('solid'),
     /** Whether this connection exists yet. Independent of the nodes it joins. */

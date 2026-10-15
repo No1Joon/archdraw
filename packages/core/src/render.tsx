@@ -210,7 +210,8 @@ function scenarioCss(ir: Ir, scenario: string): string {
   const rules: string[] = []
   for (const node of ir.nodes) {
     const selector = `[data-node-id="${node.id}"]`
-    if (!active(node.id)) rules.push(`${selector}{opacity:.12}`)
+    if (!active(node.id))
+      rules.push(`${selector}{opacity:.12}${selector} .archdraw-flow{animation:none;opacity:0}`)
     else if (node.down?.includes(scenario))
       rules.push(`${selector}{filter:grayscale(1);opacity:.45}`)
   }
@@ -218,7 +219,9 @@ function scenarioCss(ir: Ir, scenario: string): string {
     if ((!edge.when || edge.when.includes(scenario)) && active(edge.from) && active(edge.to))
       continue
     const id = edge.id.replaceAll('>', '\\3e ').replaceAll('#', '\\23 ')
-    rules.push(`[data-edge-id="${id}"]{opacity:.12}`)
+    rules.push(
+      `[data-edge-id="${id}"]{opacity:.12}[data-edge-id="${id}"] .archdraw-flow{animation:none;opacity:0}`,
+    )
   }
   return rules.join('')
 }
