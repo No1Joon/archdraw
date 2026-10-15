@@ -1,5 +1,21 @@
 # @archdraw/react
 
+## 0.2.0
+
+### Minor Changes
+
+- db13efe: Add versioned JSON quality diagnostics for detours, label overlap/clipping and edge crossings, distinguishing explicitly declared reverse response routes.
+  
+  Expose scenario, focus and collapsed view controls on the React Architecture component.
+
+### Patch Changes
+
+- Updated dependencies [bc2d3e2]
+- Updated dependencies [a52c3c6]
+- Updated dependencies [dedeea1]
+- Updated dependencies [db13efe]
+  - @archdraw/core@0.12.0
+
 ## 0.1.22
 
 ### Patch Changes
