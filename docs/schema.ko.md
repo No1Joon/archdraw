@@ -141,3 +141,9 @@ edges:
 | 끊긴 엣지 | `Edge a -> ghost references unknown node 'ghost'` |
 | 중복 id | `Duplicate id` |
 | id 문자 위반 | `id must be alphanumeric with - or _` |
+
+## 시나리오 집중 보기와 내보내기
+
+`archdraw diagram.yaml --scenario normal --focus -o normal.png`는 선택한 시나리오에서 제외된 노드·선을 숨기고 다시 배치한다. `down`으로 지정한 장애 노드는 장애 표시로 남긴다. 상위 그룹이 제외되면 자식과 연결선도 제외된다. `--focus`를 생략하면 기존 배치를 유지하고 제외 대상을 흐리게 한다. 두 옵션을 모두 생략하면 전체 그래프를 내보낸다.
+
+HTML에는 기존 흐림 보기와 함께 Focus 전환 및 Export SVG / Export PNG 버튼이 있다. 현재 선택과 보기를 내보내며 이동·확대 변환과 트래픽 애니메이션은 제거한다. HTML PNG는 브라우저의 글꼴을 사용해 2배 크기로 저장하며 CLI PNG는 번들 글꼴을 사용한다. 외부 네트워크 없이 동작한다.

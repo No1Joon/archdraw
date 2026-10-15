@@ -87,3 +87,9 @@ edges:
 - **`direction` is global.** It cannot vary per group. `RIGHT` usually suits a flow that runs in one line; `DOWN` suits stacked tiers.
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - Draw only what is true. Leave out any component you could not confirm.
+
+## Scenario focus and export
+
+`archdraw diagram.yaml --scenario normal --focus -o normal.png` selects a declared scenario, removes inactive nodes and edges, and lays out the remaining graph again. Failed nodes named by `down` stay visible with failure styling. Ancestor visibility applies to descendants, and an edge cannot remain active when an endpoint is absent. Omit `--focus` to retain the full layout and fade inactive elements. Omit both flags to export the complete graph as before.
+
+HTML keeps the existing fade view and adds a **Focus** switch and **Export SVG / Export PNG** buttons. Exports include the selected scenario and current view, without pan/zoom transforms or animated traffic. PNG uses the browser's available fonts at 2×; CLI PNG uses the bundled fonts. The page remains self-contained and works offline.

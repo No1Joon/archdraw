@@ -17,7 +17,7 @@
 | `nodes` | Node[] | `[]` | The list of nodes |
 | `groups` | Node[] | `[]` | An alias for `nodes`. Reads better when everything at the top level is a container |
 | `edges` | Edge[] | `[]` | The connections |
-| `scenarios` | Scenario[] | `[]` | States the diagram can be read in. Only an animated HTML render draws them; SVG and PNG always show everything |
+| `scenarios` | Scenario[] | `[]` | States the diagram can be read in. HTML provides scenario buttons; SVG and PNG select one with `--scenario` |
 
 ## Node
 
@@ -141,3 +141,9 @@ edges:
 | A dangling edge | `Edge a -> ghost references unknown node 'ghost'` |
 | A duplicate id | `Duplicate id` |
 | An illegal id character | `id must be alphanumeric with - or _` |
+
+## Scenario focus and export
+
+`archdraw diagram.yaml --scenario normal --focus -o normal.png` selects a declared scenario, removes inactive nodes and edges, and lays out the remaining graph again. Failed nodes named by `down` stay visible with failure styling. Ancestor visibility applies to descendants, and an edge cannot remain active when an endpoint is absent. Omit `--focus` to retain the full layout and fade inactive elements. Omit both flags to export the complete graph as before.
+
+HTML keeps the existing fade view and adds a **Focus** switch and **Export SVG / Export PNG** buttons. Exports include the selected scenario and current view, without pan/zoom transforms or animated traffic. PNG uses the browser's available fonts at 2×; CLI PNG uses the bundled fonts. The page remains self-contained and works offline.

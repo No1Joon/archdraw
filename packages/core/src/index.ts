@@ -7,6 +7,7 @@ import { layout } from './layout.js'
 import type { Ir } from './normalize.js'
 import { normalize } from './normalize.js'
 import { Diagram, defaultTheme, type Theme } from './render.js'
+import { selectView, type ViewOptions } from './view.js'
 
 export type { ElkNode } from 'elkjs'
 export type { IconAsset, IconPack, IconResolver } from './icons.js'
@@ -26,8 +27,10 @@ export {
   NodeEntrySchema,
   toJsonSchema,
 } from './schema.js'
+export type { ViewOptions } from './view.js'
+export { selectView } from './view.js'
 
-export interface RenderOptions {
+export interface RenderOptions extends ViewOptions {
   /** Icon packs, or a resolver you built yourself. Required for any diagram with `type:` nodes. */
   icons?: IconResolver | IconPack | IconPack[]
   theme?: Theme
@@ -53,13 +56,29 @@ export async function renderToHtml(
   source: string | unknown,
   options: RenderOptions = {},
 ): Promise<string> {
-  const ir = normalize(typeof source === 'string' ? parse(source) : source)
+  const full = normalize(typeof source === 'string' ? parse(source) : source)
+  selectView(full, options)
+  const ir = full
   const root = await layout(ir)
   options.onLayout?.(ir, root)
   const theme = options.theme ?? defaultTheme
   const svg = renderToStaticMarkup(
     Diagram({ root, ir, icons: toResolver(options.icons), theme, flow: true }),
   )
+  const variants: Record<string, string> = {}
+  for (const scenario of full.scenarios) {
+    const focused = selectView(full, { scenario: scenario.id, focus: true })
+    variants[scenario.id] = renderToStaticMarkup(
+      Diagram({
+        root: await layout(focused),
+        ir: focused,
+        icons: toResolver(options.icons),
+        theme,
+        flow: true,
+        scenario: scenario.id,
+      }),
+    )
+  }
   return page(
     svg,
     ir.title ?? 'architecture diagram',
@@ -67,6 +86,9 @@ export async function renderToHtml(
     ir.nodes.some((n) => n.external),
     ir.scenarios,
     options.live,
+    variants,
+    options.scenario,
+    options.focus,
   )
 }
 
@@ -75,7 +97,8 @@ export async function renderToSvg(
   source: string | unknown,
   options: RenderOptions = {},
 ): Promise<string> {
-  const ir = normalize(typeof source === 'string' ? parse(source) : source)
+  const full = normalize(typeof source === 'string' ? parse(source) : source)
+  const ir = selectView(full, options)
   const root = await layout(ir)
   options.onLayout?.(ir, root)
   const element = Diagram({
@@ -83,6 +106,7 @@ export async function renderToSvg(
     ir,
     icons: toResolver(options.icons),
     theme: options.theme ?? defaultTheme,
+    scenario: options.scenario,
   })
   return renderToStaticMarkup(element)
 }
