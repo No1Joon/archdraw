@@ -89,3 +89,24 @@ describe('collapsed groups', () => {
     expect(html).toContain('ArchdrawViewer.renderView')
   })
 })
+
+it('preserves hidden endpoint scenario conditions when edges are redirected to collapsed groups', async () => {
+  const ir = normalize({
+    scenarios: [{ id: 'normal' }, { id: 'failure' }],
+    groups: [{ id: 'g', collapsed: true, children: [{ id: 'api', when: ['normal'] }] }],
+    nodes: [{ id: 'monitor' }],
+    edges: [{ from: 'monitor', to: 'api' }],
+  })
+  const view = selectView(ir, { scenario: 'failure' })
+  expect(view.edges[0]).toMatchObject({ to: 'g', when: ['normal'] })
+  expect(selectView(ir, { scenario: 'failure', focus: true }).edges).toHaveLength(0)
+  await expect(
+    renderToSvg(
+      { scenarios: [{ id: 'normal' }], nodes: [{ id: 'invalid', type: 'missing', when: [] }] },
+      { scenario: 'normal', focus: true },
+    ),
+  ).rejects.toThrow('Unknown type')
+  expect(() => normalize({ scenarios: [{ id: 'normal' }, { id: 'normal' }] })).toThrow(
+    'Duplicate scenario',
+  )
+})

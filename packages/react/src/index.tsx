@@ -8,11 +8,13 @@ import {
   layout,
   normalize,
   parse,
+  selectView,
   type Theme,
+  type ViewOptions,
 } from '@archdraw/core'
 import { useEffect, useState } from 'react'
 
-export interface ArchitectureProps {
+export interface ArchitectureProps extends ViewOptions {
   /** YAML/JSON source, or an already-parsed document. */
   source: string | unknown
   icons?: IconResolver | IconPack | IconPack[]
@@ -34,7 +36,16 @@ function toResolver(icons: ArchitectureProps['icons']): IconResolver {
   return Array.isArray(icons) ? createResolver(...icons) : createResolver(icons)
 }
 
-export function Architecture({ source, icons, theme, fallback, renderError }: ArchitectureProps) {
+export function Architecture({
+  source,
+  icons,
+  theme,
+  fallback,
+  renderError,
+  scenario,
+  focus,
+  collapsed,
+}: ArchitectureProps) {
   const [state, setState] = useState<State>({ status: 'pending' })
 
   useEffect(() => {
@@ -42,7 +53,10 @@ export function Architecture({ source, icons, theme, fallback, renderError }: Ar
     setState({ status: 'pending' })
     ;(async () => {
       try {
-        const ir = normalize(typeof source === 'string' ? parse(source) : source)
+        const full = normalize(typeof source === 'string' ? parse(source) : source)
+        const resolver = toResolver(icons)
+        for (const node of full.nodes) if (node.type) resolver.resolve(node.type)
+        const ir = selectView(full, { scenario, focus, collapsed })
         const root = await layout(ir)
         if (!cancelled) setState({ status: 'ready', root, ir })
       } catch (error) {
@@ -52,11 +66,19 @@ export function Architecture({ source, icons, theme, fallback, renderError }: Ar
     return () => {
       cancelled = true
     }
-  }, [source])
+  }, [source, icons, scenario, focus, collapsed])
 
   if (state.status === 'pending') return <>{fallback ?? null}</>
   if (state.status === 'error') {
     return <>{renderError ? renderError(state.error) : <pre>{state.error.message}</pre>}</>
   }
-  return <Diagram root={state.root} ir={state.ir} icons={toResolver(icons)} theme={theme} />
+  return (
+    <Diagram
+      root={state.root}
+      ir={state.ir}
+      icons={toResolver(icons)}
+      theme={theme}
+      scenario={scenario}
+    />
+  )
 }

@@ -33,6 +33,8 @@ edges:
 | `renderToSvg(source, options?)` | YAML·JSON 문자열이나 파싱된 문서 → SVG 문자열 |
 | `parse(source)` | YAML·JSON → 미검증 문서 |
 | `normalize(doc)` | 검증하고 평면 IR 로. 실패하면 `DiagramError` |
+| `selectView(ir, options?)` | Select scenario/focus/collapsed groups before layout |
+| `diagnose(ir, root)` | Versioned quality report for the same layout result |
 | `layout(ir)` | ELK 레이아웃을 돌려 `ElkNode` 트리로 |
 | `Diagram(props)` | 레이아웃 결과를 그리는 React 엘리먼트 |
 | `createResolver(...packs)` | 아이콘 팩들을 하나의 `IconResolver` 로 |
@@ -84,3 +86,15 @@ CLI 로 쓰려면 [`archdraw`](https://www.npmjs.com/package/archdraw) 가 팩�
 ## 라이선스
 
 MIT
+
+```ts
+import { diagnose, renderToSvg } from '@archdraw/core'
+
+const svg = await renderToSvg(diagram, {
+  icons,
+  scenario: 'normal',
+  focus: true,
+  collapsed: ['project'],
+  onLayout: (ir, root) => console.log(diagnose(ir, root)),
+})
+```

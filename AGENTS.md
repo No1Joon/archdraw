@@ -21,13 +21,15 @@ CLI 표면은 다섯이다 — `archdraw <input>` 렌더, `archdraw types <query
 
 패키지는 전부 `packages/` 아래, 발행명은 `@archdraw/*`(CLI 만 `archdraw`).
 
-- `packages/core`: 파이프라인 전부 — 파싱·검증(zod) → 평면 IR → ELK 레이아웃 → React 로 SVG.
+- `packages/core`: 파이프라인 전부 — 파싱·검증(zod) → 평면 IR → 시나리오·그룹 보기 선택 → ELK 레이아웃 → React 로 SVG.
   브라우저와 Node 가 같은 코드를 쓰고 DOM 을 타지 않는다. **아이콘 자산을 갖지 않고** `IconResolver` 인터페이스만 노출한다.
 - `packages/icons-aws`·`packages/icons-gcp`·`packages/icons-brands`: 벤더 SVG + slug/alias 레지스트리. **의존성 0** —
   `IconPack` 타입을 core 에서 import 하지 않고 각자 `src/types.ts` 에 구조적으로 복제해 둔다.
 - `packages/react`: `<Architecture />` — core 의 레이아웃을 비동기로 돌려 마운트하는 얇은 층.
 - `packages/cli`: 세 아이콘 팩과 PNG 래스터화용 폰트를 번들해 `npx archdraw` 가 바로 동작한다. core 는 그러지 않는다.
   `fonts/` 는 시스템 폰트를 쓰지 않기 위한 것이고 정적 폰트로 바꾸면 글자가 사라진다 — `packages/cli/fonts/README.md`.
+- `scripts/build-viewer.ts`: core 빌드 전에 동일한 배치·렌더 코드를 오프라인 HTML용 IIFE로 번들한다. `viewer-bundle.generated.ts`는 gitignore 빌드 산출물이고 원본은 `viewer.ts`다.
+- `packages/core/src/diagnostics.ts`: 배치 결과의 우회·라벨·교차를 진단하며 CLI `--diagnostics`가 JSON을 출력한다.
 - `scripts/sync-icons.ts`: 아이콘 배포본을 받는 유일한 코드. 빌드·테스트는 커밋된 SVG 만 읽는다.
 - `scripts/smoke-published.sh`: 발행 뒤 registry 에서 CLI 를 설치해 렌더까지 확인한다. 워크스페이스 검사는 전부 통과해도 registry 반영 지연으로 설치가 깨질 수 있다.
 

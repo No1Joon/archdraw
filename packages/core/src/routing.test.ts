@@ -120,3 +120,20 @@ describe('group routing', () => {
     }
   })
 })
+
+it('keeps explicitly directed groups intact when the root wrap would otherwise descend into them', async () => {
+  const input = {
+    groups: [
+      {
+        id: 'project',
+        direction: 'RIGHT',
+        children: Array.from({ length: 12 }, (_, i) => ({ id: `n${i}` })),
+      },
+    ],
+    edges: Array.from({ length: 11 }, (_, i) => ({ from: `n${i}`, to: `n${i + 1}` })),
+  }
+  const plain = nodes(await layout(normalize(input))).get('project')
+  const wrapped = nodes(await layout(normalize({ ...input, wrap: true }))).get('project')
+  expect(wrapped?.width).toBe(plain?.width)
+  expect(wrapped?.height).toBe(plain?.height)
+})

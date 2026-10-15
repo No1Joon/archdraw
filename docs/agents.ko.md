@@ -85,7 +85,7 @@ edges:
 - **라벨의 줄바꿈은 진짜 줄바꿈으로 넣는다** — 따옴표 라벨 안의 `"한\n줄"` 이나 `|-` 블록. 역슬래시를 둘 쓰면 `\n` 이 글자로 그려지고, 그만큼 넓어진 노드는 좁게 그리려던 것과 정반대다.
 - **무엇이 만들어졌는지는 라벨이 아니라 `status` 로 적는다.** 노드·엣지에 `status: planned | in_progress | blocked | done | deployed` 을 주면 모든 출력에 표식이 붙고 상태 이름을 글자로 적은 범례가 따라온다. 라벨에 `[완료]` 를 적는 방식은 카드 크기와 주변 배치를 바꾸면서 렌더러에는 아무것도 알려주지 않는다. 노드와 그 노드로 들어오는 엣지는 별개의 답이다 — 캐시는 떠 있는데 앱이 아직 붙지 않았다면 노드는 `done`, 엣지는 `planned` 다.
 - **`status` 는 작업에 대한 것이지 가동에 대한 것이 아니다.** `done` 은 작성 완료, `deployed` 는 제자리에 배포돼 도는 것이고, 지금 떠 있는가는 `scenarios` 다. 그룹 상태는 그룹의 것이고 자식에게 내려가지 않는다 — 자식 집계는 `rollup: true` 가 헤더에 따로 적는다.
-- **`direction` 은 전역이다.** 그룹마다 다르게 줄 수 없다. 흐름이 한 줄로 길면 `RIGHT`, 층이 쌓이면 `DOWN` 이 대체로 낫다.
+- **`direction` 은 기본 방향이다.** 그룹에서 별도 방향을 지정할 수 있다. 흐름이 한 줄로 길면 `RIGHT`, 층이 쌓이면 `DOWN` 이 대체로 낫다.
 - **id 는 영숫자·`-`·`_` 만.** 라벨에는 한글을 써도 되지만 id 에는 못 쓴다.
 - 사실만 그린다. 확인하지 못한 구성요소는 넣지 않는다.
 
@@ -110,3 +110,11 @@ CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한
 그룹에 `ports: [{ id: ssh, side: WEST }]`를 선언하고 선의 `fromPort`·`toPort`에 포트 id를 지정한다. 방향은 `NORTH | EAST | SOUTH | WEST`다. 선의 `from`·`to`는 그룹 id이며, 경계에서 내부 노드까지 별도 선으로 연결할 수 있다. 포트 이름은 그룹 안에서 고유해야 하고 선언되지 않은 포트는 오류다. 일반 노드에는 포트·배치 방향을 지정할 수 없다. SVG 연결점에는 `data-port-id`가 붙는다.
 
 예: `from: monitor, to: project, toPort: ssh`와 `from: project, fromPort: ssh, to: api`를 연결한다. 배치만을 위해 보안 그룹을 합치지 않고 경계 연결 위치를 지정할 수 있다.
+
+## JSON 품질 진단
+
+`archdraw diagram.yaml --diagnostics quality.json -o diagram.png`는 렌더와 JSON 보고서를 함께 저장한다. `--diagnostics -`는 SVG 대신 JSON만 표준 출력으로 내보내며 `-o`를 함께 주면 렌더 파일도 만든다. 현재 선택한 시나리오·그룹 접기에 적용한다. 품질 경고 자체로 종료 코드는 바뀌지 않으며 잘못된 입력은 1이다. 배치가 필요한 진단과 검증 전용 `--check`는 함께 사용할 수 없다.
+
+보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 평행 중첩선과 의도적으로 공유한 끝점은 교차에서 제외한다.
+
+실제 응답선에는 `role: response`를 지정한다(`request`도 가능). 역방향의 긴 응답선은 info인 `response-route`로 구분하며 stderr 우회 경고에서 제외한다. 역방향이라는 이유만으로 응답이라고 추측하지 않고, 정방향 응답의 불필요한 우회는 계속 경고한다. Core는 `onLayout` 안에서 `diagnose(ir, root)`를 호출하면 두 번 배치하지 않고 같은 결과를 진단한다.

@@ -34,6 +34,9 @@
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | How much of this is built. A group's own status, never its children's — a VM that exists deploys nothing |
 | `when` | string[] | — | The scenario ids this is alive in. Omitted means all of them |
 | `down` | string[] | — | The scenario ids this has failed in — drawn drained of colour rather than merely absent |
+| `collapsed` | boolean | — | Start a group as a compact overview; leaf nodes reject this field |
+| `direction` | `RIGHT` \| `DOWN` | — | Direction inside a group; nested groups inherit it |
+| `ports` | `{ id, side }[]` | — | Named group boundary points; side is `NORTH`, `EAST`, `SOUTH` or `WEST` |
 | `children` | Node[] | — | Child nodes, in the nested shape |
 
 A multi-line label mirrors how reference architectures write an identifier under the name.
@@ -53,6 +56,8 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 | `id` | string | — | A name to find this edge by in the output. **`A-Z a-z 0-9 - _` only**, unique among edges. Without one it is named `from->to`, and a second edge between the same pair `from->to#2` |
 | `from` | string | ✓ | Source node id |
 | `to` | string | ✓ | Target node id |
+| `fromPort` / `toPort` | string | — | Port declared on the corresponding endpoint group |
+| `role` | `request` \| `response` | — | Declare actual replies so expected reverse routes are informational |
 | `label` | string | — | Shown on the line |
 | `style` | `solid` \| `dashed` | — | Defaults to `solid` |
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | Whether this connection exists yet. Independent of the nodes it joins |
@@ -176,3 +181,13 @@ edges:
 ```
 
 Keep security boundaries that describe the system. Use ports to choose entry/exit sides instead of moving services into another security group just to shorten a route. With `wrap`, a group with an explicit direction/ports stays intact while the enclosing graph folds.
+
+## Machine-readable quality diagnostics
+
+`archdraw diagram.yaml --diagnostics quality.json -o diagram.png` writes both the render and a versioned JSON quality report. `--diagnostics -` prints JSON alone to stdout (unless `-o` also requests a render file). Reports use the selected scenario/collapse view and do not change the exit status for quality warnings; invalid input still exits 1. `--check` is validation only and cannot be combined with diagnostics, which require layout.
+
+The report includes `version: 1`, `coordinateSpace: "layout"`, graph canvas dimensions, warning/info counts and `diagnostics`. Each entry has a stable `id`, `code`, `severity`, `elements` with node/edge ids, a message and a fix hint. Codes are `edge-detour`, `response-route`, `label-overlap`, `label-clipped` and `edge-crossing`; entries include a ratio/cause, label bounds or intersection point when applicable. Coordinates start at the layout graph, before the SVG title/status legend bands. Text geometry uses the same estimated metrics as layout (`textMeasurement: "estimated"`), so inspect the SVG/PNG after a suggested fix. A clean report is not a pixel-perfect guarantee; parallel overlapping rails and intentional shared endpoints are excluded from crossing reports.
+
+Mark actual reply edges `role: response` (`request` is also accepted). A long response travelling against its enclosing layout direction is reported as informational `response-route` and omitted from stderr detour warnings. Direction alone never implies a response, and a forward response with an unnecessary detour is still a warning. Keep requests and replies separate when both paths matter.
+
+Core callers can use `diagnose(ir, root)` inside `onLayout` to inspect the same render without a second layout pass.

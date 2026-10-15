@@ -44,3 +44,7 @@ export function Diagram() {
 ## 라이선스
 
 MIT
+
+## 보기 제어
+
+`<Architecture source={diagram} scenario="normal" focus collapsed={["project"]} />`로 CLI와 같은 시나리오·그룹 보기를 선택한다. `scenario`는 선언된 id여야 하고 `focus`는 제외 대상을 숨긴 뒤 다시 배치한다. `collapsed`는 입력의 기본 접힘을 덮어쓰며 `[]`는 모두 펼친다. 그룹별 `direction`·`ports`는 입력 문서에서 지정한다. 보기가 바뀌면 오래된 비동기 배치 결과는 반영하지 않는다.

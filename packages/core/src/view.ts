@@ -52,6 +52,14 @@ function collapseGroups(ir: Ir, override: string[] | undefined, full: Ir): Ir {
   }
   if (!collapsed.size) return ir
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
+  const active = (id: string, scenario: string): boolean => {
+    const node = byId.get(id)
+    return (
+      !!node &&
+      (!node.when || node.when.includes(scenario) || !!node.down?.includes(scenario)) &&
+      (node.parent === null || active(node.parent, scenario))
+    )
+  }
   const visible = (id: string): string => {
     let found = id
     for (
@@ -75,6 +83,17 @@ function collapseGroups(ir: Ir, override: string[] | undefined, full: Ir): Ir {
       return [
         {
           ...edge,
+          when:
+            (from !== edge.from || to !== edge.to) && ir.scenarios.length
+              ? ir.scenarios
+                  .filter(
+                    (scenario) =>
+                      (!edge.when || edge.when.includes(scenario.id)) &&
+                      active(edge.from, scenario.id) &&
+                      active(edge.to, scenario.id),
+                  )
+                  .map((scenario) => scenario.id)
+              : edge.when,
           from,
           to,
           fromPort: from === edge.from ? edge.fromPort : undefined,

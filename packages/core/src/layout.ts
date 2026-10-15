@@ -424,7 +424,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   const arrange = async (id: string): Promise<Arranged> => {
     const laid = await place(id)
     const direction = directionOf(id)
-    if (ir.wrap && !custom.has(id)) fold(laid, direction, length)
+    if (ir.wrap && !custom.has(id)) fold(laid, direction, length, custom)
     const node = laid.children?.[0] as ElkNode
     const ports = new Map<string, Point>()
     for (const port of node.ports ?? []) {
@@ -453,7 +453,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   }
 
   const folded = await place(null)
-  if (ir.wrap) fold(folded, ir.direction)
+  if (ir.wrap) fold(folded, ir.direction, undefined, custom)
   reconnect(folded)
   clearLabels(folded)
   clearTitles(folded, byId)
@@ -673,6 +673,9 @@ function clearTitles(root: ElkNode, byId: Map<string, FlatNode>): void {
 }
 
 export interface Detour {
+  id: string
+  /** An explicitly declared response travelling against its local direction. */
+  response: boolean
   from: string
   to: string
   /** Routed length over the direct distance between the same two points. */
@@ -711,7 +714,17 @@ export function detours(ir: Ir, root: ElkNode, threshold = DETOUR_RATIO): Detour
     const a = centre.get(from)
     const b = centre.get(to)
     if (!a || !b) return false
-    return ir.direction === 'RIGHT' ? b.x < a.x : b.y < a.y
+    const byId = new Map(ir.nodes.map((node) => [node.id, node]))
+    const parents = (id: string) => {
+      const out: string[] = byId.get(id)?.isGroup ? [id] : []
+      for (let cursor = byId.get(id)?.parent; cursor; cursor = byId.get(cursor)?.parent)
+        out.push(cursor)
+      return out
+    }
+    const targetParents = new Set(parents(to))
+    const common = parents(from).filter((id) => targetParents.has(id))
+    const direction = common.map((id) => byId.get(id)?.direction).find(Boolean) ?? ir.direction
+    return direction === 'RIGHT' ? b.x < a.x : b.y < a.y
   }
 
   const found: Detour[] = []
@@ -732,11 +745,14 @@ export function detours(ir: Ir, root: ElkNode, threshold = DETOUR_RATIO): Detour
       if (direct < 1) continue
       const ratio = routed / direct
       if (ratio >= threshold) {
+        const backward = runsBackward(source.from, source.to)
         found.push({
+          id: source.id,
+          response: source.role === 'response' && backward,
           from: source.from,
           to: source.to,
           ratio,
-          backward: runsBackward(source.from, source.to),
+          backward,
         })
       }
     }
