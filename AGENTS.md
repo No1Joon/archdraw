@@ -50,7 +50,7 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 - 검증 실패는 `DiagramError` 로 던지고, 메시지에 무엇이 왜 틀렸는지와 고칠 단서를 담는다.
 - 렌더는 DOM 을 건드리지 않는다. 브라우저와 CLI 가 같은 컴포넌트로 동일한 SVG 를 내야 스냅샷이 두 환경을 함께 지킨다.
 - SVG 스냅샷은 레이아웃 회귀 감시 장치다. 스냅샷이 바뀌면 렌더 결과를 눈으로 확인하고 갱신한다.
-- 점선은 컨테이너 경계(`6 4` 대시)의 것이다. `style: dashed` 엣지는 둥근 점(`1 5`)을 써서 겹치지 않게 한다.
+- 그룹 컨테이너 경계는 기본 실선이다. `style: dashed` 엣지는 둥근 점(`1 5`)으로 그린다.
 
 아이콘 — `packages/icons-*` · `packages/core/src/icons.ts` · `scripts/sync-icons.ts`
 
@@ -82,3 +82,16 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 Archdraw 담당은 `archdraw-request.md`를 작성하고 AMP가 작성한 `archdraw-amp.md`는 읽는다.
 결과·결정은 프로젝트 정본에 보존하며, 상대 인수 확인 뒤 각 작성자가 자기 파일의 완료 본문만 비운다.
 수신·구현·로컬 검사·운영 적용은 구분하고 기존 작업 승인 범위를 유지한다.
+
+<!-- pr-ui-shots:start -->
+# UI PR 전후 스크린샷
+
+UI가 바뀌는 PR을 열거나 그 PR에 새 커밋을 푸시할 때 `$pr-ui-shots` (`~/.codex/skills/pr-ui-shots/SKILL.md`)를 적용한다. UI PR은 새 HEAD마다 캡처한다. 도구·CI·문서·서버만의 PR은 제외한다.
+
+- 이 저장소에는 Storybook이 없다. 다이어그램 변경은 실제 core 렌더러와 CLI의 PNG 래스터화 경로로 같은 fixture를 main/HEAD에서 그려 비교하고, Storybook·브라우저 화면 미검증 범위를 명시한다.
+
+- main과 현재 HEAD의 실제 Storybook 컴포넌트를 같은 데이터·테마·폭으로 확인한다. 기본 폭과 iPhone SE 급 최소 폭, 글자 크기 변경이면 큰 글씨도 찍는다. 스토리에 없는 화면 단위 변경은 동일 기기·데이터의 시뮬레이터를 사용한다.
+- `~/.cache/pr-shots/<GitHub repo 이름>/pr-<HEAD7>/`에 `<번호>-<장면>.before.png`(main)·같은 이름의 `.after.png`(HEAD)를 저장한다. 실제 PNG이며 빈 화면·로딩·오류 화면을 성공으로 남기지 않는다. main에 대응 UI가 없으면 그 사실을 밝히고 임의 이전 커밋으로 대체하지 않는다.
+- 현재 HEAD로 새로 캡처하고 `python3 .agents/scripts/pr_ui_shots.py --repo .` 및 해당 폴더 `ls`로 모든 짝을 확인한다. 개인정보·토큰은 캡처에 넣지 않는다. 쓰기가 sandbox로 막히면 우회하지 않고 알린다.
+- 웹 예시와 네이티브 구현이 다르면 실제 네이티브 화면도 확인한다. 소스/HEAD 변경 후 이전 캡처를 새 증거로 복사하지 않는다. 확인한 이미지·플랫폼·미완료를 보고한다.
+<!-- pr-ui-shots:end -->
