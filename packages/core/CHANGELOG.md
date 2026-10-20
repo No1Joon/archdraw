@@ -1,5 +1,11 @@
 # @archdraw/core
 
+## 0.12.1
+
+### Patch Changes
+
+- c79b557: Draw group container borders as solid lines so they do not resemble selection outlines. Keep dashed edges rendered as round dots.
+
 ## 0.12.0
 
 ### Minor Changes

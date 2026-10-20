@@ -1,5 +1,12 @@
 # @archdraw/react
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [c79b557]
+  - @archdraw/core@0.12.1
+
 ## 0.2.0
 
 ### Minor Changes
