@@ -1108,10 +1108,11 @@ edges:
 `
 
 describe('a dashed edge', () => {
-  it('does not borrow the dash a container boundary uses', async () => {
+  it('uses round dots alongside a solid container boundary', async () => {
     const svg = await renderToSvg(dashedAcrossGroup, { icons: pack })
-    // A container boundary is a dashed grey line too, and an edge leaving one routes around it.
-    expect(svg).toContain('stroke-dasharray="6 4"')
+    const groupRect = svg.match(/data-node-id="vpc"><rect[^>]*>/)?.[0]
+    expect(groupRect).toBeDefined()
+    expect(groupRect).not.toContain('stroke-dasharray')
     expect(svg).toContain('stroke-dasharray="1 5"')
     expect(svg).toContain('stroke-linecap="round"')
   })

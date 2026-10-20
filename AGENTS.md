@@ -50,7 +50,7 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 - 검증 실패는 `DiagramError` 로 던지고, 메시지에 무엇이 왜 틀렸는지와 고칠 단서를 담는다.
 - 렌더는 DOM 을 건드리지 않는다. 브라우저와 CLI 가 같은 컴포넌트로 동일한 SVG 를 내야 스냅샷이 두 환경을 함께 지킨다.
 - SVG 스냅샷은 레이아웃 회귀 감시 장치다. 스냅샷이 바뀌면 렌더 결과를 눈으로 확인하고 갱신한다.
-- 점선은 컨테이너 경계(`6 4` 대시)의 것이다. `style: dashed` 엣지는 둥근 점(`1 5`)을 써서 겹치지 않게 한다.
+- 그룹 컨테이너 경계는 기본 실선이다. `style: dashed` 엣지는 둥근 점(`1 5`)으로 그린다.
 
 아이콘 — `packages/icons-*` · `packages/core/src/icons.ts` · `scripts/sync-icons.ts`
 

@@ -448,7 +448,6 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
               {...nodeMarks(meta)}
               {...sceneMarks(scenes, meta.when, meta.down)}
             >
-              {/* A 6 4 dash. Dashed edges are round dots so a boundary never reads as an edge. */}
               <rect
                 width={child.width ?? 0}
                 height={child.height ?? 0}
@@ -456,7 +455,6 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
                 fill={theme.groupFill}
                 stroke={theme.groupStroke}
                 strokeWidth={1}
-                strokeDasharray="6 4"
               />
               {badge ? (
                 <svg
