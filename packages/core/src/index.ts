@@ -6,7 +6,7 @@ import { createResolver, type IconPack, type IconResolver } from './icons.js'
 import { layout } from './layout.js'
 import type { Ir } from './normalize.js'
 import { normalize } from './normalize.js'
-import { Diagram, defaultTheme, type Theme } from './render.js'
+import { Diagram, defaultTheme, FLOW_DURATION, FLOW_PERIOD, type Theme } from './render.js'
 import { selectView, type ViewOptions } from './view.js'
 
 export type { ElkNode } from 'elkjs'
@@ -111,4 +111,42 @@ export async function renderToSvg(
     scenario: options.scenario,
   })
   return renderToStaticMarkup(element)
+}
+
+export interface SvgFrame {
+  svg: string
+  /** Time to display this frame, in milliseconds. */
+  delay: number
+}
+
+/** One seamless flow cycle at 20 fps, with a single layout shared by all frames. */
+export async function* renderToSvgFrames(
+  source: string | unknown,
+  options: RenderOptions = {},
+): AsyncGenerator<SvgFrame> {
+  const full = normalize(typeof source === 'string' ? parse(source) : source)
+  const resolver = toResolver(options.icons)
+  for (const node of full.nodes) {
+    if (node.type) resolver.resolve(node.type)
+  }
+  const ir = selectView(full, options)
+  const root = await layout(ir)
+  options.onLayout?.(ir, root)
+  const count = 24
+  for (let index = 0; index < count; index++) {
+    yield {
+      svg: renderToStaticMarkup(
+        Diagram({
+          root,
+          ir,
+          icons: resolver,
+          theme: options.theme ?? defaultTheme,
+          flow: true,
+          flowOffset: (-FLOW_PERIOD * index) / count,
+          scenario: options.scenario,
+        }),
+      ),
+      delay: FLOW_DURATION / count,
+    }
+  }
 }

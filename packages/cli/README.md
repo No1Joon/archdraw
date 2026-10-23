@@ -2,7 +2,7 @@
 
 **English** · [한국어](./README.ko.md)
 
-A CLI that draws cloud architecture diagrams (SVG/PNG) from YAML. Bundles 793 AWS · 216 GCP · 3,453 brand/OSS icons plus a font, so `npx` works straight away.
+A CLI that draws cloud architecture diagrams (SVG/PNG/GIF/HTML) from YAML. Bundles 793 AWS · 216 GCP · 3,453 brand/OSS icons plus a font, so `npx` works straight away.
 
 **Built for AI CLIs** — archdraw never calls an LLM. The agent writes the YAML; archdraw draws it.
 
@@ -34,9 +34,9 @@ archdraw schema [--flat]                                  # print the input cont
 
 | Option | |
 |---|---|
-| `-o, --out <file>` | `.png` rasterises, anything else is SVG. Omit for stdout |
+| `-o, --out <file>` | `.png` rasterises, `.gif` loops the traffic animation, `.html` writes an interactive viewer, anything else is SVG. Omit for stdout |
 | `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to the diagram's own `provider` |
-| `-s, --scale <n>` | PNG scale factor, between 0 and 10. Defaults to `2` |
+| `-s, --scale <n>` | PNG/GIF scale factor, greater than 0 and at most 10. Defaults to `2` |
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |
 
@@ -60,6 +60,17 @@ Unknown type 'lambdaa'.
 ```
 
 For the machine-readable input contract, `npx archdraw schema` emits JSON Schema.
+
+## Animated GIF
+
+```bash
+npx archdraw diagram.yaml -o diagram.gif -s 2
+npx archdraw diagram.yaml --scenario normal --focus -o normal.gif
+```
+
+GIF exports loop the same edge-flow animation as HTML: 24 frames at 20 fps over 1.2 seconds. They use the bundled fonts and honour `--theme`, `--scenario`, `--focus` and group collapse options. `animation: none` and planned/blocked edges stay still unless explicitly overridden. No browser or ffmpeg is required. Each frame is limited to 16 million pixels and 65,535 pixels per side; reduce `-s` or collapse groups for larger diagrams.
+
+Embed the generated file in a README with `![Architecture](./diagram.gif)`. GIF plays the selected view; scenario and group controls remain in the HTML viewer.
 
 ## PNG fonts
 

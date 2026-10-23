@@ -88,6 +88,10 @@ edges:
 - **ids take alphanumerics, `-` and `_` only.** Labels may use any script; ids may not.
 - Draw only what is true. Leave out any component you could not confirm.
 
+## Animated GIF output
+
+`archdraw diagram.yaml -o diagram.gif -s 2` exports a looping edge-flow animation for README images. The cycle is 1.2 seconds, 24 frames at 20 fps. It uses bundled fonts and the same theme, scenario, focus, collapse and edge animation rules as HTML. `-s` applies to PNG and GIF. No browser or ffmpeg is needed. GIF frames are limited to 16 million pixels and 65,535 per side; reduce `-s` or use `--focus`/`--collapse` if exceeded. GIF has no interactive controls and does not switch scenarios automatically.
+
 ## Scenario focus and export
 
 `archdraw diagram.yaml --scenario normal --focus -o normal.png` selects a declared scenario, removes inactive nodes and edges, and lays out the remaining graph again. Failed nodes named by `down` stay visible with failure styling. Ancestor visibility applies to descendants, and an edge cannot remain active when an endpoint is absent. Omit `--focus` to retain the full layout and fade inactive elements. Omit both flags to export the complete graph as before.

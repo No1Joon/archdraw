@@ -31,6 +31,7 @@ edges:
 | | |
 |---|---|
 | `renderToSvg(source, options?)` | YAML·JSON 문자열이나 파싱된 문서 → SVG 문자열 |
+| `renderToSvgFrames(source, options?)` | 한 배치를 공유하는 24개 `{ svg, delay }` 프레임의 비동기 이터러블 |
 | `parse(source)` | YAML·JSON → 미검증 문서 |
 | `normalize(doc)` | 검증하고 평면 IR 로. 실패하면 `DiagramError` |
 | `selectView(ir, options?)` | Select scenario/focus/collapsed groups before layout |
