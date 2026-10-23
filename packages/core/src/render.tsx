@@ -328,7 +328,7 @@ function Arrow({ id, fill }: { id: string; fill: string }) {
       markerHeight="7"
       // Fixed px — stroke multiples let the head outgrow a short final segment.
       markerUnits="userSpaceOnUse"
-      orient="auto-start-reverse"
+      orient="auto"
     >
       <path d="M 0 0 L 10 5 L 0 10 z" fill={fill} />
     </marker>
