@@ -1,5 +1,16 @@
 # archdraw
 
+## 0.13.0
+
+### Minor Changes
+
+- a8bdb3b: Add looping animated GIF output with `-o diagram.gif`, using the same flow animation, selected view, scale, theme and bundled fonts as the existing renderers. Export `renderToSvgFrames` for generating fixed SVG frames with one shared layout.
+
+### Patch Changes
+
+- Updated dependencies [a8bdb3b]
+  - @archdraw/core@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes
