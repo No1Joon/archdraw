@@ -21,7 +21,7 @@ archdraw types <query...> [-p aws,brands]                  # search types; sever
 archdraw schema [--flat]                                   # input contract as JSON Schema
 ```
 
-`-o` ending in `.png` rasterises, `.html` is an animated page, anything else is SVG. `-s` is the PNG scale (0–10, default 2). `--theme` is `light` or `dark`.
+`-o` ending in `.png` rasterises, `.gif` is a looping animation, `.html` is an interactive viewer, anything else is SVG. `-s` is the PNG/GIF scale (0–10, default 2). `--theme` is `light` or `dark`.
 
 ## Rules
 
@@ -73,6 +73,10 @@ npx archdraw diagram.yaml -o out.png
 ```
 
 Full documentation: https://github.com/No1Joon/archdraw
+
+## Animated GIF output
+
+`archdraw diagram.yaml -o diagram.gif -s 2` exports a looping edge-flow animation for README images. The cycle is 1.2 seconds, 24 frames at 20 fps. It uses bundled fonts and the same theme, scenario, focus, collapse and edge animation rules as HTML. `-s` applies to PNG and GIF. No browser or ffmpeg is needed. GIF frames are limited to 16 million pixels and 65,535 per side; reduce `-s` or use `--focus`/`--collapse` if exceeded. GIF has no interactive controls and does not switch scenarios automatically.
 
 ## Scenario focus and export
 

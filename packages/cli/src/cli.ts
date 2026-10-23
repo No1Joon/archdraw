@@ -18,8 +18,10 @@ import {
   normalize,
   parse,
   type QualityReport,
+  type RenderOptions,
   renderToHtml,
   renderToSvg,
+  renderToSvgFrames,
   selectView,
   type Theme,
   toJsonSchema,
@@ -29,6 +31,7 @@ import { brandIcons } from '@archdraw/icons-brands'
 import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
+import { renderGif } from './gif.js'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
 
@@ -151,17 +154,17 @@ function reportProviderDrift(ir: Ir, flag: string | undefined) {
 // A default command, not root options: a `-p` on the root shadows the same flag on `types`.
 program
   .command('render', { isDefault: true })
-  .description('Render a diagram file to SVG, PNG or an animated HTML page.')
+  .description('Render a diagram file to SVG, PNG, animated GIF or an HTML viewer.')
   .argument('<input>', "diagram YAML or JSON file, or '-' to read stdin")
   .option(
     '-o, --out <file>',
-    'output path; .png renders a raster, .html an animated page, anything else writes SVG',
+    'output path; .png is a raster, .gif a looping animation, .html a viewer, anything else SVG',
   )
   .option(
     '-p, --provider <names>',
     "icon packs to load, comma separated; defaults to the diagram's own `provider`",
   )
-  .option('-s, --scale <n>', 'PNG scale factor', '2')
+  .option('-s, --scale <n>', 'PNG/GIF scale factor', '2')
   .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
   .option('--check', 'validate the diagram and write nothing')
   .option('--scenario <id>', 'select one declared scenario')
@@ -207,11 +210,10 @@ program
         console.error('ok')
         return
       }
-      // Only the page can hold motion, so the extension picks the renderer, not just the writer.
-      const render =
-        extname(options.out ?? '').toLowerCase() === '.html' ? renderToHtml : renderToSvg
+      const extension = extname(options.out ?? '').toLowerCase()
+      const scale = scaleFor(options.scale)
       let quality: QualityReport | undefined
-      const markup = await render(document, {
+      const renderOptions: RenderOptions = {
         icons,
         ...viewOptions,
         theme: themeFor(options.theme),
@@ -219,14 +221,17 @@ program
           reportDetours(detours(laid, root), laid)
           if (options.diagnostics) quality = diagnose(laid, root)
         },
-      })
+      }
+      const markup =
+        extension === '.gif'
+          ? await renderGif(renderToSvgFrames(document, renderOptions), scale, FONT)
+          : await (extension === '.html' ? renderToHtml : renderToSvg)(document, renderOptions)
       if (quality) {
         const json = `${JSON.stringify(quality, null, 2)}\n`
         if (options.diagnostics === '-') process.stdout.write(json)
         else writeFileSync(options.diagnostics, json)
       }
-      if (options.diagnostics !== '-' || options.out)
-        write(markup, options.out, scaleFor(options.scale))
+      if (options.diagnostics !== '-' || options.out) write(markup, options.out, scale)
     })
   })
 
@@ -544,12 +549,12 @@ function scaleFor(input: string): number {
   return scale
 }
 
-function write(markup: string, out: string | undefined, scale: number) {
+function write(markup: string | Uint8Array, out: string | undefined, scale: number) {
   if (!out) {
     process.stdout.write(markup)
     return
   }
-  if (extname(out).toLowerCase() === '.png') {
+  if (typeof markup === 'string' && extname(out).toLowerCase() === '.png') {
     const png = new Resvg(markup, {
       fitTo: { mode: 'zoom', value: scale },
       font: { loadSystemFonts: false, fontFiles: [FONT], defaultFontFamily: 'Noto Sans KR' },

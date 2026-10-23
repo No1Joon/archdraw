@@ -31,6 +31,7 @@ edges:
 | | |
 |---|---|
 | `renderToSvg(source, options?)` | A YAML/JSON string or a parsed document → an SVG string |
+| `renderToSvgFrames(source, options?)` | One flow cycle as an async iterable of 24 `{ svg, delay }` frames; shares one layout |
 | `parse(source)` | YAML/JSON → an unvalidated document |
 | `normalize(doc)` | Validate and flatten to the IR. Throws `DiagramError` on failure |
 | `selectView(ir, options?)` | Select scenario/focus/collapsed groups before layout |

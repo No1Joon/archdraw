@@ -176,14 +176,19 @@ function legendWidth(statuses: readonly (readonly [Status, string])[]): number {
   )
 }
 
-/** Sparse dots, not a dashed line: the drawn edge must still read as the solid or dashed one it is. */
-function flowCss(): string {
+/** Distance travelled in one flow cycle, in SVG units. */
+export const FLOW_PERIOD = 30
+export const FLOW_DURATION = 1200
+
+/** Sparse dots preserve the solid or dashed line underneath them. */
+function flowCss(offset?: number): string {
   return [
-    // One period per 1.2s is 25 px/s, the same speed on a short edge and a long one alike.
     '.archdraw-flow{stroke-width:4;stroke-linecap:round;stroke-dasharray:2 28;',
-    'animation:archdraw-flow 1.2s linear infinite}',
-    '@keyframes archdraw-flow{to{stroke-dashoffset:-30}}',
-    '@media (prefers-reduced-motion:reduce){.archdraw-flow{animation:none;opacity:0}}',
+    offset === undefined
+      ? `animation:archdraw-flow ${FLOW_DURATION / 1000}s linear infinite}` +
+        `@keyframes archdraw-flow{to{stroke-dashoffset:-${FLOW_PERIOD}}}` +
+        '@media (prefers-reduced-motion:reduce){.archdraw-flow{animation:none;opacity:0}}'
+      : `stroke-dashoffset:${offset}}`,
   ].join('')
 }
 
@@ -218,7 +223,7 @@ function scenarioCss(ir: Ir, scenario: string): string {
   for (const edge of ir.edges) {
     if ((!edge.when || edge.when.includes(scenario)) && active(edge.from) && active(edge.to))
       continue
-    const id = edge.id.replaceAll('>', '\\3e ').replaceAll('#', '\\23 ')
+    const id = edge.id
     rules.push(
       `[data-edge-id="${id}"]{opacity:.12}[data-edge-id="${id}"] .archdraw-flow{animation:none;opacity:0}`,
     )
@@ -233,10 +238,20 @@ export interface DiagramProps {
   theme?: Theme
   /** Draw travelling dashes along every edge. Off by default: a still SVG must stay byte-identical. */
   flow?: boolean
+  /** A fixed position within the flow cycle for raster animation frames. */
+  flowOffset?: number
   scenario?: string
 }
 
-export function Diagram({ root, ir, icons, theme = defaultTheme, flow, scenario }: DiagramProps) {
+export function Diagram({
+  root,
+  ir,
+  icons,
+  theme = defaultTheme,
+  flow,
+  flowOffset,
+  scenario,
+}: DiagramProps) {
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
   // Only the page can hold a state, so the marks ride with the animation and never reach a
   // still SVG — that one shows every element, whatever the diagram says about scenes.
@@ -268,7 +283,7 @@ export function Diagram({ root, ir, icons, theme = defaultTheme, flow, scenario 
       style={{ fontFamily: theme.fontFamily }}
     >
       <title>{ir.title ?? 'architecture diagram'}</title>
-      {flow ? <style>{flowCss()}</style> : null}
+      {flow ? <style>{flowCss(flowOffset)}</style> : null}
       {scenes || scenario ? <style>{sceneCss()}</style> : null}
       {scenario ? <style>{scenarioCss(ir, scenario)}</style> : null}
       <defs>

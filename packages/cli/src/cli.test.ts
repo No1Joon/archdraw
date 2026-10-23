@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { decompressFrames, parseGIF } from 'gifuct-js'
 import { describe, expect, it } from 'vitest'
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'cli.mjs')
@@ -422,6 +423,102 @@ describe('an .html out path', () => {
     expect(html.startsWith('<!doctype html>')).toBe(true)
     expect(html).toContain('@keyframes archdraw-flow')
     expect(run(['-'], diagram).stdout).not.toContain('archdraw-flow')
+  })
+})
+
+describe('animated GIF output', () => {
+  it('does not animate an inactive edge with an automatically generated id', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-gif-inactive-'))
+    try {
+      const out = join(dir, 'inactive.gif')
+      const source = `scenarios: [{id: normal}, {id: failure}]
+nodes: [{id: a}, {id: b}]
+edges: [{from: a, to: b, when: [failure]}]
+`
+      const result = run(['-', '-o', out, '--scenario', 'normal', '-s', '1'], source)
+      expect(result.code, result.stderr).toBe(0)
+      const frames = decompressFrames(parseGIF(Uint8Array.from(readFileSync(out)).buffer), true)
+      expect(frames[0]?.patch.every((value, index) => value === frames[12]?.patch[index])).toBe(
+        true,
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('writes a decodable looping animation with moving pixels and the PNG scale', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-gif-'))
+    try {
+      const out = join(dir, 'animation.GIF')
+      const result = run(['-', '-o', out, '-s', '1'], diagram)
+      expect(result.code, result.stderr).toBe(0)
+      const bytes = readFileSync(out)
+      expect(bytes.subarray(0, 6).toString()).toBe('GIF89a')
+      const gif = parseGIF(Uint8Array.from(bytes).buffer)
+      const frames = decompressFrames(gif, true)
+      expect(frames).toHaveLength(24)
+      expect(frames.every((frame) => frame.delay === 50)).toBe(true)
+      expect(frames[0]?.patch.some((value, index) => value !== frames[12]?.patch[index])).toBe(true)
+      const application = gif.frames.find((frame) => 'application' in frame)
+      expect(
+        application && 'application' in application && Array.from(application.application.blocks),
+      ).toEqual([1, 0, 0])
+      const png = join(dir, 'reference.png')
+      expect(run(['-', '-o', png, '-s', '1'], diagram).code).toBe(0)
+      const raster = readFileSync(png)
+      expect([gif.lsd.width, gif.lsd.height]).toEqual([
+        raster.readUInt32BE(16),
+        raster.readUInt32BE(20),
+      ])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('retains scenario focus, collapsed groups, theme and layout diagnostics', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-gif-view-'))
+    const source = `scenarios: [{id: normal}, {id: failure}]
+nodes:
+  - {id: g}
+  - {id: a, parent: g}
+  - {id: b, parent: g}
+  - {id: backup, when: [failure]}
+edges: [{from: a, to: b}]
+`
+    try {
+      const out = join(dir, 'view.gif')
+      const diagnostics = join(dir, 'quality.json')
+      const args = [
+        '-',
+        '--scenario',
+        'normal',
+        '--focus',
+        '--collapse',
+        'g',
+        '--theme',
+        'dark',
+        '-s',
+        '0.5',
+      ]
+      const result = run([...args, '-o', out, '--diagnostics', diagnostics], source)
+      expect(result.code, result.stderr).toBe(0)
+      expect(JSON.parse(readFileSync(diagnostics, 'utf8')).version).toBe(1)
+      const gif = parseGIF(Uint8Array.from(readFileSync(out)).buffer)
+      const frame = decompressFrames(gif, true)[0]
+      expect(frame?.patch.slice(0, 4)).toEqual(Uint8ClampedArray.of(13, 17, 23, 255))
+      const png = join(dir, 'view.png')
+      expect(run([...args, '-o', png], source).code).toBe(0)
+      const raster = readFileSync(png)
+      expect([gif.lsd.width, gif.lsd.height]).toEqual([
+        raster.readUInt32BE(16),
+        raster.readUInt32BE(20),
+      ])
+      expect(run(['-', '-o', out, '--scenario', 'unknown'], source).stderr).toContain(
+        'Unknown scenario',
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
 

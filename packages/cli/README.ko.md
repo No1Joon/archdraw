@@ -2,7 +2,7 @@
 
 [English](./README.md) · **한국어**
 
-YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 CLI. AWS 793 · GCP 216 · 브랜드/OSS 3,453 개의 아이콘과 폰트를 번들해 `npx` 로 바로 동작한다.
+YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG/GIF/HTML)을 그리는 CLI. AWS 793 · GCP 216 · 브랜드/OSS 3,453 개의 아이콘과 폰트를 번들해 `npx` 로 바로 동작한다.
 
 **AI CLI 가 쓰라고 만들었다** — archdraw 는 LLM 을 호출하지 않는다. 에이전트가 YAML 을 쓰면 archdraw 가 그린다.
 
@@ -34,9 +34,9 @@ archdraw schema [--flat]                                  # 입력 계약을 JSO
 
 | 옵션 | |
 |---|---|
-| `-o, --out <file>` | 확장자가 `.png` 면 래스터, 그 외는 SVG. 생략하면 stdout |
+| `-o, --out <file>` | 확장자가 `.png`면 정적 이미지, `.gif`면 트래픽 애니메이션, `.html`이면 인터랙티브 뷰어, 그 외는 SVG. 생략하면 stdout |
 | `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 생략하면 다이어그램의 `provider` |
-| `-s, --scale <n>` | PNG 배율. 0 초과 10 이하. 기본 `2` |
+| `-s, --scale <n>` | PNG/GIF 배율. 0 초과 10 이하. 기본 `2` |
 | `--theme <name>` | `light` 또는 `dark`. 기본 `light` |
 | `--check` | 아무것도 쓰지 않고 검증만 |
 
@@ -58,6 +58,17 @@ Unknown type 'lambdaa'.
 ```
 
 기계가 읽을 입력 계약은 `npx archdraw schema` 가 JSON Schema 로 낸다.
+
+## 애니메이션 GIF
+
+```bash
+npx archdraw diagram.yaml -o diagram.gif -s 2
+npx archdraw diagram.yaml --scenario normal --focus -o normal.gif
+```
+
+HTML과 같은 간선 흐름을 1.2초, 20 fps, 24프레임으로 반복 재생한다. 번들 글꼴을 사용하며 `--theme`, `--scenario`, `--focus`, 그룹 접기 옵션을 적용한다. `animation: none`과 planned/blocked 간선은 명시적으로 덮어쓰지 않으면 움직이지 않는다. 브라우저나 ffmpeg 설치가 필요 없다. 프레임당 1,600만 픽셀, 한 변 65,535픽셀까지 지원하며 큰 다이어그램은 `-s`를 낮추거나 그룹을 접는다.
+
+README에 `![Architecture](./diagram.gif)`로 넣을 수 있다. GIF는 선택한 보기만 재생하며 시나리오 전환과 그룹 조작은 HTML 뷰어에서 사용한다.
 
 ## PNG 폰트
 
