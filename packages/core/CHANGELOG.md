@@ -1,5 +1,11 @@
 # @archdraw/core
 
+## 0.13.1
+
+### Patch Changes
+
+- 9bc0560: Use automatic end-marker orientation supported by the raster renderer so self-loops and non-horizontal arrows point along their final segment in PNG and GIF output.
+
 ## 0.13.0
 
 ### Minor Changes
