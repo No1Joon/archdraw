@@ -1,0 +1,40 @@
+name: Bootstrap basic icon package
+
+on:
+  workflow_dispatch:
+
+concurrency: bootstrap-icons-basic
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/archdraw-bootstrap.npmrc
+      NPM_CONFIG_BROWSER: 'false'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: npm install -g npm@11
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @archdraw/icons-basic build
+      - name: Require the unpublished bootstrap version
+        run: node -e "if (require('./packages/icons-basic/package.json').version !== '0.0.0') process.exit(1)"
+      - name: Authenticate first publication with npm web login
+        run: npm login --auth-type=web --registry=https://registry.npmjs.org
+      - name: Publish only the initial basic package
+        working-directory: packages/icons-basic
+        run: npm publish --access public --tag bootstrap --provenance --auth-type=web
+      - name: Trust the normal release workflow
+        run: npm trust github @archdraw/icons-basic --repo No1Joon/archdraw --file release.yml --allow-publish --yes
+      - name: Revoke the temporary login
+        if: always()
+        run: npm logout --registry=https://registry.npmjs.org
