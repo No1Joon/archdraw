@@ -10,6 +10,7 @@ pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. 개발 Nod
 
 - `pnpm build`: 전 패키지 빌드 (tsdown, ESM + d.mts)
 - `pnpm test`: vitest — core 의 SVG 스냅샷 포함
+- `node scripts/smoke-runtime.mjs`: 빌드된 CLI의 JSON 검증·SVG/PNG/GIF/HTML·한글 폰트 실행 검사
 - `pnpm typecheck`: 패키지별 `tsc --noEmit`
 - `pnpm lint` / `pnpm format`: Biome 검사 / 자동 수정
 - `pnpm icons:sync <aws|gcp> [--from <zip>]`: 공식 아이콘 배포본에서 아이콘 패키지 재생성
@@ -69,6 +70,7 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 
 - 개발·CI·npm 발행은 `.node-version`의 Node 22.23.5, pnpm 10. `fnm install` · `fnm use`로 선택한다.
 - CLI·워크스페이스는 Node 22.23.5+(22.x) / 24.22.3+(24.x) / 26.13.1+(26.x). 워크스페이스는 `engine-strict=true`로 설치 시 검사한다.
+- CI는 Node 22에서 전체 검사하고 같은 빌드·의존성으로 24·26 CLI 실행만 검사한다. 24·26의 개발 도구 빌드·전체 테스트 검증은 아니다.
 - `pnpm icons:sync` 는 `unzip` 을 쓴다.
 
 ## References

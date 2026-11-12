@@ -35,9 +35,12 @@ YAML
 
 ## CLI
 
+자동화에서는 `--check --json`으로 오류 코드·입력 경로·요소 ID·수정 힌트를 읽는다. [검증 보고서 계약](./docs/agents.ko.md#검증-json)을 참고한다.
+
 ```bash
 archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
 archdraw <input> --check                                  # 검증만. 실패 시 exit 1
+archdraw <input> --check --json                           # 자동화용 검증 보고서
 archdraw types <query> [-p aws,brands]                    # 쓸 수 있는 type 검색
 archdraw schema [--flat]                                  # 입력 계약을 JSON Schema 로
 archdraw serve <file> --watch [--port 4173]               # 저장할 때마다 다시 그리는 미리보기
@@ -243,6 +246,8 @@ pnpm changeset      # 버전 제안
 ```
 
 Node 22.23.5, pnpm 10. `pnpm install` 전에 `fnm install`과 `fnm use`로 `.node-version`의 버전을 선택한다. CI와 npm 발행도 같은 파일을 읽는다. 워크스페이스 설치는 `engine-strict=true`로 Node 요구사항을 강제한다. `pnpm icons:sync` 는 `unzip` 을 쓴다.
+
+CI는 Node 22에서 전체 검사하고 같은 빌드·설치된 의존성으로 Node 24·26의 CLI 실행만 검사한다. 두 버전에서 전체 테스트나 빌드를 반복하지 않는다. Vite·launch-editor의 전이 보안 패치는 `pnpm.overrides`에 고정한다.
 
 ## 라이선스
 
