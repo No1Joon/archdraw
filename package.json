@@ -25,9 +25,13 @@
     "tsdown": "0.22.14",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "pnpm": {
+    "overrides": {
+      "vitest>vite": "8.2.6",
+      "@changesets/cli>launch-editor": "2.14.2"
+    },
     "onlyBuiltDependencies": [
       "@biomejs/biome",
       "@resvg/resvg-js",
