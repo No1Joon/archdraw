@@ -4,6 +4,8 @@
 
 archdraw never calls an LLM. **The agent writes the YAML; archdraw draws it.**
 
+Requires Node.js 22.23.5+ (22.x), 24.22.3+ (24.x), or 26.13.1+ (26.x).
+
 ## Three steps
 
 ```bash

@@ -4,7 +4,7 @@
 > 재개 노트: `temp-memory.md`(gitignore) — 있으면 **세션 시작 때 읽고, 수행한 뒤 지운다.**
 
 프롬프트 또는 YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG)을 그리는 TypeScript 모노레포.
-pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. Node 22+.
+pnpm workspaces · tsdown(rolldown) · vitest · Biome · changesets. 개발 Node 22.23.5(`.node-version`).
 
 ## Commands
 
@@ -67,7 +67,9 @@ npm trusted publishing(OIDC)으로 나가므로 토큰이 없다 — 신뢰 발�
 
 ## Environment
 
-- Node 22+, pnpm 10. `pnpm icons:sync` 는 `unzip` 을 쓴다.
+- 개발·CI·npm 발행은 `.node-version`의 Node 22.23.5, pnpm 10. `fnm install` · `fnm use`로 선택한다.
+- CLI·워크스페이스는 Node 22.23.5+(22.x) / 24.22.3+(24.x) / 26.13.1+(26.x). 워크스페이스는 `engine-strict=true`로 설치 시 검사한다.
+- `pnpm icons:sync` 는 `unzip` 을 쓴다.
 
 ## References
 
