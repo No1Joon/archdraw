@@ -33,9 +33,10 @@ jobs:
         run: npm login --auth-type=web --registry=https://registry.npmjs.org
       - name: Publish only the initial basic package
         working-directory: packages/icons-basic
-        run: npm publish --access public --tag bootstrap --provenance --auth-type=web
+        # npm retries web OTP only when stdin and stdout are terminals.
+        run: script -q -e -c 'npm publish --access public --tag bootstrap --provenance --auth-type=web' /dev/null
       - name: Trust the normal release workflow
-        run: npm trust github @archdraw/icons-basic --repo No1Joon/archdraw --file release.yml --allow-publish --yes
+        run: script -q -e -c 'npm trust github @archdraw/icons-basic --repo No1Joon/archdraw --file release.yml --allow-publish --yes' /dev/null
       - name: Revoke the temporary login
         if: always()
         run: npm logout --registry=https://registry.npmjs.org
