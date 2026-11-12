@@ -1,0 +1,36 @@
+provider: basic
+title: 문서 검토와 사용자 확인
+shape: card
+direction: RIGHT
+entry: review
+animation: none
+groups:
+  - id: review
+    label: 문서 검토
+    direction: DOWN
+    entry: extract
+    ports: [{ id: next, side: EAST }]
+    children:
+      - { id: extract, type: basic-document, label: 내용 정리 }
+      - { id: validate, type: basic-shield, label: 필수항목 검증 }
+      - { id: ask, type: basic-message, label: 추가 질문 }
+      - { id: wait, type: basic-hourglass, label: 답변 대기 }
+      - { id: merge, type: basic-merge, label: 답변 반영 }
+  - id: confirmation
+    label: 사용자 확인
+    direction: DOWN
+    entry: confirm
+    ports: [{ id: in, side: WEST }]
+    children:
+      - { id: confirm, type: basic-user-check, label: 사용자 확인 }
+      - { id: result, type: basic-check, label: 결과 전달 }
+edges:
+  - { from: extract, to: validate, layout: forward }
+  - { from: validate, to: ask, layout: forward, label: 부족 }
+  - { from: ask, to: wait, layout: forward }
+  - { from: wait, to: merge, layout: forward, label: 응답 }
+  - { from: merge, to: validate, layout: back, style: dashed, label: 재검사 }
+  - { from: validate, to: review, toPort: next, label: 충분 }
+  - { from: review, fromPort: next, to: confirmation, toPort: in }
+  - { from: confirmation, fromPort: in, to: confirm }
+  - { from: confirm, to: result, layout: forward }

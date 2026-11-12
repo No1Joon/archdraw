@@ -70,7 +70,7 @@ A `type` that does not resolve is **never** replaced with a similar icon. A wron
 
 A valid report is `{"version":1,"valid":true,"errors":[]}`. Invalid input reports the first blocking error; fix it and validate again. `path` uses zero-based indices in the original nested or flat input. `elements` identifies a known node/edge; it may be empty when no element is known. `hint` and `suggestions` are optional. YAML/JSON syntax errors use `code: "parse-error"` and include one-based `line` and `column` when available. Argument and I/O errors have an empty path. Unknown icon types include candidates without substituting an icon.
 
-Codes are `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `unknown-type`, `invalid-options`, `io-error`, and fallback `validation-error` / `invalid-diagram`. Branch on `version` and `code`, not message wording. Commander argument-parsing errors (such as an unknown flag) retain their normal stderr output.
+Codes are `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `invalid-entry`, `invalid-back-edge`, `unknown-type`, `invalid-options`, `io-error`, and fallback `validation-error` / `invalid-diagram`. Branch on `version` and `code`, not message wording. Commander argument-parsing errors (such as an unknown flag) retain their normal stderr output.
 
 `--json` requires `--check` and cannot be combined with `--out` or `--diagnostics`. Quality diagnostics require layout and use their separate report. Validation checks the input contract and references; quality diagnostics check rendering geometry. Neither proves that the architecture or its connections are semantically correct.
 
@@ -80,6 +80,7 @@ Codes are `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`,
 |---|---|
 | `aws` · `gcp` | Official cloud service icons |
 | `brands` | Brand and OSS marks — Redis, nginx, PostgreSQL, Docker, Cloudflare and so on |
+| `basic` | 64 vendor-neutral role/action pictograms: `basic-clock`, `basic-user-check`, `basic-branch`, `basic-error` |
 
 Pass several with commas, as in `-p aws,brands`. One diagram commonly holds both the cloud and the software running on top of it.
 
@@ -89,7 +90,7 @@ Pass several with commas, as in `-p aws,brands`. One diagram commonly holds both
 
 ## Components with no icon
 
-Omit `type` and the node is drawn as a labelled box. Use it for things none of the three packs carry, such as an internal service. Do not force a vaguely similar icon onto it.
+Omit `type` and the node is drawn as a labelled box. Use it for things none of the packs carry, such as an internal service. Do not force a vaguely similar icon onto it.
 
 **A workload takes no icon from the platform it runs on.** Three services on GKE are not three GKE, and three tasks on ECS are not three ECS — an icon that exists is not a reason to use it. Put the platform on the group once, as `kind` plus `type`, and leave the services inside it without a `type`.
 
@@ -159,8 +160,16 @@ Keep security boundaries that describe the system. Use ports to choose entry/exi
 
 `archdraw diagram.yaml --diagnostics quality.json -o diagram.png` writes both the render and a versioned JSON quality report. `--diagnostics -` prints JSON alone to stdout (unless `-o` also requests a render file). Reports use the selected scenario/collapse view and do not change the exit status for quality warnings; invalid input still exits 1. `--check` is validation only and cannot be combined with diagnostics, which require layout.
 
-The report includes `version: 1`, `coordinateSpace: "layout"`, graph canvas dimensions, warning/info counts and `diagnostics`. Each entry has a stable `id`, `code`, `severity`, `elements` with node/edge ids, a message and a fix hint. Codes are `edge-detour`, `response-route`, `label-overlap`, `label-clipped` and `edge-crossing`; entries include a ratio/cause, label bounds or intersection point when applicable. Coordinates start at the layout graph, before the SVG title/status legend bands. Text geometry uses the same estimated metrics as layout (`textMeasurement: "estimated"`), so inspect the SVG/PNG after a suggested fix. A clean report is not a pixel-perfect guarantee; parallel overlapping rails and intentional shared endpoints are excluded from crossing reports.
+The report includes `version: 1`, `coordinateSpace: "layout"`, graph canvas dimensions, warning/info counts and `diagnostics`. Each entry has a stable `id`, `code`, `severity`, `elements` with node/edge ids, a message and a fix hint. Codes are `edge-detour`, `response-route`, `label-overlap`, `label-clipped` and `edge-crossing`; entries include a ratio/cause, label bounds or intersection point when applicable. Coordinates start at the layout graph, before the SVG title/status legend bands. Text geometry uses the same estimated metrics as layout (`textMeasurement: "estimated"`), so inspect the SVG/PNG after a suggested fix. A clean report is not a pixel-perfect guarantee; intentional shared endpoints are excluded from crossing reports; wrapped rail overlap is reported separately as `edge-overlap`.
 
 Mark actual reply edges `role: response` (`request` is also accepted). A long response travelling against its enclosing layout direction is reported as informational `response-route` and omitted from stderr detour warnings. Direction alone never implies a response, and a forward response with an unnecessary detour is still a warning. Keep requests and replies separate when both paths matter.
 
 Core callers can use `diagnose(ir, root)` inside `onLayout` to inspect the same render without a second layout pass.
+
+## Workflow roles and return lanes
+
+Use `provider: basic` or `provider: aws,brands,basic` for vendor-neutral pictograms. Search roles in English or Korean: `archdraw types wait confirmation 분기 오류 -p basic`. Canonical types and English aliases use `basic-`; Korean aliases also work. Use a clock/hourglass for waiting, `basic-user-check` for user confirmation, `basic-branch` for decisions, and `basic-error` for failures. Reserve question marks for actual questions. Do not substitute a role pictogram for a confirmed vendor mark.
+
+Root/group `entry` must reference a direct child and only guides layout. Main-flow edges may say `layout: forward`; sibling repeat/correction edges may say `layout: back` to use exterior return lanes after wrapping. Back edges cannot cross groups or use named ports; use explicit boundary hops instead. An explicit WEST/NORTH port hop to a group's entry aligns directly with that entry. These hints preserve topology but do not promise zero crossings.
+
+Set document `animation: none` for a static workflow in HTML/GIF. Explicit per-edge `animation: flow` wins. Document `flow` still leaves planned/blocked edges stationary unless the edge itself opts in. Existing defaults apply when the document omits `animation`. `--diagnostics` reports wrapped collinear overlaps as `edge-overlap`, excluding shared endpoint stubs. Validation may additionally report `invalid-entry` or `invalid-back-edge`; geometric routing failures report `routing-failed` while rendering.

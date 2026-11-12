@@ -39,6 +39,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@archdraw/icons-basic": "workspace:*",
     "@archdraw/core": "workspace:*",
     "@archdraw/icons-aws": "workspace:*",
     "@archdraw/icons-brands": "workspace:*",
