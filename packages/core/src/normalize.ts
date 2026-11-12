@@ -24,6 +24,7 @@ export interface FlatNode {
   collapsed?: boolean
   direction?: 'RIGHT' | 'DOWN'
   ports?: Port[]
+  entry?: string
 }
 
 /** An edge once its id is settled — the one it was given, or one named for its ends. */
@@ -35,6 +36,7 @@ export interface Ir {
   direction: 'RIGHT' | 'DOWN'
   /** Fold a long chain into several rows instead of letting the canvas run away. */
   wrap: boolean
+  entry?: string
   nodes: FlatNode[]
   edges: IrEdge[]
   /** Empty unless the diagram names states to read it in. */
@@ -166,6 +168,7 @@ export function normalize(input: unknown): Ir {
       collapsed: entry.collapsed,
       direction: entry.direction,
       ports: entry.ports,
+      ...(entry.entry !== undefined ? { entry: entry.entry } : {}),
     })
     if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
@@ -185,14 +188,17 @@ export function normalize(input: unknown): Ir {
   }
 
   for (const node of nodes) {
-    if ((node.direction !== undefined || node.ports !== undefined) && !node.isGroup) {
+    if (
+      (node.direction !== undefined || node.ports !== undefined || node.entry !== undefined) &&
+      !node.isGroup
+    ) {
       throw new DiagramError(
-        `Node '${node.id}' has group-only direction or ports.`,
+        `Node '${node.id}' has group-only direction or ports${node.entry !== undefined ? ' or entry' : ''}.`,
         'Add children or declare it under `groups`.',
         nodeDetails(
           'group-only-field',
           node.id,
-          node.direction !== undefined ? 'direction' : 'ports',
+          node.direction !== undefined ? 'direction' : node.ports !== undefined ? 'ports' : 'entry',
         ),
       )
     }
@@ -226,6 +232,22 @@ export function normalize(input: unknown): Ir {
   // would vanish from the picture. A diagram that quietly loses a node is worse than one that
   // refuses to draw.
   const parentOf = new Map(nodes.map((node) => [node.id, node.parent]))
+  const checkEntry = (entry: string | undefined, parent: string | null) => {
+    if (entry === undefined) return
+    if (!nodes.some((node) => node.id === entry && node.parent === parent)) {
+      throw new DiagramError(
+        `Entry '${entry}' is not a direct child of '${parent ?? '<root>'}'.`,
+        'Choose a direct child, or declare entry on the group containing that node.',
+        {
+          code: 'invalid-entry',
+          path: parent === null ? ['entry'] : [...(paths.get(parent) ?? []), 'entry'],
+          elements: [{ kind: 'node', id: entry }],
+        },
+      )
+    }
+  }
+  checkEntry(doc.entry, null)
+  for (const node of nodes) checkEntry(node.entry, node.id)
   for (const node of nodes) {
     const path = [node.id]
     for (let cursor = node.parent; cursor !== null; cursor = parentOf.get(cursor) ?? null) {
@@ -249,6 +271,17 @@ export function normalize(input: unknown): Ir {
           edgeDetails('unknown-node', edge, index, field),
         )
       }
+    }
+  }
+
+  for (const [index, edge] of doc.edges.entries()) {
+    if (edge.layout !== 'back') continue
+    if (parentOf.get(edge.from) !== parentOf.get(edge.to) || edge.fromPort || edge.toPort) {
+      throw new DiagramError(
+        `Back edge ${edge.from} -> ${edge.to} needs sibling endpoints without named ports.`,
+        'Route the local cycle inside one group. Use separate boundary-port edges to cross groups.',
+        edgeDetails('invalid-back-edge', edge, index, 'layout'),
+      )
     }
   }
 
@@ -287,12 +320,18 @@ export function normalize(input: unknown): Ir {
     edgeIds.add(edge.id)
   }
   const edges: IrEdge[] = doc.edges.map((edge) => {
-    if (edge.id) return { ...edge, id: edge.id }
+    const inherited =
+      edge.animation === undefined &&
+      doc.animation !== undefined &&
+      !(doc.animation === 'flow' && (edge.status === 'planned' || edge.status === 'blocked'))
+        ? { animation: doc.animation }
+        : {}
+    if (edge.id) return { ...edge, ...inherited, id: edge.id }
     const base = `${edge.from}->${edge.to}`
     let id = base
     for (let n = 2; edgeIds.has(id); n++) id = `${base}#${n}`
     edgeIds.add(id)
-    return { ...edge, id }
+    return { ...edge, ...inherited, id }
   })
 
   // A named scenario that does not exist would silently drop the element from every scene, so
@@ -383,6 +422,7 @@ export function normalize(input: unknown): Ir {
     title: doc.title,
     direction: doc.direction,
     wrap: doc.wrap,
+    ...(doc.entry !== undefined ? { entry: doc.entry } : {}),
     nodes,
     edges,
     scenarios: doc.scenarios,

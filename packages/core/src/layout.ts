@@ -1,5 +1,6 @@
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs'
 import ELK from 'elkjs/lib/elk.bundled.js'
+import { alignEntryPorts, clearReturnLabels, routeBackEdges } from './back-routes.js'
 import { fold, rowLength, simplify } from './fold.js'
 import type { FlatNode, Ir, IrEdge } from './normalize.js'
 
@@ -86,6 +87,22 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     childrenOf.set(node.parent, list)
   }
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
+  const local = new Set(
+    ir.nodes.filter((node) => node.isGroup && node.entry).map((node) => node.id),
+  )
+  for (const edge of ir.edges) {
+    const parent = byId.get(edge.from)?.parent
+    if (edge.layout === 'back' && parent) local.add(parent)
+  }
+  const backRoutes = (root: ElkNode, parent: string | null, direction: 'RIGHT' | 'DOWN') =>
+    routeBackEdges(
+      root,
+      ir,
+      parent,
+      direction,
+      (label) => labelWidth(label, EDGE_LABEL_SIZE),
+      EDGE_LABEL_SIZE + 4,
+    )
 
   const custom = new Set(
     ir.nodes
@@ -126,10 +143,19 @@ export async function layout(ir: Ir): Promise<ElkNode> {
 
   const edgesOf = new Map<string | null, ElkExtendedEdge[]>()
   ir.edges.forEach((edge, index) => {
+    if (edge.layout === 'back') return
     const enclosing = new Set(containersOf(edge.to))
     const lca = containersOf(edge.from).find((id) => enclosing.has(id)) ?? null
     const list = edgesOf.get(lca) ?? []
-    list.push({ id: `e${index}`, sources: [edge.from], targets: [edge.to], labels: labelsOf(edge) })
+    list.push({
+      id: `e${index}`,
+      sources: [edge.from],
+      targets: [edge.to],
+      labels: labelsOf(edge),
+      ...(edge.layout === 'forward'
+        ? { layoutOptions: { 'elk.layered.priority.direction': '100' } }
+        : {}),
+    })
     edgesOf.set(lca, list)
   })
 
@@ -153,64 +179,87 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     edges = edgesOf,
     boxes = new Map<string, Arranged>(),
   ): ElkNode[] =>
-    (childrenOf.get(parent) ?? []).map((node): ElkNode => {
-      // A group already folded on its own is a box of fixed size here, and each edge that
-      // crosses its border meets it at a fixed point.
-      const box = boxes.get(node.id)
-      if (box) {
-        return {
-          id: node.id,
-          width: box.node.width ?? 0,
-          height: box.node.height ?? 0,
-          layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
-          ports: [...box.ports].map(([id, at]) => ({ id, x: at.x, y: at.y, width: 0, height: 0 })),
-        }
-      }
-      if (!node.isGroup) {
-        if (node.type && node.shape === 'card') {
-          const lines = labelLines(node.label)
+    (childrenOf.get(parent) ?? [])
+      .map((node): ElkNode => {
+        // A group already folded on its own is a box of fixed size here, and each edge that
+        // crosses its border meets it at a fixed point.
+        const box = boxes.get(node.id)
+        if (box) {
           return {
             id: node.id,
-            width: CARD_PADDING * 3 + CARD_ICON + labelWidth(node.label, NODE_LABEL_SIZE),
-            height: Math.max(CARD_HEIGHT, CARD_PADDING * 2 + lines.length * LINE_HEIGHT),
+            width: box.node.width ?? 0,
+            height: box.node.height ?? 0,
+            layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
+            ports: [...box.ports].map(([id, at]) => ({
+              id,
+              x: at.x,
+              y: at.y,
+              width: 0,
+              height: 0,
+            })),
           }
         }
-        if (!node.type) {
+        if (!node.isGroup) {
+          if (node.type && node.shape === 'card') {
+            const lines = labelLines(node.label)
+            return {
+              id: node.id,
+              width: CARD_PADDING * 3 + CARD_ICON + labelWidth(node.label, NODE_LABEL_SIZE),
+              height: Math.max(CARD_HEIGHT, CARD_PADDING * 2 + lines.length * LINE_HEIGHT),
+            }
+          }
+          if (!node.type) {
+            return {
+              id: node.id,
+              width: Math.max(ICON_SIZE, labelWidth(node.label, NODE_LABEL_SIZE) + BOX_PADDING * 2),
+              height: BOX_HEIGHT + (labelLines(node.label).length - 1) * LINE_HEIGHT,
+            }
+          }
           return {
             id: node.id,
-            width: Math.max(ICON_SIZE, labelWidth(node.label, NODE_LABEL_SIZE) + BOX_PADDING * 2),
-            height: BOX_HEIGHT + (labelLines(node.label).length - 1) * LINE_HEIGHT,
+            width: Math.max(ICON_SIZE, node.domain ? labelWidth(node.domain, DOMAIN_SIZE) : 0),
+            height: ICON_SIZE + (node.domain ? DOMAIN_BAND : 0),
+            labels: [
+              {
+                text: node.label,
+                width: labelWidth(node.label, NODE_LABEL_SIZE),
+                height: LABEL_BAND + (labelLines(node.label).length - 1) * LINE_HEIGHT,
+              },
+            ],
+            layoutOptions: { 'elk.nodeLabels.placement': '[OUTSIDE, V_BOTTOM, H_CENTER]' },
           }
         }
         return {
           id: node.id,
-          width: Math.max(ICON_SIZE, node.domain ? labelWidth(node.domain, DOMAIN_SIZE) : 0),
-          height: ICON_SIZE + (node.domain ? DOMAIN_BAND : 0),
-          labels: [
-            {
-              text: node.label,
-              width: labelWidth(node.label, NODE_LABEL_SIZE),
-              height: LABEL_BAND + (labelLines(node.label).length - 1) * LINE_HEIGHT,
-            },
-          ],
-          layoutOptions: { 'elk.nodeLabels.placement': '[OUTSIDE, V_BOTTOM, H_CENTER]' },
+          labels: [{ text: node.label }],
+          layoutOptions: groupOptions(node),
+          children: build(node.id, edges, boxes),
+          edges: edges.get(node.id) ?? [],
         }
-      }
-      return {
-        id: node.id,
-        labels: [{ text: node.label }],
-        layoutOptions: groupOptions(node),
-        children: build(node.id, edges, boxes),
-        edges: edges.get(node.id) ?? [],
-      }
-    })
+      })
+      .map((node) => {
+        const entry = parent === null ? ir.entry : byId.get(parent)?.entry
+        return node.id === entry
+          ? {
+              ...node,
+              layoutOptions: {
+                ...node.layoutOptions,
+                'elk.layered.layering.layerConstraint': 'FIRST',
+              },
+            }
+          : node
+      })
 
   const rootOptions = {
     'elk.algorithm': 'layered',
     'elk.direction': ir.direction,
     // A fold follows the layout's order, so the edge ELK turns around to break a cycle has to
     // be the one written against the file's order rather than a link of the chain.
-    ...(ir.wrap ? { 'elk.layered.cycleBreaking.strategy': 'GREEDY_MODEL_ORDER' } : {}),
+    ...(ir.edges.some((edge) => edge.layout === 'forward')
+      ? { 'elk.layered.cycleBreaking.strategy': 'GREEDY' }
+      : ir.wrap
+        ? { 'elk.layered.cycleBreaking.strategy': 'GREEDY_MODEL_ORDER' }
+        : {}),
     'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.spacing.nodeNode': '48',
@@ -227,8 +276,10 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     children: build(null),
     edges: edgesOf.get(null) ?? [],
   })
-  if (!ir.wrap && custom.size === 0) {
+  if (!ir.wrap && custom.size === 0 && local.size === 0) {
     reconnect(root)
+    backRoutes(root, null, ir.direction)
+    clearReturnLabels(root, ir, null, ir.direction)
     clearLabels(root)
     clearTitles(root, byId)
     return root
@@ -237,7 +288,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   // A group longer than a row of the folded picture would take a row to itself and still run
   // past the rest, so it is folded inside first, to that row's length.
   const length = rowLength(root, ir.direction)
-  const wide = new Set<string>(custom)
+  const wide = new Set<string>([...custom, ...local])
   const measure = (node: ElkNode) => {
     for (const child of node.children ?? []) {
       const along = ir.direction === 'RIGHT' ? child.width : child.height
@@ -249,6 +300,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   if (wide.size === 0) {
     fold(root, ir.direction)
     reconnect(root)
+    backRoutes(root, null, ir.direction)
+    clearReturnLabels(root, ir, null, ir.direction)
     clearLabels(root)
     clearTitles(root, byId)
     return root
@@ -288,6 +341,7 @@ export async function layout(ir: Ir): Promise<ElkNode> {
       layoutOptions: { 'elk.port.side': port.side },
     }))
     ir.edges.forEach((edge, index) => {
+      if (edge.layout === 'back') return
       const ends = (['from', 'to'] as const).map((end) => {
         const id = edge[end]
         const port = edge[end === 'from' ? 'fromPort' : 'toPort']
@@ -325,6 +379,9 @@ export async function layout(ir: Ir): Promise<ElkNode> {
         id: `e${index}`,
         sources: [from.ref],
         targets: [to.ref],
+        ...(edge.layout === 'forward'
+          ? { layoutOptions: { 'elk.layered.priority.direction': '100' } }
+          : {}),
         // Only the part of an edge drawn outside every border it crosses carries the label.
         labels:
           (from.outside && from.owner !== container) || (to.outside && to.owner !== container)
@@ -426,6 +483,9 @@ export async function layout(ir: Ir): Promise<ElkNode> {
     const direction = directionOf(id)
     if (ir.wrap && !custom.has(id)) fold(laid, direction, length, custom)
     const node = laid.children?.[0] as ElkNode
+    backRoutes(node, id, direction)
+    alignEntryPorts(node, ir, id)
+    clearReturnLabels(node, ir, id, direction)
     const ports = new Map<string, Point>()
     for (const port of node.ports ?? []) {
       if (port.id.includes('>port:')) ports.set(port.id, { x: port.x ?? 0, y: port.y ?? 0 })
@@ -455,6 +515,8 @@ export async function layout(ir: Ir): Promise<ElkNode> {
   const folded = await place(null)
   if (ir.wrap) fold(folded, ir.direction, undefined, custom)
   reconnect(folded)
+  backRoutes(folded, null, ir.direction)
+  clearReturnLabels(folded, ir, null, ir.direction)
   clearLabels(folded)
   clearTitles(folded, byId)
   return folded

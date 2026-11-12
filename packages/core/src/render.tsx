@@ -157,8 +157,8 @@ function edgeColour(theme: Theme, status?: Status): string {
 }
 
 /** An arrowhead has to match the line it ends, so a coloured edge needs a marker of its own. */
-function markerId(status?: Status): string {
-  return unbuilt(status) ? `archdraw-arrow-${status}` : 'archdraw-arrow'
+function markerId(status?: Status, port = false): string {
+  return `${unbuilt(status) ? `archdraw-arrow-${status}` : 'archdraw-arrow'}${port ? '-port' : ''}`
 }
 
 /** Motion claims traffic, so a connection that is not built stays still unless the file says otherwise. */
@@ -291,6 +291,19 @@ export function Diagram({
         {arrows.map((status) => (
           <Arrow key={status} id={markerId(status)} fill={statusColour(theme, status)} />
         ))}
+        {ir.edges.some((edge) => edge.toPort && (ir.entry || byId.get(edge.to)?.entry)) ? (
+          <>
+            <Arrow id="archdraw-arrow-port" fill={theme.edge} port />
+            {arrows.map((status) => (
+              <Arrow
+                key={`${status}-port`}
+                id={markerId(status, true)}
+                fill={statusColour(theme, status)}
+                port
+              />
+            ))}
+          </>
+        ) : null}
       </defs>
       <rect width={width} height={height} fill={theme.background} />
       {ir.title ? (
@@ -317,12 +330,12 @@ export function Diagram({
 }
 
 /** One arrowhead per colour in use: a marker paints itself, not the line that calls it. */
-function Arrow({ id, fill }: { id: string; fill: string }) {
+function Arrow({ id, fill, port = false }: { id: string; fill: string; port?: boolean }) {
   return (
     <marker
       id={id}
       viewBox="0 0 10 10"
-      refX="9"
+      refX={port ? '16' : '9'}
       refY="5"
       markerWidth="7"
       markerHeight="7"
@@ -478,6 +491,7 @@ function Container({ node, byId, icons, theme, ir, flow, scenes }: ContainerProp
                   width={GROUP_ICON}
                   height={GROUP_ICON}
                   viewBox={badge.viewBox}
+                  style={badge.monochrome ? { color: theme.text } : undefined}
                   // Vendored SVG from the sync script, never user input.
                   dangerouslySetInnerHTML={{ __html: badge.content }}
                 />
@@ -602,6 +616,7 @@ function Node({
           width={CARD_ICON}
           height={CARD_ICON}
           viewBox={asset.viewBox}
+          style={asset.monochrome ? { color: theme.text } : undefined}
           // Vendored SVG from the sync script, never user input.
           dangerouslySetInnerHTML={{ __html: asset.content }}
         />
@@ -668,6 +683,7 @@ function Node({
         width={mark}
         height={mark}
         viewBox={asset.viewBox}
+        style={asset.monochrome ? { color: theme.text } : undefined}
         // Vendored SVG from the sync script, never user input.
         dangerouslySetInnerHTML={{ __html: asset.content }}
       />
@@ -762,7 +778,7 @@ function EdgePath({
         strokeWidth={1.5}
         strokeDasharray={meta?.style === 'dashed' ? '1 5' : undefined}
         strokeLinecap={meta?.style === 'dashed' ? 'round' : undefined}
-        markerEnd={`url(#${markerId(meta?.status)})`}
+        markerEnd={`url(#${markerId(meta?.status, !!meta?.toPort && !!(ir.entry || byId.get(meta.to)?.entry))})`}
       />
       {/* A second path over the first: the line stays where it was and only the dashes travel. */}
       {flow && animates(meta) ? (

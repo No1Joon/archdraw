@@ -34,7 +34,13 @@ export interface ElementRef {
 }
 export interface Diagnostic {
   id: string
-  code: 'edge-detour' | 'response-route' | 'label-overlap' | 'label-clipped' | 'edge-crossing'
+  code:
+    | 'edge-detour'
+    | 'response-route'
+    | 'label-overlap'
+    | 'label-clipped'
+    | 'edge-crossing'
+    | 'edge-overlap'
   severity: 'warning' | 'info'
   elements: ElementRef[]
   message: string
@@ -97,6 +103,27 @@ function intersection(a: Segment, b: Segment): Point | undefined {
     (segment.first && same(point, segment.a)) || (segment.last && same(point, segment.b))
   if (end(a) || end(b)) return
   return point
+}
+
+function sharedRail(a: Segment, b: Segment): Bounds | undefined {
+  if (
+    Math.abs(a.a.x - a.b.x) < EPSILON &&
+    Math.abs(b.a.x - b.b.x) < EPSILON &&
+    Math.abs(a.a.x - b.a.x) < EPSILON
+  ) {
+    const top = Math.max(Math.min(a.a.y, a.b.y), Math.min(b.a.y, b.b.y))
+    const bottom = Math.min(Math.max(a.a.y, a.b.y), Math.max(b.a.y, b.b.y))
+    if (bottom - top > 2) return { x: a.a.x, y: top, width: 0, height: bottom - top }
+  }
+  if (
+    Math.abs(a.a.y - a.b.y) < EPSILON &&
+    Math.abs(b.a.y - b.b.y) < EPSILON &&
+    Math.abs(a.a.y - b.a.y) < EPSILON
+  ) {
+    const left = Math.max(Math.min(a.a.x, a.b.x), Math.min(b.a.x, b.b.x))
+    const right = Math.min(Math.max(a.a.x, a.b.x), Math.max(b.a.x, b.b.x))
+    if (right - left > 2) return { x: left, y: a.a.y, width: right - left, height: 0 }
+  }
 }
 
 function crossesLabel(segment: Segment, bounds: Bounds): boolean {
@@ -352,13 +379,29 @@ export function diagnose(ir: Ir, root: ElkNode): QualityReport {
     }
   }
   const crossings = new Set<string>()
+  const rails = new Set<string>()
   for (let i = 0; i < segments.length; i++) {
     const a = segments[i] as Segment
     for (const b of segments.slice(i + 1)) {
       if (a.element.id === b.element.id) continue
+      const sharedEnd =
+        (a.first && b.first && a.from === b.from) || (a.last && b.last && a.to === b.to)
+      const overlap = ir.wrap && !sharedEnd ? sharedRail(a, b) : undefined
+      const pair = [a.element.id, b.element.id].sort()
+      if (overlap && !rails.has(pair.join(':'))) {
+        rails.add(pair.join(':'))
+        add({
+          code: 'edge-overlap',
+          severity: 'warning',
+          cause: 'wrap',
+          elements: [a.element, b.element],
+          bounds: overlap,
+          message: `Wrapped routes ${a.element.id} and ${b.element.id} share a line segment.`,
+          hint: 'Declare return edges with layout: back for exterior lanes, or adjust entry, group direction and node order.',
+        })
+      }
       const point = intersection(a, b)
       if (!point) continue
-      const pair = [a.element.id, b.element.id].sort()
       const key = `${pair.join(':')}:${point.x.toFixed(1)},${point.y.toFixed(1)}`
       if (crossings.has(key)) continue
       crossings.add(key)

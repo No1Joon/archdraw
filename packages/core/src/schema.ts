@@ -47,6 +47,8 @@ export const FlatNodeSchema = z
     direction: z.enum(['RIGHT', 'DOWN']).optional(),
     /** Named connection points on this group boundary. */
     ports: z.array(PortSchema).optional(),
+    /** First direct child in this group's flow. */
+    entry: Id.optional(),
   })
   .strict()
 
@@ -71,6 +73,8 @@ export const EdgeSchema = z
     toPort: Id.optional(),
     /** A response may intentionally travel against the layout direction. */
     role: z.enum(['request', 'response']).optional(),
+    /** Layout intent only; back edges use an exterior lane between siblings. */
+    layout: z.enum(['forward', 'back']).optional(),
     label: z.string().optional(),
     style: z.enum(['solid', 'dashed']).default('solid'),
     /** Whether this connection exists yet. Independent of the nodes it joins. */
@@ -101,6 +105,10 @@ const Base = {
   shape: z.enum(['icon', 'card']).default('icon'),
   /** Fold a long chain into several rows. Without it the canvas grows in one direction forever. */
   wrap: z.boolean().default(false),
+  /** First top-level node/group in the flow. */
+  entry: Id.optional(),
+  /** Default edge animation; an explicit edge setting takes precedence. */
+  animation: z.enum(['none', 'flow']).optional(),
   /** Count each group's contents by status in its header. The group's own status stays its own. */
   rollup: z.boolean().default(false),
   /** States the diagram can be read in. Only the HTML page draws them; SVG and PNG show all. */
