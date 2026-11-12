@@ -69,6 +69,8 @@ Every field is in [`docs/schema.md`](https://github.com/No1Joon/archdraw/blob/ma
 
 A validation failure throws `DiagramError`, and the message carries what is wrong, why, and the clue to fix it — an unknown slug, a dangling edge, a duplicate id.
 
+`DiagramError.issue` exposes a `DiagramIssue` with `code`, `severity`, `message`, input `path`, element ids, and optional `hint`/icon `suggestions`. Syntax failures from `parse()` also throw `DiagramError` with `code: 'parse-error'` and line/column when known. Existing `message`/`hint` properties remain available. The CLI exposes this as `--check --json`; see the [validation report contract](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md#validation-json).
+
 ```
 Unknown type 'lambdaa'.
   Did you mean: lambda?

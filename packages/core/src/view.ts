@@ -16,10 +16,15 @@ export function selectView(ir: Ir, options: ViewOptions = {}): Ir {
 
 function scenarioView(ir: Ir, options: ViewOptions): Ir {
   const { scenario, focus } = options
-  if (focus && !scenario) throw new DiagramError('Focus requires a scenario id.')
+  if (focus && !scenario)
+    throw new DiagramError('Focus requires a scenario id.', 'Pass --scenario <id> with --focus.', {
+      code: 'scenario-required',
+    })
   if (!scenario) return ir
   if (!ir.scenarios.some((entry) => entry.id === scenario)) {
-    throw new DiagramError(`Unknown scenario '${scenario}'.`, 'Use an id from `scenarios`.')
+    throw new DiagramError(`Unknown scenario '${scenario}'.`, 'Use an id from `scenarios`.', {
+      code: 'unknown-scenario',
+    })
   }
   if (!focus) return ir
   const byId = new Map(ir.nodes.map((node) => [node.id, node]))
@@ -47,7 +52,11 @@ function collapseGroups(ir: Ir, override: string[] | undefined, full: Ir): Ir {
   )
   for (const id of collapsed) {
     if (!full.nodes.some((node) => node.id === id && node.isGroup)) {
-      throw new DiagramError(`Cannot collapse '${id}': it is not a group.`)
+      throw new DiagramError(
+        `Cannot collapse '${id}': it is not a group.`,
+        'Choose an existing group id.',
+        { code: 'invalid-collapse', elements: [{ kind: 'node', id }] },
+      )
     }
   }
   if (!collapsed.size) return ir

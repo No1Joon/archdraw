@@ -67,6 +67,8 @@ nodes:
 
 ## 오류
 
+`DiagramError.issue`는 `code`·`severity`·`message`·입력 `path`·요소 ID와 선택적인 `hint`·아이콘 `suggestions`를 담는 `DiagramIssue`다. `parse()`의 문법 오류도 `DiagramError`이며 `parse-error` 코드와 확인 가능한 줄·열을 담는다. 기존 `message`·`hint`도 유지한다. CLI에서는 `--check --json`으로 읽는다. [검증 보고서 계약](https://github.com/No1Joon/archdraw/blob/main/docs/agents.ko.md#검증-json)을 참고한다.
+
 검증 실패는 `DiagramError` 로 던지고, 메시지에 무엇이 왜 틀렸는지와 고칠 단서를 담는다 — 없는 slug, 끊긴 edge, 중복 id.
 
 ```

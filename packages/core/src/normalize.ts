@@ -41,13 +41,37 @@ export interface Ir {
   scenarios: Scenario[]
 }
 
+export interface DiagramIssue {
+  code: string
+  severity: 'error'
+  message: string
+  hint?: string
+  path: (string | number)[]
+  elements: { kind: 'node' | 'edge'; id: string }[]
+  suggestions?: string[]
+  line?: number
+  column?: number
+}
+
 export class DiagramError extends Error {
+  readonly issue: DiagramIssue
+
   constructor(
     message: string,
     readonly hint?: string,
+    details: Partial<Omit<DiagramIssue, 'message' | 'severity' | 'hint'>> = {},
   ) {
     super(hint ? `${message}\n  ${hint}` : message)
     this.name = 'DiagramError'
+    this.issue = {
+      code: 'invalid-diagram',
+      severity: 'error',
+      message,
+      hint,
+      path: [],
+      elements: [],
+      ...details,
+    }
   }
 }
 
@@ -56,23 +80,70 @@ export function normalize(input: unknown): Ir {
   const parsed = DiagramSchema.safeParse(input)
   if (!parsed.success) {
     const first = parsed.error.issues[0]
+    const path = first?.path.map((part) => (typeof part === 'number' ? part : String(part))) ?? []
+    let value = input
+    let element: DiagramIssue['elements'][number] | undefined
+    for (let depth = 0; depth <= path.length; depth++) {
+      if (value && typeof value === 'object') {
+        const entry = value as Record<string, unknown>
+        const collection = path[depth - 2]
+        const id =
+          typeof entry.id === 'string'
+            ? entry.id
+            : typeof entry.from === 'string' && typeof entry.to === 'string'
+              ? `${entry.from}->${entry.to}`
+              : undefined
+        if (id && ['nodes', 'groups', 'children', 'edges'].includes(String(collection))) {
+          element = { kind: collection === 'edges' ? 'edge' : 'node', id }
+        }
+        const part = path[depth]
+        value = part === undefined ? undefined : entry[part]
+      }
+    }
     throw new DiagramError(
       `Invalid diagram at ${first?.path.join('.') || '<root>'}: ${first?.message}`,
+      'Use `archdraw schema` for the input contract.',
+      { code: 'invalid-schema', path, elements: element ? [element] : [] },
     )
   }
 
   const doc = parsed.data
   const nodes: FlatNode[] = []
   const seen = new Set<string>()
+  const paths = new Map<string, (string | number)[]>()
+  const nodeDetails = (code: string, id: string, field?: string) => ({
+    code,
+    path: [...(paths.get(id) ?? []), ...(field ? [field] : [])],
+    elements: [{ kind: 'node' as const, id }],
+  })
+  const edgeDetails = (code: string, edge: Edge, index: number, field?: string) => ({
+    code,
+    path: ['edges', index, ...(field ? [field] : [])],
+    elements: [{ kind: 'edge' as const, id: edge.id ?? `${edge.from}->${edge.to}` }],
+  })
   // What each entry said about itself. Inheritance is resolved once the parents are all known,
   // because the flat form names a parent that may be declared further down the file.
   const saidExternal = new Map<string, boolean>()
 
-  const walk = (entry: NodeEntry, parent: string | null, declared = false): void => {
+  const walk = (
+    entry: NodeEntry,
+    parent: string | null,
+    declared: boolean,
+    path: (string | number)[],
+  ): void => {
     if (seen.has(entry.id)) {
-      throw new DiagramError(`Duplicate id '${entry.id}'.`)
+      throw new DiagramError(
+        `Duplicate id '${entry.id}'.`,
+        'Give every node and group a unique id.',
+        {
+          code: 'duplicate-node',
+          path: [...path, 'id'],
+          elements: [{ kind: 'node', id: entry.id }],
+        },
+      )
     }
     seen.add(entry.id)
+    paths.set(entry.id, path)
 
     // What it holds, not what it calls itself: `kind` names a container but does not make one,
     // so writing it on an ordinary node draws that node rather than an empty box around it.
@@ -98,11 +169,13 @@ export function normalize(input: unknown): Ir {
     })
     if (entry.external !== undefined) saidExternal.set(entry.id, entry.external)
 
-    for (const child of entry.children ?? []) walk(child, entry.id)
+    entry.children?.forEach((child, index) =>
+      walk(child, entry.id, false, [...path, 'children', index]),
+    )
   }
 
-  for (const entry of doc.groups) walk(entry, null, true)
-  for (const entry of doc.nodes) walk(entry, null)
+  doc.groups.forEach((entry, index) => walk(entry, null, true, ['groups', index]))
+  doc.nodes.forEach((entry, index) => walk(entry, null, false, ['nodes', index]))
 
   // The other half of the flat form: `parent` names a container whether or not it was declared
   // under `groups`. A leaf with children is not built, and the children go with it.
@@ -116,22 +189,36 @@ export function normalize(input: unknown): Ir {
       throw new DiagramError(
         `Node '${node.id}' has group-only direction or ports.`,
         'Add children or declare it under `groups`.',
+        nodeDetails(
+          'group-only-field',
+          node.id,
+          node.direction !== undefined ? 'direction' : 'ports',
+        ),
       )
     }
     const ports = new Set<string>()
     for (const port of node.ports ?? []) {
       if (ports.has(port.id))
-        throw new DiagramError(`Duplicate port '${port.id}' on group '${node.id}'.`)
+        throw new DiagramError(
+          `Duplicate port '${port.id}' on group '${node.id}'.`,
+          'Give each port on this group a unique id.',
+          nodeDetails('duplicate-port', node.id, 'ports'),
+        )
       ports.add(port.id)
     }
     if (node.collapsed !== undefined && !node.isGroup) {
       throw new DiagramError(
         `Node '${node.id}' has \`collapsed\` but is not a group.`,
         'Add children or declare it under `groups`.',
+        nodeDetails('group-only-field', node.id, 'collapsed'),
       )
     }
     if (node.parent !== null && !seen.has(node.parent)) {
-      throw new DiagramError(`Node '${node.id}' has parent '${node.parent}', which does not exist.`)
+      throw new DiagramError(
+        `Node '${node.id}' has parent '${node.parent}', which does not exist.`,
+        'Use an existing group id or omit parent.',
+        nodeDetails('unknown-parent', node.id, 'parent'),
+      )
     }
   }
 
@@ -146,20 +233,26 @@ export function normalize(input: unknown): Ir {
         throw new DiagramError(
           `Node '${node.id}' is inside itself: ${[...path, cursor].join(' -> ')}.`,
           'A parent chain must end at the top level.',
+          nodeDetails('parent-cycle', node.id, 'parent'),
         )
       }
       path.push(cursor)
     }
   }
-  for (const edge of doc.edges) {
-    for (const end of [edge.from, edge.to] as const) {
+  for (const [index, edge] of doc.edges.entries()) {
+    for (const field of ['from', 'to'] as const) {
+      const end = edge[field]
       if (!seen.has(end)) {
-        throw new DiagramError(`Edge ${edge.from} -> ${edge.to} references unknown node '${end}'.`)
+        throw new DiagramError(
+          `Edge ${edge.from} -> ${edge.to} references unknown node '${end}'.`,
+          'Declare the endpoint or use an existing node id.',
+          edgeDetails('unknown-node', edge, index, field),
+        )
       }
     }
   }
 
-  for (const edge of doc.edges) {
+  for (const [index, edge] of doc.edges.entries()) {
     for (const [end, field] of [
       ['from', 'fromPort'],
       ['to', 'toPort'],
@@ -172,6 +265,7 @@ export function normalize(input: unknown): Ir {
         throw new DiagramError(
           `Edge ${edge.from} -> ${edge.to} names unknown port '${port}' on '${edge[end]}'.`,
           'Declare the port on the endpoint group with an id and side.',
+          edgeDetails('unknown-port', edge, index, field),
         )
       }
     }
@@ -181,12 +275,13 @@ export function normalize(input: unknown): Ir {
   // renames this one. Only a second edge between the same pair takes a suffix. `>` is not an id
   // character, so a generated name cannot collide with one somebody wrote.
   const edgeIds = new Set<string>()
-  for (const edge of doc.edges) {
+  for (const [index, edge] of doc.edges.entries()) {
     if (!edge.id) continue
     if (edgeIds.has(edge.id)) {
       throw new DiagramError(
         `Duplicate edge id '${edge.id}'.`,
         'Edge ids must be unique among edges.',
+        edgeDetails('duplicate-edge', edge, index, 'id'),
       )
     }
     edgeIds.add(edge.id)
@@ -203,27 +298,52 @@ export function normalize(input: unknown): Ir {
   // A named scenario that does not exist would silently drop the element from every scene, so
   // it is an error with the declared names attached rather than a picture missing a line.
   const scenarios = new Set<string>()
-  for (const scenario of doc.scenarios) {
+  for (const [index, scenario] of doc.scenarios.entries()) {
     if (scenarios.has(scenario.id))
-      throw new DiagramError(`Duplicate scenario id '${scenario.id}'.`)
+      throw new DiagramError(
+        `Duplicate scenario id '${scenario.id}'.`,
+        'Give every scenario a unique id.',
+        { code: 'duplicate-scenario', path: ['scenarios', index, 'id'] },
+      )
     scenarios.add(scenario.id)
   }
   const known = [...scenarios].join(', ')
-  const checkWhen = (where: string, field: 'when' | 'down', ids: string[] | undefined): void => {
-    for (const id of ids ?? []) {
+  const checkWhen = (
+    where: string,
+    field: 'when' | 'down',
+    ids: string[] | undefined,
+    details: Pick<DiagramIssue, 'code' | 'path' | 'elements'>,
+  ): void => {
+    for (const [index, id] of (ids ?? []).entries()) {
       if (scenarios.has(id)) continue
       throw new DiagramError(
         `${where} names scenario '${id}' in \`${field}\`, which is not declared.`,
         known ? `Declared scenarios: ${known}.` : 'The diagram declares no `scenarios`.',
+        { ...details, path: [...details.path, index] },
       )
     }
   }
   for (const node of nodes) {
-    checkWhen(`Node '${node.id}'`, 'when', node.when)
-    checkWhen(`Node '${node.id}'`, 'down', node.down)
+    checkWhen(
+      `Node '${node.id}'`,
+      'when',
+      node.when,
+      nodeDetails('unknown-scenario', node.id, 'when'),
+    )
+    checkWhen(
+      `Node '${node.id}'`,
+      'down',
+      node.down,
+      nodeDetails('unknown-scenario', node.id, 'down'),
+    )
   }
-  for (const edge of doc.edges) {
-    checkWhen(`Edge ${edge.from} -> ${edge.to}`, 'when', edge.when)
+  for (const [index, edge] of doc.edges.entries()) {
+    checkWhen(
+      `Edge ${edge.from} -> ${edge.to}`,
+      'when',
+      edge.when,
+      edgeDetails('unknown-scenario', edge, index, 'when'),
+    )
   }
 
   // The nearest word wins: a group says it for everything inside it, a child may say otherwise.

@@ -32,6 +32,7 @@ import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
 import { Command } from 'commander'
 import { renderGif } from './gif.js'
+import { checkIcons, validationReport } from './validation.js'
 
 const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
 
@@ -167,6 +168,7 @@ program
   .option('-s, --scale <n>', 'PNG/GIF scale factor', '2')
   .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
   .option('--check', 'validate the diagram and write nothing')
+  .option('--json', 'print a versioned validation report; requires --check')
   .option('--scenario <id>', 'select one declared scenario')
   .option('--focus', 'hide inactive elements and lay out the selected scenario again')
   .option('--collapse <ids>', 'collapse comma-separated group ids; all collapses every group')
@@ -174,6 +176,13 @@ program
   .option('--diagnostics <file>', 'write quality diagnostics as JSON; - prints JSON instead of SVG')
   .action(async (input: string, options) => {
     await run(async () => {
+      if (options.json && (!options.check || options.out || options.diagnostics)) {
+        throw new DiagramError(
+          '--json requires --check without --out or --diagnostics.',
+          'Use --check --json for validation; use --diagnostics for layout quality.',
+          { code: 'invalid-options' },
+        )
+      }
       const source = input === '-' ? readFileSync(0, 'utf8') : readFileSync(input, 'utf8')
       const document = parse(source)
       const ir = normalize(document)
@@ -201,13 +210,14 @@ program
       }
       // The flag wins when given; otherwise the diagram says which packs it needs.
       const icons = iconsFor(options.provider ?? ir.provider)
-      reportProviderDrift(ir, options.provider)
-      reportLiteralBreaks(ir)
+      if (!options.json) {
+        reportProviderDrift(ir, options.provider)
+        reportLiteralBreaks(ir)
+      }
       if (options.check) {
-        ir.nodes.forEach((node) => {
-          if (node.type) icons.resolve(node.type)
-        })
-        console.error('ok')
+        checkIcons(document, ir, icons)
+        if (options.json) console.log(JSON.stringify(validationReport(), null, 2))
+        else console.error('ok')
         return
       }
       const extension = extname(options.out ?? '').toLowerCase()
@@ -232,7 +242,7 @@ program
         else writeFileSync(options.diagnostics, json)
       }
       if (options.diagnostics !== '-' || options.out) write(markup, options.out, scale)
-    })
+    }, options.json)
   })
 
 /** Nothing is drawn until the file first parses; this page waits for that and shows why not. */
@@ -568,15 +578,12 @@ function write(markup: string | Uint8Array, out: string | undefined, scale: numb
   console.error(`wrote ${out}`)
 }
 
-async function run(action: () => Promise<void>) {
+async function run(action: () => Promise<void>, json = false) {
   try {
     await action()
   } catch (error) {
-    if (error instanceof DiagramError) {
-      console.error(error.message)
-    } else {
-      console.error(error instanceof Error ? error.message : String(error))
-    }
+    if (json) console.log(JSON.stringify(validationReport(error), null, 2))
+    else console.error(error instanceof Error ? error.message : String(error))
     process.exitCode = 1
   }
 }
