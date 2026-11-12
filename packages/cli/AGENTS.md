@@ -14,6 +14,8 @@ cat diagram.yaml | npx archdraw - -o out.png -s 2   # 3. draw
 
 `npx archdraw schema` prints the input contract as JSON Schema; `--flat` prints the flat shape only.
 
+`archdraw diagram.yaml --check --json` emits one report to stdout: `{version:1,valid:true,errors:[]}` on success (exit 0), or `valid:false` with the first blocking error (exit 1). Errors have a stable `code`, `severity:"error"`, `message`, an input `path` (zero-based indices), and `elements:[{kind:"node"|"edge",id}]` when known. Optional `hint` and icon `suggestions` guide a fix; syntax errors use `parse-error` with one-based `line`/`column` when known. Fix the first error and validate again. Paths/element lists may be empty for command or I/O errors. Branch on `version`/`code`, not wording. No human warnings are mixed into the report. Unknown command flags still use Commander's stderr errors. This mode requires `--check` and excludes `--out` and `--diagnostics`; it does not run layout. Validation and layout diagnostics do not prove design correctness.
+
 ## Commands
 
 ```

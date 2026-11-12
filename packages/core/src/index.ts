@@ -1,11 +1,11 @@
 import type { ElkNode } from 'elkjs'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { parse as parseYaml } from 'yaml'
+import { parse as parseYaml, YAMLParseError } from 'yaml'
 import { page } from './html.js'
 import { createResolver, type IconPack, type IconResolver } from './icons.js'
 import { layout } from './layout.js'
 import type { Ir } from './normalize.js'
-import { normalize } from './normalize.js'
+import { DiagramError, normalize } from './normalize.js'
 import { Diagram, defaultTheme, FLOW_DURATION, FLOW_PERIOD, type Theme } from './render.js'
 import { selectView, type ViewOptions } from './view.js'
 
@@ -16,7 +16,7 @@ export type { IconAsset, IconPack, IconResolver } from './icons.js'
 export { createResolver } from './icons.js'
 export type { Detour } from './layout.js'
 export { DETOUR_RATIO, detours, layout } from './layout.js'
-export type { FlatNode, Ir, IrEdge } from './normalize.js'
+export type { DiagramIssue, FlatNode, Ir, IrEdge } from './normalize.js'
 export { DiagramError, normalize } from './normalize.js'
 export type { DiagramProps, Theme } from './render.js'
 export { Diagram, darkTheme, defaultTheme } from './render.js'
@@ -45,7 +45,21 @@ export interface RenderOptions extends ViewOptions {
 
 /** Parses YAML or JSON source into the untyped document `normalize` accepts. */
 export function parse(source: string): unknown {
-  return parseYaml(source)
+  try {
+    return parseYaml(source)
+  } catch (error) {
+    if (!(error instanceof YAMLParseError)) throw error
+    const at = error.linePos?.[0]
+    throw new DiagramError(
+      error.message,
+      'Fix the YAML/JSON syntax before validating the diagram.',
+      {
+        code: 'parse-error',
+        line: at?.line,
+        column: at?.col,
+      },
+    )
+  }
 }
 
 function toResolver(icons: RenderOptions['icons']): IconResolver {

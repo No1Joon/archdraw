@@ -35,9 +35,12 @@ A node with a `type` is drawn as a vendor icon; one without is drawn as a labell
 
 ## CLI
 
+For automation, `--check --json` emits validation errors with codes, input paths, element ids and fix hints. See the [validation report contract](./docs/agents.md#validation-json).
+
 ```bash
 archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # render. `-` reads stdin; without -o, writes stdout
 archdraw <input> --check                                  # validate only. exits 1 on failure
+archdraw <input> --check --json                           # validation report for automation
 archdraw types <query> [-p aws,brands]                    # search the types you can use
 archdraw schema [--flat]                                  # print the input contract as JSON Schema
 archdraw serve <file> --watch [--port 4173]               # a live page that redraws on save
@@ -245,6 +248,8 @@ pnpm changeset      # propose a version
 ```
 
 Node 22.23.5, pnpm 10. Run `fnm install` and `fnm use` to select the version in `.node-version` before `pnpm install`. CI and npm publishing read the same file. Workspace installs enforce the Node requirement with `engine-strict=true`. `pnpm icons:sync` uses `unzip`.
+
+CI runs the full checks on Node 22, then reuses the build and installed dependencies for CLI runtime smoke checks on Node 24 and 26. It does not repeat the full suite or rebuild on those versions. Transitive security patches for Vite and launch-editor are pinned in `pnpm.overrides`.
 
 ## Licence
 

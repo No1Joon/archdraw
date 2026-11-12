@@ -48,6 +48,32 @@ Unknown type 'lambdaa'.
 
 A `type` that does not resolve is **never** replaced with a similar icon. A wrong icon rendered as though it were right makes the diagram lie.
 
+## Validation JSON
+
+`archdraw diagram.yaml --check --json` writes one JSON report to stdout and no human messages to stderr. It exits 0 for valid input and 1 for invalid input. It does not render or run layout; omit `--json` for the existing human-readable output.
+
+```json
+{
+  "version": 1,
+  "valid": false,
+  "errors": [{
+    "code": "unknown-type",
+    "severity": "error",
+    "message": "Unknown type 'lambdaa'.",
+    "hint": "Did you mean: lambda?",
+    "path": ["nodes", 0, "type"],
+    "elements": [{ "kind": "node", "id": "api" }],
+    "suggestions": ["lambda"]
+  }]
+}
+```
+
+A valid report is `{"version":1,"valid":true,"errors":[]}`. Invalid input reports the first blocking error; fix it and validate again. `path` uses zero-based indices in the original nested or flat input. `elements` identifies a known node/edge; it may be empty when no element is known. `hint` and `suggestions` are optional. YAML/JSON syntax errors use `code: "parse-error"` and include one-based `line` and `column` when available. Argument and I/O errors have an empty path. Unknown icon types include candidates without substituting an icon.
+
+Codes are `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `unknown-type`, `invalid-options`, `io-error`, and fallback `validation-error` / `invalid-diagram`. Branch on `version` and `code`, not message wording. Commander argument-parsing errors (such as an unknown flag) retain their normal stderr output.
+
+`--json` requires `--check` and cannot be combined with `--out` or `--diagnostics`. Quality diagnostics require layout and use their separate report. Validation checks the input contract and references; quality diagnostics check rendering geometry. Neither proves that the architecture or its connections are semantically correct.
+
 ## Choosing packs
 
 | Pack | What is in it |

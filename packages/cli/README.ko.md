@@ -30,6 +30,7 @@ YAML
 ```bash
 archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # 렌더. input 이 - 면 stdin, -o 생략 시 stdout
 archdraw <input> --check                                  # 검증만. 실패 시 exit 1
+archdraw <input> --check --json                           # 자동화용 검증 보고서
 archdraw types <query> [-p aws,brands]                    # 쓸 수 있는 type 검색
 archdraw schema [--flat]                                  # 입력 계약을 JSON Schema 로
 ```
@@ -41,6 +42,8 @@ archdraw schema [--flat]                                  # 입력 계약을 JSO
 | `-s, --scale <n>` | PNG/GIF 배율. 0 초과 10 이하. 기본 `2` |
 | `--theme <name>` | `light` 또는 `dark`. 기본 `light` |
 | `--check` | 아무것도 쓰지 않고 검증만 |
+
+`--check --json`은 stdout에 버전이 있는 보고서를 쓴다(exit 0/1). 첫 차단 오류의 코드·입력 경로·요소 ID·수정 힌트를 담는다. `--check`와 함께 쓰며 `--out`·`--diagnostics`와 조합할 수 없다. [보고서 계약](https://github.com/No1Joon/archdraw/blob/main/docs/agents.ko.md#검증-json).
 
 ## 에이전트로 쓸 때
 

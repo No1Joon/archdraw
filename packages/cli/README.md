@@ -30,6 +30,7 @@ A node with a `type` is drawn as a vendor icon; one without is drawn as a labell
 ```bash
 archdraw <input> [-o out] [-p aws,brands] [--theme dark]  # render. `-` reads stdin; without -o, writes stdout
 archdraw <input> --check                                  # validate only. exits 1 on failure
+archdraw <input> --check --json                           # validation report for automation
 archdraw types <query> [-p aws,brands]                    # search the types you can use
 archdraw schema [--flat]                                  # print the input contract as JSON Schema
 ```
@@ -41,6 +42,8 @@ archdraw schema [--flat]                                  # print the input cont
 | `-s, --scale <n>` | PNG/GIF scale factor, greater than 0 and at most 10. Defaults to `2` |
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |
+
+`--check --json` writes a versioned report to stdout (exit 0/1). Errors include codes, input paths, element ids and fix hints; it reports the first blocking error. It requires `--check` without `--out` or `--diagnostics`. [Report contract](https://github.com/No1Joon/archdraw/blob/main/docs/agents.md#validation-json).
 
 ## Using it from an agent
 

@@ -41,7 +41,10 @@ export function createResolver(...packs: IconPack[]): IconResolver {
       if (asset) return asset
 
       const guesses = suggest(type, names)
-      throw new DiagramError(`Unknown type '${type}'.`, hint(guesses, providers))
+      throw new DiagramError(`Unknown type '${type}'.`, hint(guesses, providers), {
+        code: 'unknown-type',
+        suggestions: guesses,
+      })
     },
   }
 }
