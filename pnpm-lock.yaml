@@ -45,6 +45,9 @@ importers:
       '@archdraw/icons-aws':
         specifier: workspace:*
         version: link:../icons-aws
+      '@archdraw/icons-basic':
+        specifier: workspace:*
+        version: link:../icons-basic
       '@archdraw/icons-brands':
         specifier: workspace:*
         version: link:../icons-brands
@@ -97,6 +100,8 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/icons-aws: {}
+
+  packages/icons-basic: {}
 
   packages/icons-brands: {}
 

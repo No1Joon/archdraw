@@ -961,8 +961,10 @@ describe('toJsonSchema', () => {
     }
 
     expect(Object.keys(schema.properties).sort()).toEqual([
+      'animation',
       'direction',
       'edges',
+      'entry',
       'groups',
       'nodes',
       'provider',

@@ -49,7 +49,7 @@ archdraw serve <file> --watch [--port 4173]               # a live page that red
 | Option | |
 |---|---|
 | `-o, --out <file>` | `.png` rasterises, `.gif` loops the traffic animation, `.html` writes an interactive viewer, anything else is SVG. Omit for stdout |
-| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to the diagram's own `provider` |
+| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands,basic`). Defaults to the diagram's own `provider` |
 | `-s, --scale <n>` | PNG/GIF scale factor, greater than 0 and at most 10. Defaults to `2` |
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |
@@ -219,15 +219,38 @@ Rendered the same way. Open one to see it.
 | [`docs/agents.md`](./docs/agents.md) | Using it from an agent — explore vocabulary → validate → render |
 | [`examples/`](./examples) | The source YAML for every [example](#examples) above |
 
+
+## Workflow pictograms
+
+Use `provider: basic` for vendor-neutral roles, or `provider: aws,brands,basic` to mix them with service icons. Canonical names start with `basic-` so they cannot replace existing service marks. English aliases also use this prefix; Korean aliases such as `대기` are available too.
+
+```bash
+npx archdraw types 대기 확인 분기 오류 -p basic
+npx archdraw examples/workflow-loops.yaml -o workflow.png
+```
+
+```yaml
+provider: basic
+shape: card
+animation: none
+nodes:
+  - { id: waiting, type: basic-clock, label: Await confirmation }
+  - { id: decide, type: basic-branch, label: Result decision }
+  - { id: failed, type: basic-error, label: Failure }
+```
+
+The [64-icon catalogue](./packages/icons-basic/README.md) lists all names. For loops, use root/group `entry`, `layout: forward` on main-flow edges and `layout: back` on sibling return edges; see [the contract and limits](./docs/schema.md#workflow-entry-and-return-lanes). Document `animation: none` keeps HTML/GIF still unless an edge explicitly opts into `flow`.
+
 ## Packages
 
 | Package | Role |
 |---|---|
-| [`archdraw`](./packages/cli) | The CLI. Bundles all three icon packs and a font, so `npx` works straight away |
+| [`archdraw`](./packages/cli) | The CLI. Bundles all four icon packs and a font, so `npx` works straight away |
 | [`@archdraw/core`](./packages/core) | Parse, validate, ELK layout, SVG render. Carries no icon assets |
 | [`@archdraw/react`](./packages/react) | The `<Architecture />` component |
 | [`@archdraw/icons-aws`](./packages/icons-aws) · [`@archdraw/icons-gcp`](./packages/icons-gcp) | Official cloud icons plus a slug/alias registry. Zero dependencies |
 | [`@archdraw/icons-brands`](./packages/icons-brands) | Brand and OSS icons (Simple Icons, CC0). Redis, nginx, MongoDB and friends |
+| [`@archdraw/icons-basic`](./packages/icons-basic) | 64 original role/action pictograms: waiting, confirmation, branching, errors, documents and infrastructure (MIT) |
 
 ## About the rendering
 

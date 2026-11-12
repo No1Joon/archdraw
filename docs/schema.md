@@ -8,9 +8,11 @@
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `provider` | `aws` \| `gcp` \| `brands` | `aws` | Icon packs to draw with. The CLI uses this unless `-p` is given, and `-p aws,brands` loads several |
+| `provider` | `aws` \| `gcp` \| `brands` \| `basic` | `aws` | Icon packs to draw with. The CLI uses this unless `-p` is given, and `-p aws,brands` loads several |
 | `title` | string | — | The SVG `<title>` and the accessible label |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | Default flow direction; a group may override it |
+| `entry` | string | — | Preferred first top-level node or group; must be a direct child |
+| `animation` | `none` \| `flow` | — | Document default for HTML/GIF edge motion; explicit edge values override it |
 | `shape` | `icon` \| `card` | `icon` | Default node presentation. `icon` puts the name under the mark (the AWS convention); `card` puts it beside the mark (the GCP convention) |
 | `wrap` | boolean | `false` | Fold a long chain into several rows. Without it a 200-node chain renders as one strip tens of thousands of pixels wide |
 | `rollup` | boolean | `false` | Count each group's contents by status in its header — `2/3 done`. The group's own status stays its own |
@@ -36,6 +38,7 @@
 | `down` | string[] | — | The scenario ids this has failed in — drawn drained of colour rather than merely absent |
 | `collapsed` | boolean | — | Start a group as a compact overview; leaf nodes reject this field |
 | `direction` | `RIGHT` \| `DOWN` | — | Direction inside a group; nested groups inherit it |
+| `entry` | string | — | Preferred first direct child of this group; group-only |
 | `ports` | `{ id, side }[]` | — | Named group boundary points; side is `NORTH`, `EAST`, `SOUTH` or `WEST` |
 | `children` | Node[] | — | Child nodes, in the nested shape |
 
@@ -58,6 +61,7 @@ A node is a container if it has `children`, is listed under `groups`, or somethi
 | `to` | string | ✓ | Target node id |
 | `fromPort` / `toPort` | string | — | Port declared on the corresponding endpoint group |
 | `role` | `request` \| `response` | — | Declare actual replies so expected reverse routes are informational |
+| `layout` | `forward` \| `back` | — | Layout intent; `back` uses an exterior return lane between siblings without named ports |
 | `label` | string | — | Shown on the line |
 | `style` | `solid` \| `dashed` | — | Defaults to `solid` |
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | Whether this connection exists yet. Independent of the nodes it joins |
@@ -186,8 +190,30 @@ Keep security boundaries that describe the system. Use ports to choose entry/exi
 
 `archdraw diagram.yaml --diagnostics quality.json -o diagram.png` writes both the render and a versioned JSON quality report. `--diagnostics -` prints JSON alone to stdout (unless `-o` also requests a render file). Reports use the selected scenario/collapse view and do not change the exit status for quality warnings; invalid input still exits 1. `--check` is validation only and cannot be combined with diagnostics, which require layout.
 
-The report includes `version: 1`, `coordinateSpace: "layout"`, graph canvas dimensions, warning/info counts and `diagnostics`. Each entry has a stable `id`, `code`, `severity`, `elements` with node/edge ids, a message and a fix hint. Codes are `edge-detour`, `response-route`, `label-overlap`, `label-clipped` and `edge-crossing`; entries include a ratio/cause, label bounds or intersection point when applicable. Coordinates start at the layout graph, before the SVG title/status legend bands. Text geometry uses the same estimated metrics as layout (`textMeasurement: "estimated"`), so inspect the SVG/PNG after a suggested fix. A clean report is not a pixel-perfect guarantee; parallel overlapping rails and intentional shared endpoints are excluded from crossing reports.
+The report includes `version: 1`, `coordinateSpace: "layout"`, graph canvas dimensions, warning/info counts and `diagnostics`. Each entry has a stable `id`, `code`, `severity`, `elements` with node/edge ids, a message and a fix hint. Codes are `edge-detour`, `response-route`, `label-overlap`, `label-clipped` and `edge-crossing` and `edge-overlap`; entries include a ratio/cause, label bounds or intersection point when applicable. Coordinates start at the layout graph, before the SVG title/status legend bands. Text geometry uses the same estimated metrics as layout (`textMeasurement: "estimated"`), so inspect the SVG/PNG after a suggested fix. A clean report is not a pixel-perfect guarantee; intentional shared endpoints are excluded from crossing reports. Wrapped diagrams additionally report collinear rail overlap as `edge-overlap` (with overlap bounds and `cause: "wrap"`); common fan-out/fan-in endpoint stubs are excluded.
 
 Mark actual reply edges `role: response` (`request` is also accepted). A long response travelling against its enclosing layout direction is reported as informational `response-route` and omitted from stderr detour warnings. Direction alone never implies a response, and a forward response with an unnecessary detour is still a warning. Keep requests and replies separate when both paths matter.
 
 Core callers can use `diagnose(ir, root)` inside `onLayout` to inspect the same render without a second layout pass.
+
+## Workflow entry and return lanes
+
+Root `entry` names a direct top-level node/group; a group's `entry` names its direct child. It is a layout hint, not an execution rule, and creates no edges. When an explicit `WEST`/`NORTH` boundary hop connects to that entry, its port aligns with the entry's leading face. Incoming arrowheads leave space for the boundary dot in entry-based layouts.
+
+Mark main-flow edges `layout: forward`. Mark a repeat/correction edge `layout: back` to remove it from forward layering and route it outside the sibling boxes after wrapping: below a `RIGHT` flow, to the right of a `DOWN` flow. Separate back edges get separate exterior lanes. Original endpoint/edge ids and arrow directions are preserved. `style` remains independent: dashed does not imply back, and back does not imply a response.
+
+A back edge must join nodes with the same immediate parent, without `fromPort`/`toPort`. Cross-group returns must use explicit boundary hops or ordinary layout; unsupported back edges fail with `invalid-back-edge`. `entry` must name a direct child or validation fails with `invalid-entry`. A group with an entry or back edges is placed independently; ordinary crossing edges are reconnected. These hints reduce route ambiguity but do not guarantee zero crossings. Inspect diagnostics and the rendered image.
+
+```yaml
+provider: basic
+entry: check
+animation: none
+nodes:
+  - { id: check, type: basic-shield }
+  - { id: answer, type: basic-message }
+edges:
+  - { from: check, to: answer, layout: forward }
+  - { from: answer, to: check, layout: back, style: dashed, label: Retry }
+```
+
+Document `animation: none` makes HTML/GIF edges still. An explicit edge `animation: flow` overrides it. Document `flow` keeps `planned`/`blocked` edges still unless that edge explicitly opts in. With no document setting, existing animation defaults are preserved. SVG/PNG remain static. See [`examples/workflow-loops.yaml`](../examples/workflow-loops.yaml).

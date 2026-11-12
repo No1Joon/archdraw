@@ -191,6 +191,19 @@ describe('a wrapped diagram with groups', () => {
 })
 
 describe('archdraw types', () => {
+  it('finds role pictograms by Korean keywords and English aliases', () => {
+    const { code, stdout } = run(['types', '대기', 'decision', '실패', '-p', 'basic'])
+    expect(code).toBe(0)
+    expect(stdout).toContain('대기 -> basic-clock')
+    expect(stdout).toContain('basic-hourglass')
+    expect(stdout).toContain('basic-decision -> basic-branch')
+    expect(stdout).toContain('실패 -> basic-error')
+  })
+
+  it('discovers the basic pack from the default cloud search', () => {
+    expect(run(['types', 'basic-clock']).stderr).toContain("Also in 'basic': basic-clock")
+  })
+
   it('resolves an alias to its canonical slug', () => {
     const { stdout } = run(['types', 'ecs'])
     expect(stdout).toContain('ecs -> amazon-elastic-container-service')
@@ -595,12 +608,13 @@ describe('icon packs together', () => {
   // Packs merge in `-p` order, so an alias that names another pack's slug silently changes
   // meaning with the order — exactly the wrong-icon substitution the packs exist to prevent.
   it('never lets one pack’s alias shadow another pack’s slug', async () => {
-    const [aws, gcp, brands] = await Promise.all([
+    const [aws, gcp, brands, basic] = await Promise.all([
       import('@archdraw/icons-aws'),
       import('@archdraw/icons-gcp'),
       import('@archdraw/icons-brands'),
+      import('@archdraw/icons-basic'),
     ])
-    const packs = [aws.awsIcons, gcp.gcpIcons, brands.brandIcons]
+    const packs = [aws.awsIcons, gcp.gcpIcons, brands.brandIcons, basic.basicIcons]
     const shadows = packs.flatMap((pack) =>
       Object.keys(pack.aliases).flatMap((alias) =>
         packs
@@ -615,6 +629,36 @@ describe('icon packs together', () => {
     const { stdout } = run(['types', 'redis', '-p', 'gcp,brands'])
     expect(stdout).toContain('redis')
     expect(stdout).not.toContain('memorystore')
+  })
+})
+
+describe('basic pictogram exports', () => {
+  it('renders distinct icons in both themes and carries them into HTML and GIF', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'archdraw-basic-'))
+    const source = (type: string) =>
+      `provider: basic\nshape: card\nanimation: none\nnodes: [{id: wait, type: ${type}, label: 대기}]\n`
+    try {
+      for (const theme of ['light', 'dark']) {
+        const a = join(dir, `${theme}-clock.png`),
+          b = join(dir, `${theme}-error.png`)
+        expect(run(['-', '--theme', theme, '-o', a, '-s', '1'], source('basic-clock')).code).toBe(0)
+        expect(run(['-', '--theme', theme, '-o', b, '-s', '1'], source('basic-error')).code).toBe(0)
+        expect(readFileSync(a).equals(readFileSync(b))).toBe(false)
+        const svg = run(['-', '--theme', theme], source('basic-clock'))
+        expect(svg.stdout).toContain('stroke="currentColor"')
+        expect(svg.stdout).toContain(`color:${theme === 'light' ? '#12181f' : '#e6edf3'}`)
+      }
+      const html = join(dir, 'view.html'),
+        gif = join(dir, 'view.gif')
+      expect(run(['-', '-o', html], source('basic-clock')).code).toBe(0)
+      expect(readFileSync(html, 'utf8')).toContain('"monochrome":true')
+      expect(run(['-', '-o', gif, '-s', '1'], source('basic-clock')).code).toBe(0)
+      const frames = decompressFrames(parseGIF(Uint8Array.from(readFileSync(gif)).buffer), true)
+      expect(frames).toHaveLength(24)
+      expect(frames[0]?.patch).toEqual(frames[12]?.patch)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
 

@@ -49,7 +49,7 @@ archdraw serve <file> --watch [--port 4173]               # 저장할 때마다 
 | 옵션 | |
 |---|---|
 | `-o, --out <file>` | 확장자가 `.png`면 정적 이미지, `.gif`면 트래픽 애니메이션, `.html`이면 인터랙티브 뷰어, 그 외는 SVG. 생략하면 stdout |
-| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 생략하면 다이어그램의 `provider` |
+| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands,basic`). 생략하면 다이어그램의 `provider` |
 | `-s, --scale <n>` | PNG/GIF 배율. 0 초과 10 이하. 기본 `2` |
 | `--theme <name>` | `light` 또는 `dark`. 기본 `light` |
 | `--check` | 아무것도 쓰지 않고 검증만 |
@@ -217,15 +217,38 @@ npx archdraw examples/startup.yaml -o startup.png
 | [`docs/agents.ko.md`](./docs/agents.ko.md) | 에이전트 사용법 — 어휘 탐색 → 검증 → 렌더 |
 | [`examples/`](./examples) | 위 [예제](#예제) 전부의 원본 YAML |
 
+
+## 워크플로 픽토그램
+
+벤더와 무관한 역할은 `provider: basic`, 서비스 아이콘과 함께 쓰려면 `provider: aws,brands,basic`을 지정한다. 정식 이름은 `basic-`으로 시작해 기존 서비스 마크를 덮어쓰지 않는다. 영어 별칭도 같은 접두사를 쓰고 `대기` 같은 한국어 별칭도 지원한다.
+
+```bash
+npx archdraw types 대기 확인 분기 오류 -p basic
+npx archdraw examples/workflow-loops.yaml -o workflow.png
+```
+
+```yaml
+provider: basic
+shape: card
+animation: none
+nodes:
+  - { id: waiting, type: basic-clock, label: 확인 대기 }
+  - { id: decide, type: basic-branch, label: 결과 분기 }
+  - { id: failed, type: basic-error, label: 실패 }
+```
+
+[아이콘 64개 목록](./packages/icons-basic/README.ko.md)에서 이름을 고른다. 반복 흐름은 최상위·그룹 `entry`, 진행 간선 `layout: forward`, 같은 부모 사이 복귀 간선 `layout: back`을 사용한다. [계약과 제한](./docs/schema.ko.md#워크플로-진입점과-복귀선)을 확인한다. 문서의 `animation: none`은 HTML·GIF 전체를 정지시키고, 간선의 명시적인 `flow`만 이를 덮어쓴다.
+
 ## 패키지
 
 | 패키지 | 역할 |
 |---|---|
-| [`archdraw`](./packages/cli) | CLI. 세 아이콘 팩과 폰트를 번들해 `npx` 로 바로 동작한다 |
+| [`archdraw`](./packages/cli) | CLI. 네 아이콘 팩과 폰트를 번들해 `npx` 로 바로 동작한다 |
 | [`@archdraw/core`](./packages/core) | 파싱·검증·ELK 레이아웃·SVG 렌더. 아이콘 자산 없음 |
 | [`@archdraw/react`](./packages/react) | `<Architecture />` 컴포넌트 |
 | [`@archdraw/icons-aws`](./packages/icons-aws) · [`@archdraw/icons-gcp`](./packages/icons-gcp) | 클라우드 공식 아이콘 + slug/alias 레지스트리. 의존성 0 |
 | [`@archdraw/icons-brands`](./packages/icons-brands) | 브랜드·OSS 아이콘(Simple Icons, CC0). Redis·nginx·MongoDB 등 |
+| [`@archdraw/icons-basic`](./packages/icons-basic) | 범용 픽토그램 64개: 대기·확인·분기·오류·문서·인프라(MIT) |
 
 ## 렌더에 대해
 

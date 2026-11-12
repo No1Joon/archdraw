@@ -8,9 +8,11 @@
 
 | 필드 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `provider` | `aws` \| `gcp` \| `brands` | `aws` | 그릴 때 쓸 아이콘 팩. CLI 는 `-p` 가 없으면 이 값을 쓰고, `-p aws,brands` 로 여러 개를 건다 |
+| `provider` | `aws` \| `gcp` \| `brands` \| `basic` | `aws` | 그릴 때 쓸 아이콘 팩. CLI 는 `-p` 가 없으면 이 값을 쓰고, `-p aws,brands` 로 여러 개를 건다 |
 | `title` | string | — | SVG `<title>` 과 접근성 라벨 |
 | `direction` | `RIGHT` \| `DOWN` | `RIGHT` | 기본 흐름 방향. 그룹에서 별도 방향을 지정할 수 있다 |
+| `entry` | string | — | 최상위 흐름의 진입 노드·그룹. 직접 자식 id만 지정 |
+| `animation` | `none` \| `flow` | — | HTML·GIF 간선 움직임의 문서 기본값. 간선의 명시적 값이 우선 |
 | `shape` | `icon` \| `card` | `icon` | 노드 기본 표현. `icon` 은 마크 아래 이름(AWS 관례), `card` 는 마크 옆 이름(GCP 관례) |
 | `wrap` | boolean | `false` | 긴 사슬을 여러 줄로 접는다. 끄면 200 노드 사슬이 폭 수만 픽셀짜리 띠가 된다 |
 | `rollup` | boolean | `false` | 그룹 헤더에 안에 든 것의 상태 집계를 적는다 — `2/3 done`. 그룹 자신의 상태는 따로 남는다 |
@@ -36,6 +38,7 @@
 | `down` | string[] | — | 이것이 죽은 시나리오 id 들 — 그냥 없는 것이 아니라 색이 빠진 채로 그려진다 |
 | `collapsed` | boolean | — | 그룹 내부를 접은 개요로 시작하며 일반 노드에는 사용 불가 |
 | `direction` | `RIGHT` \| `DOWN` | — | 그룹 내부 방향. 하위 그룹에서 상속 |
+| `entry` | string | — | 그룹 내부 흐름의 진입점인 직접 자식 id. 그룹 전용 |
 | `ports` | `{ id, side }[]` | — | 그룹 경계 연결점. side는 `NORTH`, `EAST`, `SOUTH`, `WEST` |
 | `children` | Node[] | — | 중첩 형에서 하위 노드 |
 
@@ -58,6 +61,7 @@
 | `to` | string | ✓ | 도착 노드 id |
 | `fromPort` / `toPort` | string | — | 해당 끝점 그룹에 선언한 포트 id |
 | `role` | `request` \| `response` | — | 실제 응답선의 역방향 경로를 info로 구분 |
+| `layout` | `forward` \| `back` | — | 배치 의도. `back`은 이름 있는 포트 없이 같은 부모의 두 노드를 외곽 복귀선으로 연결 |
 | `label` | string | — | 선 위에 표시 |
 | `style` | `solid` \| `dashed` | — | 기본 `solid` |
 | `status` | `planned` \| `in_progress` \| `blocked` \| `done` \| `deployed` | — | 이 연결이 존재하는지. 양 끝 노드의 상태와 무관하다 |
@@ -173,6 +177,30 @@ CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한
 
 `archdraw diagram.yaml --diagnostics quality.json -o diagram.png`는 렌더와 JSON 보고서를 함께 저장한다. `--diagnostics -`는 SVG 대신 JSON만 표준 출력으로 내보내며 `-o`를 함께 주면 렌더 파일도 만든다. 현재 선택한 시나리오·그룹 접기에 적용한다. 품질 경고 자체로 종료 코드는 바뀌지 않으며 잘못된 입력은 1이다. 배치가 필요한 진단과 검증 전용 `--check`는 함께 사용할 수 없다.
 
-보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 평행 중첩선과 의도적으로 공유한 끝점은 교차에서 제외한다.
+보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`, `edge-overlap`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 의도적으로 공유한 끝점은 교차에서 제외하며 줄 접기 평행 중첩선은 별도 `edge-overlap`으로 보고한다.
 
 실제 응답선에는 `role: response`를 지정한다(`request`도 가능). 역방향의 긴 응답선은 info인 `response-route`로 구분하며 stderr 우회 경고에서 제외한다. 역방향이라는 이유만으로 응답이라고 추측하지 않고, 정방향 응답의 불필요한 우회는 계속 경고한다. Core는 `onLayout` 안에서 `diagnose(ir, root)`를 호출하면 두 번 배치하지 않고 같은 결과를 진단한다.
+
+## 워크플로 진입점과 복귀선
+
+최상위 `entry`는 직접 자식인 노드·그룹, 그룹의 `entry`는 그 그룹의 직접 자식을 가리킨다. 배치 힌트이며 실행 규칙이나 새 간선을 만들지 않는다. `WEST`·`NORTH` 포트에서 진입점으로 이어지는 명시적 내부 간선이 있으면 포트를 해당 카드의 진입 면에 맞춰 일직선으로 연결한다. 진입점을 지정한 배치의 입력 화살표는 경계 점과 간격을 둔다.
+
+주 흐름에 `layout: forward`, 반복·수정 간선에 `layout: back`을 지정한다. 복귀선은 진행 방향의 레이어 계산에서 빼고 줄 접기 이후 같은 부모의 노드 외곽으로 돌린다. `RIGHT`는 아래쪽, `DOWN`은 오른쪽이며 복귀 간선마다 별도 외곽 통로를 쓴다. 원래 끝점·간선 id와 화살표 방향은 유지한다. `style`은 별개다. 점선이 복귀를 뜻하거나 복귀가 응답을 뜻하지 않는다.
+
+`back`은 이름 있는 포트(`fromPort`·`toPort`) 없이 같은 직접 부모의 노드끼리만 지원한다. 그룹을 넘는 복귀는 명시적 경계 연결 단계나 일반 배치를 쓰며, 지원하지 않는 `back`은 `invalid-back-edge`로 거부한다. 직접 자식이 아닌 `entry`는 `invalid-entry`다. 진입점·복귀선이 있는 그룹은 독립 배치한 뒤 경계 간선을 다시 연결한다. 교차가 모두 없어지는 보장은 없으므로 진단과 실제 그림을 함께 확인한다.
+
+```yaml
+provider: basic
+entry: check
+animation: none
+nodes:
+  - { id: check, type: basic-shield }
+  - { id: answer, type: basic-message }
+edges:
+  - { from: check, to: answer, layout: forward }
+  - { from: answer, to: check, layout: back, style: dashed, label: 재검사 }
+```
+
+문서의 `animation: none`은 HTML·GIF 전체의 간선을 정지시킨다. 간선에 명시한 `animation: flow`가 우선한다. 문서가 `flow`여도 `planned`·`blocked`는 간선에 직접 `flow`를 적지 않으면 정지한다. 문서 기본값을 생략하면 기존 동작을 유지한다. SVG·PNG는 항상 정적이다. [`examples/workflow-loops.yaml`](../examples/workflow-loops.yaml)을 참고한다.
+
+`wrap: true`인 도면은 겹친 평행 간선을 `edge-overlap`으로 추가 진단한다. 겹침 좌표와 `cause: "wrap"`을 포함하며 출발·도착점의 공통 분기 구간은 제외한다.

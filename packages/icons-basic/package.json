@@ -1,0 +1,32 @@
+{
+  "name": "@archdraw/icons-basic",
+  "version": "0.0.0",
+  "description": "Vendor-neutral pictograms for archdraw workflows and architecture diagrams.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No1Joon/archdraw.git",
+    "directory": "packages/icons-basic"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "NOTICE",
+    "catalog.svg",
+    "README.ko.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

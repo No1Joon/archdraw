@@ -11,6 +11,68 @@ const section = (points: [Point, Point, ...Point[]]): ElkEdgeSection => ({
 })
 
 describe('quality diagnostics', () => {
+  it('reports overlapping wrapped rails without treating a shared fan-out stub as a conflict', () => {
+    const input = {
+      wrap: true,
+      nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }],
+      edges: [
+        { id: 'one', from: 'a', to: 'b' },
+        { id: 'two', from: 'c', to: 'd' },
+      ],
+    }
+    const root: ElkNode = {
+      id: 'root',
+      width: 200,
+      height: 100,
+      edges: [
+        {
+          id: 'e0',
+          sources: ['a'],
+          targets: ['b'],
+          sections: [
+            section([
+              { x: 0, y: 50 },
+              { x: 100, y: 50 },
+            ]),
+          ],
+        },
+        {
+          id: 'e1',
+          sources: ['c'],
+          targets: ['d'],
+          sections: [
+            section([
+              { x: 30, y: 50 },
+              { x: 130, y: 50 },
+            ]),
+          ],
+        },
+      ],
+    }
+    const report = diagnose(normalize(input), root)
+    expect(report.diagnostics.filter((d) => d.code === 'edge-overlap')).toMatchObject([
+      {
+        severity: 'warning',
+        cause: 'wrap',
+        bounds: { x: 30, y: 50, width: 70, height: 0 },
+        elements: [
+          { kind: 'edge', id: 'one' },
+          { kind: 'edge', id: 'two' },
+        ],
+      },
+    ])
+    expect(
+      diagnose(normalize({ ...input, wrap: false }), root).diagnostics.filter(
+        (d) => d.code === 'edge-overlap',
+      ),
+    ).toEqual([])
+    const shared = structuredClone(root)
+    if (shared.edges?.[1]) shared.edges[1].sources = ['a']
+    const sharedInput = { ...input, edges: [input.edges[0], { ...input.edges[1], from: 'a' }] }
+    expect(
+      diagnose(normalize(sharedInput), shared).diagnostics.filter((d) => d.code === 'edge-overlap'),
+    ).toEqual([])
+  })
   it('returns a versioned clean report for a simple layout', async () => {
     const ir = normalize({
       nodes: [{ id: 'a' }, { id: 'b' }],

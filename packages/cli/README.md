@@ -38,7 +38,7 @@ archdraw schema [--flat]                                  # print the input cont
 | Option | |
 |---|---|
 | `-o, --out <file>` | `.png` rasterises, `.gif` loops the traffic animation, `.html` writes an interactive viewer, anything else is SVG. Omit for stdout |
-| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands`). Defaults to the diagram's own `provider` |
+| `-p, --provider <names>` | Icon packs to load. Comma-separated (`aws,gcp,brands,basic`). Defaults to the diagram's own `provider` |
 | `-s, --scale <n>` | PNG/GIF scale factor, greater than 0 and at most 10. Defaults to `2` |
 | `--theme <name>` | `light` or `dark`. Defaults to `light` |
 | `--check` | Validate without writing anything |

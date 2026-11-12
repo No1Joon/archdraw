@@ -5,14 +5,18 @@ export interface IconAsset {
   viewBox: string
   /** Inner markup of the source SVG (everything between `<svg>` and `</svg>`). */
   content: string
+  /** Paint a vendor-neutral outline with the diagram's text colour. */
+  monochrome?: boolean
 }
 
 export interface IconPack {
   provider: string
-  /** Canonical slug -> asset. Generated from the official icon set. */
+  /** Canonical slug -> self-contained SVG asset. */
   icons: Record<string, IconAsset>
   /** Hand-maintained short names, e.g. `ecs` -> `amazon-elastic-container-service`. */
   aliases: Record<string, string>
+  /** Optional discovery keywords indexed by canonical slug. */
+  keywords?: Record<string, string[]>
 }
 
 export interface IconResolver {

@@ -70,7 +70,7 @@ Unknown type 'lambdaa'.
 
 성공은 `{"version":1,"valid":true,"errors":[]}`다. 실패하면 첫 번째 차단 오류를 반환하므로 고친 뒤 다시 검증한다. `path`는 원본 중첩·평면 입력의 경로이며 배열 인덱스는 0부터다. `elements`는 확인 가능한 노드·간선 ID이며 알 수 없으면 빈 배열이다. `hint`와 `suggestions`는 선택 필드다. YAML/JSON 문법 오류는 `parse-error`이며 가능하면 1부터 세는 `line`·`column`을 포함한다. 인자·파일 오류의 경로는 빈 배열이다. 아이콘 오타는 후보만 제안하고 자동 대체하지 않는다.
 
-오류 코드는 `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `unknown-type`, `invalid-options`, `io-error`, 기타 `validation-error` / `invalid-diagram`이다. 문구 대신 `version`·`code`로 분기한다. 알 수 없는 플래그 등 Commander의 인자 파싱 오류는 기존 stderr 형식을 유지한다.
+오류 코드는 `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `invalid-entry`, `invalid-back-edge`, `unknown-type`, `invalid-options`, `io-error`, 기타 `validation-error` / `invalid-diagram`이다. 문구 대신 `version`·`code`로 분기한다. 알 수 없는 플래그 등 Commander의 인자 파싱 오류는 기존 stderr 형식을 유지한다.
 
 `--json`은 `--check`와 함께 쓰며 `--out`·`--diagnostics`와 조합할 수 없다. 품질 진단은 레이아웃을 계산하는 별도 보고서다. 입력 검증은 계약·참조를, 품질 진단은 렌더의 기하 정보를 검사한다. 둘 다 연결 의미나 아키텍처 설계 타당성을 보증하지 않는다.
 
@@ -79,6 +79,7 @@ Unknown type 'lambdaa'.
 | 팩 | 무엇이 있나 |
 |---|---|
 | `aws` · `gcp` | 클라우드 공식 서비스 아이콘 |
+| `basic` | 역할·행동 픽토그램 64개: `basic-clock`, `basic-user-check`, `basic-branch`, `basic-error` |
 | `brands` | 브랜드·OSS 마크 — Redis·nginx·PostgreSQL·Docker·Cloudflare 등 |
 
 `-p aws,brands` 처럼 콤마로 여러 개를 건다. 하나의 다이어그램이 클라우드와 그 위에서 도는 소프트웨어를 함께 담는 일이 흔하다.
@@ -89,7 +90,7 @@ Unknown type 'lambdaa'.
 
 ## 아이콘이 없는 구성요소
 
-`type` 을 생략하면 라벨 박스로 그려진다. 세 팩 어디에도 없는 사내 서비스 같은 것을 여기에 쓴다. 억지로 비슷한 아이콘을 붙이지 않는다.
+`type` 을 생략하면 라벨 박스로 그려진다. 어느 팩에도 없는 사내 서비스 같은 것을 여기에 쓴다. 억지로 비슷한 아이콘을 붙이지 않는다.
 
 **플랫폼 위에서 도는 워크로드에는 그 플랫폼의 아이콘을 붙이지 않는다.** GKE 위의 서비스 셋은 GKE 셋이 아니고 ECS 위의 태스크 셋도 ECS 셋이 아니다 — 아이콘이 있다는 것이 그것을 쓸 이유가 되지는 않는다. 플랫폼은 그룹에 `kind` 와 `type` 으로 한 번만 얹고, 그 안의 서비스는 `type` 없이 둔다.
 
@@ -147,6 +148,14 @@ CLI는 `--collapse all`, `--collapse project,other`, `--expand-all`을 제공한
 
 `archdraw diagram.yaml --diagnostics quality.json -o diagram.png`는 렌더와 JSON 보고서를 함께 저장한다. `--diagnostics -`는 SVG 대신 JSON만 표준 출력으로 내보내며 `-o`를 함께 주면 렌더 파일도 만든다. 현재 선택한 시나리오·그룹 접기에 적용한다. 품질 경고 자체로 종료 코드는 바뀌지 않으며 잘못된 입력은 1이다. 배치가 필요한 진단과 검증 전용 `--check`는 함께 사용할 수 없다.
 
-보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 평행 중첩선과 의도적으로 공유한 끝점은 교차에서 제외한다.
+보고서는 `version: 1`, `coordinateSpace: "layout"`, 캔버스 크기, warning/info 개수와 `diagnostics`를 담는다. 항목마다 안정적인 id·code·severity·요소 id·메시지·수정 힌트가 있다. 코드는 `edge-detour`, `response-route`, `label-overlap`, `label-clipped`, `edge-crossing`, `edge-overlap`이며 우회 비율/원인, 라벨 영역 또는 교차점 좌표를 제공한다. 좌표는 제목·상태 범례를 제외한 배치 그래프 기준이다. 글자 크기는 레이아웃과 같은 추정값이므로 수정 후 이미지를 확인한다. 의도적으로 공유한 끝점은 교차에서 제외한다. 줄 접기의 평행 중첩선은 별도 `edge-overlap`으로 보고한다.
 
 실제 응답선에는 `role: response`를 지정한다(`request`도 가능). 역방향의 긴 응답선은 info인 `response-route`로 구분하며 stderr 우회 경고에서 제외한다. 역방향이라는 이유만으로 응답이라고 추측하지 않고, 정방향 응답의 불필요한 우회는 계속 경고한다. Core는 `onLayout` 안에서 `diagnose(ir, root)`를 호출하면 두 번 배치하지 않고 같은 결과를 진단한다.
+
+## 워크플로 역할과 복귀선
+
+범용 픽토그램은 `provider: basic`, 서비스 아이콘과 조합할 때는 `provider: aws,brands,basic`을 쓴다. `archdraw types 대기 확인 분기 오류 -p basic`으로 검색한다. 정식 type과 영어 별칭에는 `basic-` 접두사를 붙이고 한국어 별칭도 쓸 수 있다. 대기는 시계·모래시계, 사용자 확인은 `basic-user-check`, 판단은 `basic-branch`, 실패는 `basic-error`를 쓴다. 물음표는 실제 질문에만 쓰며 확인된 벤더 마크를 역할 아이콘으로 대체하지 않는다.
+
+최상위·그룹 `entry`는 직접 자식이어야 하며 배치만 안내한다. 진행 간선은 `layout: forward`, 같은 부모 안의 반복·수정 간선은 `layout: back`으로 줄 접기 이후 외곽 복귀선을 쓴다. 복귀선은 그룹 경계를 넘거나 이름 있는 포트를 사용할 수 없으므로 명시적인 경계 연결 단계를 쓴다. WEST·NORTH 포트에서 그룹 진입점으로 향하는 내부 간선은 진입점에 일직선으로 맞춘다. 실제 연결은 유지하며 교차가 모두 없어짐을 보장하지 않는다.
+
+HTML·GIF에서 정적 워크플로는 문서에 `animation: none`을 쓴다. 명시적인 간선 `animation: flow`가 우선한다. 문서가 `flow`여도 planned·blocked 간선은 직접 `flow`를 쓰기 전까지 정지한다. 문서에서 생략하면 기존 기본값을 따른다. `--diagnostics`는 공통 끝점 구간을 제외한 줄 접기 평행 중첩선을 `edge-overlap`으로 보고한다. 검증에는 `invalid-entry`·`invalid-back-edge`, 실제 배치 실패에는 `routing-failed`가 추가될 수 있다.

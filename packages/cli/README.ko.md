@@ -38,7 +38,7 @@ archdraw schema [--flat]                                  # 입력 계약을 JSO
 | 옵션 | |
 |---|---|
 | `-o, --out <file>` | 확장자가 `.png`면 정적 이미지, `.gif`면 트래픽 애니메이션, `.html`이면 인터랙티브 뷰어, 그 외는 SVG. 생략하면 stdout |
-| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands`). 생략하면 다이어그램의 `provider` |
+| `-p, --provider <names>` | 불러올 아이콘 팩. 쉼표로 여러 개 (`aws,gcp,brands,basic`). 생략하면 다이어그램의 `provider` |
 | `-s, --scale <n>` | PNG/GIF 배율. 0 초과 10 이하. 기본 `2` |
 | `--theme <name>` | `light` 또는 `dark`. 기본 `light` |
 | `--check` | 아무것도 쓰지 않고 검증만 |

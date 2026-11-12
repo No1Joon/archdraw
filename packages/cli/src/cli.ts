@@ -27,6 +27,7 @@ import {
   toJsonSchema,
 } from '@archdraw/core'
 import { awsIcons } from '@archdraw/icons-aws'
+import { basicIcons } from '@archdraw/icons-basic'
 import { brandIcons } from '@archdraw/icons-brands'
 import { gcpIcons } from '@archdraw/icons-gcp'
 import { Resvg } from '@resvg/resvg-js'
@@ -34,7 +35,12 @@ import { Command } from 'commander'
 import { renderGif } from './gif.js'
 import { checkIcons, validationReport } from './validation.js'
 
-const packs: Record<string, IconPack> = { aws: awsIcons, gcp: gcpIcons, brands: brandIcons }
+const packs: Record<string, IconPack> = {
+  aws: awsIcons,
+  gcp: gcpIcons,
+  brands: brandIcons,
+  basic: basicIcons,
+}
 
 const themes: Record<string, Theme> = { light: defaultTheme, dark: darkTheme }
 
@@ -377,7 +383,7 @@ function portFor(input: string): number {
 
 /** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
 function rank(
-  hits: { line: string; key: string; alias: boolean }[],
+  hits: { line: string; key: string; alias: boolean; keyword?: boolean }[],
   needle: string,
   ceiling = 5,
 ): string[] {
@@ -392,7 +398,10 @@ function rank(
     if (segments.some((segment) => segment.endsWith(needle))) return 4
     return 5
   }
-  const scored = hits.map((hit) => ({ ...hit, score: score(hit.key) }))
+  const scored = hits.map((hit) => ({
+    ...hit,
+    score: Math.min(score(hit.key), hit.keyword ? 3 : 5),
+  }))
   const landed = scored.filter((hit) => hit.score < ceiling)
   // A weak landing is worth showing to someone who asked for the word — 'rds' does end
   // 'awwwards' — but never worth volunteering under a query that was about something else.
@@ -407,7 +416,12 @@ function rank(
 
 /** Every slug and alias the query lands on, ranked. */
 function search(selected: IconPack[], needle: string, ceiling?: number): string[] {
-  const slugs = selected.flatMap((pack) => Object.keys(pack.icons)).sort()
+  const slugs = selected.flatMap((pack) =>
+    Object.keys(pack.icons).map((slug) => ({
+      slug,
+      keyword: pack.keywords?.[slug]?.some((word) => word.includes(needle)) ?? false,
+    })),
+  )
   const aliases = selected
     .flatMap((pack) => Object.entries(pack.aliases))
     .sort(([a], [b]) => a.localeCompare(b))
@@ -417,8 +431,8 @@ function search(selected: IconPack[], needle: string, ceiling?: number): string[
         .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
         .map(([alias, slug]) => ({ line: `${alias} -> ${slug}`, key: alias, alias: true })),
       ...slugs
-        .filter((slug) => slug.includes(needle))
-        .map((slug) => ({ line: slug, key: slug, alias: false })),
+        .filter(({ slug, keyword }) => slug.includes(needle) || keyword)
+        .map(({ slug, keyword }) => ({ line: slug, key: slug, alias: false, keyword })),
     ],
     needle,
     ceiling,
