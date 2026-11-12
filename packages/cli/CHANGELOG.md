@@ -1,5 +1,16 @@
 # archdraw
 
+## 0.14.0
+
+### Minor Changes
+
+- 4ad20b1: Add `--check --json` with versioned validation errors containing stable codes, input paths, element ids, fix hints, and icon suggestions. DiagramError exposes the same structured issue in core. Keep normal CLI text output available.
+
+### Patch Changes
+
+- Updated dependencies [4ad20b1]
+  - @archdraw/core@0.14.0
+
 ## 0.13.2
 
 ### Patch Changes
