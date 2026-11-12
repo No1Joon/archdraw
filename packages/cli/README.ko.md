@@ -4,6 +4,8 @@
 
 YAML 로 클라우드 아키텍처 다이어그램(SVG/PNG/GIF/HTML)을 그리는 CLI. AWS 793 · GCP 216 · 브랜드/OSS 3,453 개의 아이콘과 폰트를 번들해 `npx` 로 바로 동작한다.
 
+Node.js 22.23.5 이상(22.x), 24.22.3 이상(24.x), 26.13.1 이상(26.x)이 필요하다.
+
 **AI CLI 가 쓰라고 만들었다** — archdraw 는 LLM 을 호출하지 않는다. 에이전트가 YAML 을 쓰면 archdraw 가 그린다.
 
 ![web-app 예제](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/web-app.png)

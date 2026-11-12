@@ -2,6 +2,8 @@
 
 archdraw never calls an LLM. **You write the YAML; archdraw draws it.** This file is the whole contract — you do not need the repository.
 
+Requires Node.js 22.23.5+ (22.x), 24.22.3+ (24.x), or 26.13.1+ (26.x).
+
 ## Three steps
 
 ```bash

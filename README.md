@@ -16,7 +16,7 @@ npx archdraw examples/web-app.yaml -o web-app.png
 
 ## Getting started
 
-No install needed:
+Requires Node.js 22.23.5+ (22.x), 24.22.3+ (24.x), or 26.13.1+ (26.x). No install needed:
 
 ```bash
 cat <<'YAML' | npx archdraw - -o out.png
@@ -244,7 +244,7 @@ pnpm icons:sync aws # official icon distribution → packages/icons-aws/svg
 pnpm changeset      # propose a version
 ```
 
-Node 22+, pnpm 10. `pnpm icons:sync` uses `unzip`.
+Node 22.23.5, pnpm 10. Run `fnm install` and `fnm use` to select the version in `.node-version` before `pnpm install`. CI and npm publishing read the same file. Workspace installs enforce the Node requirement with `engine-strict=true`. `pnpm icons:sync` uses `unzip`.
 
 ## Licence
 

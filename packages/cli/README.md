@@ -4,6 +4,8 @@
 
 A CLI that draws cloud architecture diagrams (SVG/PNG/GIF/HTML) from YAML. Bundles 793 AWS · 216 GCP · 3,453 brand/OSS icons plus a font, so `npx` works straight away.
 
+Requires Node.js 22.23.5+ (22.x), 24.22.3+ (24.x), or 26.13.1+ (26.x).
+
 **Built for AI CLIs** — archdraw never calls an LLM. The agent writes the YAML; archdraw draws it.
 
 ![web-app example](https://raw.githubusercontent.com/No1Joon/archdraw/main/docs/img/web-app.png)

@@ -16,7 +16,7 @@ npx archdraw examples/web-app.yaml -o web-app.png
 
 ## 시작하기
 
-설치 없이 바로:
+Node.js 22.23.5 이상(22.x), 24.22.3 이상(24.x), 26.13.1 이상(26.x)이 필요하다. 설치 없이 바로:
 
 ```bash
 cat <<'YAML' | npx archdraw - -o out.png
@@ -242,7 +242,7 @@ pnpm icons:sync aws # 공식 아이콘 배포본 → packages/icons-aws/svg
 pnpm changeset      # 버전 제안
 ```
 
-Node 22+, pnpm 10. `pnpm icons:sync` 는 `unzip` 을 쓴다.
+Node 22.23.5, pnpm 10. `pnpm install` 전에 `fnm install`과 `fnm use`로 `.node-version`의 버전을 선택한다. CI와 npm 발행도 같은 파일을 읽는다. 워크스페이스 설치는 `engine-strict=true`로 Node 요구사항을 강제한다. `pnpm icons:sync` 는 `unzip` 을 쓴다.
 
 ## 라이선스
 
