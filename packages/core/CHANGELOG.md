@@ -1,5 +1,13 @@
 # @archdraw/core
 
+## 0.15.0
+
+### Minor Changes
+
+- c2e64f6: Support document animation defaults, explicit flow entries and forward/back layout hints. Route sibling back edges outside the main flow after wrapping, align declared entry hops with incoming boundary ports, and diagnose overlapping wrapped rails.
+  
+  Allow monochrome icon packs to use the diagram's text colour in light and dark themes.
+
 ## 0.14.0
 
 ### Minor Changes
