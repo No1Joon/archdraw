@@ -11,24 +11,21 @@
     "edge-crossing edge:ecr->app-prod edge:gitops->argo-stg": 1
   },
   "enterprise.yaml": {
-    "edge-crossing edge:api-apne2->secrets edge:aurora-use1->aurora-apne2": 1,
-    "edge-crossing edge:api-apne2->secrets edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:api-apne2->cache-apne2 edge:aurora-use1->aurora-apne2": 1,
     "edge-crossing edge:api-apne2->secrets edge:eks-use1->cw": 1,
-    "edge-crossing edge:api-use1->aurora-use1 edge:checkout-use1->stripe": 1,
-    "edge-crossing edge:api-use1->cache-use1 edge:checkout-use1->stripe": 1,
     "edge-crossing edge:api-use1->secrets edge:api-use1->sentry": 1,
-    "edge-crossing edge:api-use1->secrets edge:checkout-use1->stripe": 1,
-    "edge-crossing edge:api-use1->secrets edge:msk->firehose": 1,
-    "edge-crossing edge:api-use1->sentry edge:ecr->eks-use1": 1,
-    "edge-crossing edge:aurora-use1->aurora-apne2 edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:api-use1->secrets edge:aurora-use1->aurora-apne2": 1,
+    "edge-crossing edge:api-use1->secrets edge:ecr->eks-use1": 1,
+    "edge-crossing edge:api-use1->sentry edge:aurora-use1->aurora-apne2": 1,
+    "edge-crossing edge:api-use1->sentry edge:eks-use1->cw": 1,
+    "edge-crossing edge:apigw->gw-use1 edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:aurora-use1->aurora-apne2 edge:checkout-apne2->msk": 2,
+    "edge-crossing edge:aurora-use1->aurora-apne2 edge:ecr->eks-use1": 1,
     "edge-crossing edge:aurora-use1->aurora-apne2 edge:eks-use1->cw": 1,
-    "edge-crossing edge:aurora-use1->aurora-apne2 edge:msk->firehose": 1,
-    "edge-crossing edge:checkout-apne2->msk edge:eks-use1->cw": 1,
-    "edge-crossing edge:checkout-use1->msk edge:search-use1->os-use1": 1,
-    "edge-crossing edge:checkout-use1->stripe edge:ecr->eks-use1": 1,
+    "edge-crossing edge:cdn->gw-use1 edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:checkout-apne2->msk edge:checkout-use1->stripe": 1,
     "edge-crossing edge:cw->datadog edge:ecr->eks-apne2": 1,
-    "edge-detour edge:api-use1->cache-use1": 1,
-    "edge-detour edge:ecr->eks-use1": 1
+    "edge-crossing edge:ecr->eks-use1 edge:eks-use1->cw": 1
   },
   "gcp-data-platform.yaml": {
     "edge-detour edge:bq->dq": 1
