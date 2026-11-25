@@ -5,10 +5,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const cli = fileURLToPath(new URL('../packages/cli/dist/cli.mjs', import.meta.url))
+const cli =
+  process.argv[2] ?? fileURLToPath(new URL('../packages/cli/dist/cli.mjs', import.meta.url))
 const dir = mkdtempSync(join(tmpdir(), 'archdraw-runtime-'))
 const started = performance.now()
-const source = `provider: aws,brands
+const source = `provider: aws,brands,basic
+groups: [{id: application, children: [{id: waiting, type: basic-clock, label: 대기}]}]
 nodes:
   - { id: api, type: ecs, label: API 서버 }
   - { id: cache, type: redis, label: 캐시 }
@@ -26,6 +28,13 @@ const run = (args, input = source, status = 0) => {
 }
 
 try {
+  const search = spawnSync(process.execPath, [cli, 'types', '대기', '-p', 'basic'], {
+    encoding: 'utf8',
+    timeout: 20_000,
+  })
+  assert.ifError(search.error)
+  assert.equal(search.status, 0, search.stderr)
+  assert.match(search.stdout, /basic-clock/)
   assert.deepEqual(JSON.parse(run(['--check', '--json']).stdout), {
     version: 1,
     valid: true,
@@ -45,7 +54,10 @@ try {
   run(['-o', join(dir, 'different.png')], source.replace('API 서버', 'API 비교'))
   assert.ok(!png.equals(readFileSync(join(dir, 'different.png'))), 'Hangul glyphs must render')
   assert.equal(readFileSync(join(dir, 'diagram.gif')).subarray(0, 6).toString(), 'GIF89a')
-  assert.match(readFileSync(join(dir, 'diagram.html'), 'utf8'), /<svg/)
+  const html = readFileSync(join(dir, 'diagram.html'), 'utf8')
+  assert.match(html, /<svg/)
+  assert.match(html, /ArchdrawViewer/)
+  assert.doesNotMatch(html, /<script[^>]+src=["']https?:/i)
   console.log(
     `Node ${process.version}: validation JSON + SVG/PNG/GIF/HTML smoke passed in ${((performance.now() - started) / 1000).toFixed(2)}s`,
   )

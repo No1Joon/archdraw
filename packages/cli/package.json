@@ -39,16 +39,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@archdraw/icons-basic": "workspace:*",
     "@archdraw/core": "workspace:*",
     "@archdraw/icons-aws": "workspace:*",
+    "@archdraw/icons-basic": "workspace:*",
     "@archdraw/icons-brands": "workspace:*",
     "@archdraw/icons-gcp": "workspace:*",
     "@resvg/resvg-js": "2.6.2",
     "commander": "15.0.0",
     "gifenc": "1.0.3",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "publishConfig": {
     "access": "public"
