@@ -271,6 +271,7 @@ pnpm test           # vitest — includes core's SVG snapshots
 pnpm typecheck
 pnpm lint           # biome
 pnpm icons:sync aws # official icon distribution → packages/icons-aws/svg
+node scripts/example-quality.mjs  # compare routing warnings for every example
 pnpm changeset      # propose a version
 ```
 
@@ -281,3 +282,5 @@ CI runs the full checks on Node 22, then reuses the build and installed dependen
 ## Licence
 
 The code is MIT. Icon and font assets belong to their owners and follow their own terms — see each package's `NOTICE`.
+
+After reviewing intended layout changes, run `node scripts/example-quality.mjs --update` and inspect the baseline diff. CI lists changed connections in its job summary.

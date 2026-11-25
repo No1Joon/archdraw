@@ -1,0 +1,54 @@
+{
+  "batch-etl.yaml": {
+    "edge-crossing edge:catalog->clean edge:mwaa->clean": 1,
+    "edge-crossing edge:dq->alerts edge:mwaa->clean": 1,
+    "edge-crossing edge:dq->emr edge:mwaa->clean": 1,
+    "edge-crossing edge:mwaa->clean edge:mwaa->dbt": 1
+  },
+  "build-status.yaml": {},
+  "cache-failover.yaml": {},
+  "cicd-gitops.yaml": {
+    "edge-crossing edge:ecr->app-prod edge:gitops->argo-stg": 1
+  },
+  "enterprise.yaml": {
+    "edge-crossing edge:api-apne2->cache-apne2 edge:aurora-use1->aurora-apne2": 1,
+    "edge-crossing edge:api-apne2->secrets edge:eks-use1->cw": 1,
+    "edge-crossing edge:api-use1->secrets edge:api-use1->sentry": 1,
+    "edge-crossing edge:api-use1->secrets edge:aurora-use1->aurora-apne2": 1,
+    "edge-crossing edge:api-use1->secrets edge:ecr->eks-use1": 1,
+    "edge-crossing edge:api-use1->sentry edge:aurora-use1->aurora-apne2": 1,
+    "edge-crossing edge:api-use1->sentry edge:eks-use1->cw": 1,
+    "edge-crossing edge:apigw->gw-use1 edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:aurora-use1->aurora-apne2 edge:checkout-apne2->msk": 2,
+    "edge-crossing edge:aurora-use1->aurora-apne2 edge:ecr->eks-use1": 1,
+    "edge-crossing edge:aurora-use1->aurora-apne2 edge:eks-use1->cw": 1,
+    "edge-crossing edge:cdn->gw-use1 edge:checkout-apne2->msk": 1,
+    "edge-crossing edge:checkout-apne2->msk edge:checkout-use1->stripe": 1,
+    "edge-crossing edge:cw->datadog edge:ecr->eks-apne2": 1,
+    "edge-crossing edge:ecr->eks-use1 edge:eks-use1->cw": 1
+  },
+  "gcp-data-platform.yaml": {
+    "edge-detour edge:bq->dq": 1
+  },
+  "group-routing.yaml": {},
+  "growth.yaml": {
+    "edge-detour edge:queue->worker": 1
+  },
+  "hybrid-network.yaml": {},
+  "iot-telemetry.yaml": {},
+  "jamstack-edge.yaml": {},
+  "k8s-onprem.yaml": {},
+  "ml-platform.yaml": {
+    "edge-crossing edge:app->api edge:fs->cache": 1
+  },
+  "multicloud.yaml": {
+    "edge-crossing edge:dns->r53 edge:okta->looker": 1
+  },
+  "serverless-api.yaml": {},
+  "startup.yaml": {},
+  "web-app.yaml": {},
+  "workflow-loops.yaml": {
+    "edge-crossing edge:merge->validate edge:validate->review": 1,
+    "edge-crossing edge:validate->ask edge:validate->review": 1
+  }
+}
