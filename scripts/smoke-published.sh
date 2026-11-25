@@ -36,35 +36,10 @@ CLI="$DIR/node_modules/.bin/archdraw"
 got="$("$CLI" --version)"
 [ "$got" = "$VERSION" ] || { echo "--version said '$got', expected '$VERSION'" >&2; exit 1; }
 
-# Self-contained: a fixture from the repo would drift against the version being tested.
-cat >"$DIR/a.yaml" <<'YAML'
-provider: aws,brands
-title: smoke
-nodes:
-  - { id: lb, type: alb, label: "웹 로드밸런서" }
-  - { id: api, type: ecs, label: "API 서버" }
-  - { id: cache, type: redis, label: Redis }
-edges:
-  - { from: lb, to: api }
-  - { from: api, to: cache }
-YAML
-
-"$CLI" "$DIR/a.yaml" -p aws,brands --check
-"$CLI" "$DIR/a.yaml" -p aws,brands -o "$DIR/a.png"
-"$CLI" "$DIR/a.yaml" -p gcp --check 2>/dev/null && { echo "a gcp-only pack should not resolve aws types" >&2; exit 1; }
-
-# resvg draws nothing for a font it cannot resolve, so a blank PNG is the failure to catch.
-# Two labels of equal length in the same script hold the layout fixed; only glyphs can differ.
-blank_check() {
-  sed 's/웹 로드밸런서/가가가가가가/' "$DIR/a.yaml" >"$DIR/b.yaml"
-  sed 's/웹 로드밸런서/나나나나나나/' "$DIR/a.yaml" >"$DIR/c.yaml"
-  "$CLI" "$DIR/b.yaml" -p aws,brands -o "$DIR/b.png"
-  "$CLI" "$DIR/c.yaml" -p aws,brands -o "$DIR/c.png"
-  if cmp -s "$DIR/b.png" "$DIR/c.png"; then
-    echo "Hangul labels rendered blank — the bundled font did not load" >&2
-    return 1
-  fi
-}
-blank_check
-
+# Exercise the installed release through the same contract checked across supported Node versions.
+node "$(dirname "$0")/smoke-runtime.mjs" "$CLI"
+if printf '%s\n' 'nodes: [{id: lb, type: alb}]' | "$CLI" - -p gcp --check 2>/dev/null; then
+  echo 'a gcp-only pack should not resolve aws types' >&2
+  exit 1
+fi
 echo "smoke ok: archdraw@$VERSION installs from the registry and renders"

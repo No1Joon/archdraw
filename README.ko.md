@@ -61,6 +61,10 @@ Unknown type 'lambdaa'.
   Did you mean: lambda?
 ```
 
+### 아이콘 검색 JSON
+
+`archdraw types 대기 redis -p basic,brands --json`은 질의 순서대로 `results`를 출력한다. 각 항목은 `query`, `matched`, 전체 개수 `total`, 상위 `matches`(provider, slug, 선택 alias), 다른 팩의 `alternatives`를 담는다. 미일치 질의가 하나라도 있으면 결과를 모두 출력하고 코드 1로 끝난다. 질의가 없으면 팩별 선택을 합산한 개수를 출력한다.
+
 ## 애니메이션 GIF
 
 ```bash

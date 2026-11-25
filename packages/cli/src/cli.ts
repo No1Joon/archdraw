@@ -5,44 +5,15 @@ import { createRequire } from 'node:module'
 import type { AddressInfo } from 'node:net'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  createResolver,
-  type Detour,
-  DiagramError,
-  darkTheme,
-  defaultTheme,
-  detours,
-  diagnose,
-  type IconPack,
-  type Ir,
-  normalize,
-  parse,
-  type QualityReport,
-  type RenderOptions,
-  renderToHtml,
-  renderToSvg,
-  renderToSvgFrames,
-  selectView,
-  type Theme,
-  toJsonSchema,
-} from '@archdraw/core'
-import { awsIcons } from '@archdraw/icons-aws'
-import { basicIcons } from '@archdraw/icons-basic'
-import { brandIcons } from '@archdraw/icons-brands'
-import { gcpIcons } from '@archdraw/icons-gcp'
-import { Resvg } from '@resvg/resvg-js'
+import type { Detour, IconPack, Ir, QualityReport, RenderOptions, Theme } from '@archdraw/core'
 import { Command } from 'commander'
-import { renderGif } from './gif.js'
-import { checkIcons, validationReport } from './validation.js'
 
-const packs: Record<string, IconPack> = {
-  aws: awsIcons,
-  gcp: gcpIcons,
-  brands: brandIcons,
-  basic: basicIcons,
-}
-
-const themes: Record<string, Theme> = { light: defaultTheme, dark: darkTheme }
+const providers = new Map<string, () => Promise<IconPack>>([
+  ['aws', async () => (await import('@archdraw/icons-aws')).awsIcons],
+  ['gcp', async () => (await import('@archdraw/icons-gcp')).gcpIcons],
+  ['brands', async () => (await import('@archdraw/icons-brands')).brandIcons],
+  ['basic', async () => (await import('@archdraw/icons-basic')).basicIcons],
+])
 
 // Bundled so a PNG carries the same glyphs everywhere; system fonts differ per machine and
 // resvg draws nothing at all for a family it cannot resolve.
@@ -132,11 +103,11 @@ function reportLiteralBreaks(ir: Ir) {
 
 /** `-p` covers for a diagram whose own `provider` is short of what it draws, and the file that
  *  comes out of it renders here and nowhere else. Only the types that miss are worth a word. */
-function reportProviderDrift(ir: Ir, flag: string | undefined) {
+async function reportProviderDrift(ir: Ir, flag: string | undefined) {
   if (!flag || flag === ir.provider) return
-  let own: ReturnType<typeof iconsFor>
+  let own: Awaited<ReturnType<typeof iconsFor>>
   try {
-    own = iconsFor(ir.provider)
+    own = await iconsFor(ir.provider)
   } catch {
     return // Its `provider` names no pack at all; the flag is the only reason this ran.
   }
@@ -172,7 +143,7 @@ program
     "icon packs to load, comma separated; defaults to the diagram's own `provider`",
   )
   .option('-s, --scale <n>', 'PNG/GIF scale factor', '2')
-  .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
+  .option('--theme <name>', 'palette to draw with (light, dark)', 'light')
   .option('--check', 'validate the diagram and write nothing')
   .option('--json', 'print a versioned validation report; requires --check')
   .option('--scenario <id>', 'select one declared scenario')
@@ -182,6 +153,7 @@ program
   .option('--diagnostics <file>', 'write quality diagnostics as JSON; - prints JSON instead of SVG')
   .action(async (input: string, options) => {
     await run(async () => {
+      const { DiagramError, normalize, parse, selectView } = await import('@archdraw/core/input')
       if (options.json && (!options.check || options.out || options.diagnostics)) {
         throw new DiagramError(
           '--json requires --check without --out or --diagnostics.',
@@ -215,12 +187,13 @@ program
         throw new Error('The diagnostics file must differ from the input and rendered output.')
       }
       // The flag wins when given; otherwise the diagram says which packs it needs.
-      const icons = iconsFor(options.provider ?? ir.provider)
+      const icons = await iconsFor(options.provider ?? ir.provider)
       if (!options.json) {
-        reportProviderDrift(ir, options.provider)
+        await reportProviderDrift(ir, options.provider)
         reportLiteralBreaks(ir)
       }
       if (options.check) {
+        const { checkIcons, validationReport } = await import('./validation.js')
         checkIcons(document, ir, icons)
         if (options.json) console.log(JSON.stringify(validationReport(), null, 2))
         else console.error('ok')
@@ -229,10 +202,13 @@ program
       const extension = extname(options.out ?? '').toLowerCase()
       const scale = scaleFor(options.scale)
       let quality: QualityReport | undefined
+      const { detours, diagnose, renderToHtml, renderToSvg, renderToSvgFrames } = await import(
+        '@archdraw/core'
+      )
       const renderOptions: RenderOptions = {
         icons,
         ...viewOptions,
-        theme: themeFor(options.theme),
+        theme: await themeFor(options.theme),
         onLayout: (laid, root) => {
           reportDetours(detours(laid, root), laid)
           if (options.diagnostics) quality = diagnose(laid, root)
@@ -240,14 +216,18 @@ program
       }
       const markup =
         extension === '.gif'
-          ? await renderGif(renderToSvgFrames(document, renderOptions), scale, FONT)
+          ? await (await import('./gif.js')).renderGif(
+              renderToSvgFrames(document, renderOptions),
+              scale,
+              FONT,
+            )
           : await (extension === '.html' ? renderToHtml : renderToSvg)(document, renderOptions)
       if (quality) {
         const json = `${JSON.stringify(quality, null, 2)}\n`
         if (options.diagnostics === '-') process.stdout.write(json)
         else writeFileSync(options.diagnostics, json)
       }
-      if (options.diagnostics !== '-' || options.out) write(markup, options.out, scale)
+      if (options.diagnostics !== '-' || options.out) await write(markup, options.out, scale)
     }, options.json)
   })
 
@@ -275,14 +255,15 @@ program
     '-p, --provider <names>',
     "icon packs to load, comma separated; defaults to the diagram's own `provider`",
   )
-  .option('--theme <name>', `palette to draw with (${Object.keys(themes).join(', ')})`, 'light')
+  .option('--theme <name>', 'palette to draw with (light, dark)', 'light')
   .option('--port <n>', 'port to listen on; 0 picks a free one', '4173')
   .option('--watch', 'redraw whenever the file is saved')
   .action(async (input: string, options) => {
     await run(async () => {
       if (input === '-') throw new Error('serve needs a file it can watch, not stdin.')
       const path = resolve(input)
-      const theme = themeFor(options.theme)
+      const { normalize, parse, renderToHtml } = await import('@archdraw/core')
+      const theme = await themeFor(options.theme)
       const port = portFor(options.port)
 
       // The last drawing that worked, and why the latest save did not. A broken save keeps the
@@ -293,7 +274,7 @@ program
         try {
           const document = parse(readFileSync(path, 'utf8'))
           const ir = normalize(document)
-          const icons = iconsFor(options.provider ?? ir.provider)
+          const icons = await iconsFor(options.provider ?? ir.provider)
           good = await renderToHtml(document, { icons, theme: theme, live: true })
           broken = undefined
           return true
@@ -382,11 +363,16 @@ function portFor(input: string): number {
 }
 
 /** Rank by how the query lands; a match with the query buried mid-word is a coincidence. */
-function rank(
-  hits: { line: string; key: string; alias: boolean; keyword?: boolean }[],
-  needle: string,
-  ceiling = 5,
-): string[] {
+interface SearchHit {
+  provider: string
+  slug: string
+  alias?: string
+  keyword?: boolean
+}
+
+const hitLine = (hit: SearchHit) => (hit.alias ? `${hit.alias} -> ${hit.slug}` : hit.slug)
+
+function rank(hits: SearchHit[], needle: string, ceiling = 5): SearchHit[] {
   const score = (key: string) => {
     const segments = key.split('-')
     if (key === needle) return 0
@@ -400,62 +386,43 @@ function rank(
   }
   const scored = hits.map((hit) => ({
     ...hit,
-    score: Math.min(score(hit.key), hit.keyword ? 3 : 5),
+    score: Math.min(score(hit.alias ?? hit.slug), hit.keyword ? 3 : 5),
   }))
   const landed = scored.filter((hit) => hit.score < ceiling)
   // A weak landing is worth showing to someone who asked for the word — 'rds' does end
   // 'awwwards' — but never worth volunteering under a query that was about something else.
   const kept = landed.length > 0 || ceiling < 5 ? landed : scored
-  return kept
-    .sort(
-      (a, b) =>
-        a.score - b.score || Number(b.alias) - Number(a.alias) || a.line.localeCompare(b.line),
-    )
-    .map((hit) => hit.line)
+  return kept.sort(
+    (a, b) =>
+      a.score - b.score ||
+      Number(Boolean(b.alias)) - Number(Boolean(a.alias)) ||
+      hitLine(a).localeCompare(hitLine(b)),
+  )
 }
 
 /** Every slug and alias the query lands on, ranked. */
-function search(selected: IconPack[], needle: string, ceiling?: number): string[] {
-  const slugs = selected.flatMap((pack) =>
-    Object.keys(pack.icons).map((slug) => ({
-      slug,
-      keyword: pack.keywords?.[slug]?.some((word) => word.includes(needle)) ?? false,
-    })),
-  )
-  const aliases = selected
-    .flatMap((pack) => Object.entries(pack.aliases))
-    .sort(([a], [b]) => a.localeCompare(b))
-  return rank(
-    [
-      ...aliases
-        .filter(([alias, slug]) => alias.includes(needle) || slug.includes(needle))
-        .map(([alias, slug]) => ({ line: `${alias} -> ${slug}`, key: alias, alias: true })),
-      ...slugs
-        .filter(({ slug, keyword }) => slug.includes(needle) || keyword)
-        .map(({ slug, keyword }) => ({ line: slug, key: slug, alias: false, keyword })),
-    ],
-    needle,
-    ceiling,
-  )
+function search(selected: IconPack[], needle: string, ceiling?: number): SearchHit[] {
+  const hits: SearchHit[] = []
+  for (const pack of selected) {
+    for (const [alias, slug] of Object.entries(pack.aliases)) {
+      if (alias.includes(needle) || slug.includes(needle))
+        hits.push({ provider: pack.provider, alias, slug })
+    }
+    for (const slug of Object.keys(pack.icons)) {
+      const keyword = pack.keywords?.[slug]?.some((word) => word.includes(needle))
+      if (slug.includes(needle) || keyword) hits.push({ provider: pack.provider, slug, keyword })
+    }
+  }
+  return rank(hits, needle, ceiling)
 }
 
-/** A pack that answers hides what the others hold: `types flink` on aws alone reads as if
- *  the managed service were the only Flink there is, and `apacheflink` is never offered. */
-function elsewhere(provider: string, needle: string): string[] {
-  const loaded = provider.split(',').map((name) => name.trim())
-  return Object.entries(packs)
-    .filter(([name]) => !loaded.includes(name))
-    .flatMap(([name, pack]) => {
-      // The footnote names what to draw, so an alias and its slug are one answer, not two.
-      const hits = [
-        ...new Set(search([pack], needle, WORD_END).map((hit) => hit.split(' -> ').pop())),
-      ]
-      if (hits.length === 0) return []
-      const shown = hits.slice(0, OTHER_PACK_LIST).join(', ')
-      const more =
-        hits.length > OTHER_PACK_LIST ? `, and ${hits.length - OTHER_PACK_LIST} more` : ''
-      return [`Also in '${name}': ${shown}${more}. Load it with -p ${[...loaded, name].join(',')}`]
-    })
+function elsewhere(otherPacks: IconPack[], needle: string) {
+  return otherPacks.flatMap((pack) => {
+    const hits = [...new Set(search([pack], needle, WORD_END).map((hit) => hit.slug))]
+    return hits.length
+      ? [{ provider: pack.provider, slugs: hits.slice(0, OTHER_PACK_LIST), total: hits.length }]
+      : []
+  })
 }
 
 program
@@ -463,13 +430,27 @@ program
   .description('Search the icon type slugs and aliases a diagram may use.')
   .argument('[query...]', 'substrings to match against slugs and aliases')
   .option('-p, --provider <names>', 'icon packs to load, comma separated', 'aws')
-  .action((queries: string[], options) => {
-    run(async () => {
-      const selected = packsFor(options.provider)
+  .option('--json', 'print ranked icon matches as JSON')
+  .action(async (queries: string[], options) => {
+    await run(async () => {
+      const selected = await packsFor(options.provider)
+      const names = selected.map((pack) => pack.provider)
+      const results = []
 
       if (queries.length === 0) {
         const slugs = selected.flatMap((pack) => Object.keys(pack.icons))
         const aliases = selected.flatMap((pack) => Object.keys(pack.aliases))
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              version: 1,
+              providers: names,
+              results: [],
+              counts: { types: slugs.length, aliases: aliases.length },
+            }),
+          )
+          return
+        }
         console.error(
           `${slugs.length} types and ${aliases.length} aliases in '${options.provider}'. ` +
             `Narrow with: archdraw types <query> -p ${options.provider}`,
@@ -483,10 +464,29 @@ program
       const limit = queries.length > 1 ? BATCH_LIMIT : LIST_LIMIT
       const missed: string[] = []
 
+      const otherPacks = await Promise.all(
+        [...providers].filter(([name]) => !names.includes(name)).map(([, load]) => load()),
+      )
       for (const query of queries) {
         const needle = query.toLowerCase()
         const hits = search(selected, needle)
-        const others = elsewhere(options.provider, needle)
+        const alternatives = elsewhere(otherPacks, needle)
+        if (options.json) {
+          results.push({
+            query,
+            matched: hits.length > 0,
+            total: hits.length,
+            matches: hits
+              .slice(0, limit)
+              .map(({ provider, slug, alias }) => ({ provider, slug, alias })),
+            alternatives,
+          })
+          continue
+        }
+        const others = alternatives.map(({ provider, slugs, total }) => {
+          const more = total > slugs.length ? `, and ${total - slugs.length} more` : ''
+          return `Also in '${provider}': ${slugs.join(', ')}${more}. Load it with -p ${[...names, provider].join(',')}`
+        })
         const heading = label(query)
 
         if (hits.length === 0) {
@@ -495,13 +495,13 @@ program
             `${heading ? `${heading}: ` : ''}No type matches '${query}' in '${options.provider}'. ` +
               (others.length > 0
                 ? others.join(' ')
-                : `Try a shorter word, or another pack: ${Object.keys(packs).join(', ')}.`),
+                : `Try a shorter word, or another pack: ${[...providers.keys()].join(', ')}.`),
           )
           continue
         }
 
         if (heading) console.log(heading)
-        for (const hit of hits.slice(0, limit)) console.log(hit)
+        for (const hit of hits.slice(0, limit)) console.log(hitLine(hit))
         if (hits.length > limit) {
           console.error(
             `... ${hits.length - limit} more for '${query}'. ` +
@@ -512,6 +512,11 @@ program
       }
 
       // A miss is a type the diagram cannot use, so it fails the run even beside a dozen hits.
+      if (options.json) {
+        console.log(JSON.stringify({ version: 1, providers: names, results }))
+        if (results.some((result) => !result.matched)) process.exitCode = 1
+        return
+      }
       if (missed.length > 0) {
         throw new Error(
           missed.length === queries.length
@@ -519,7 +524,7 @@ program
             : `Named above, with no match: ${missed.join(', ')}.`,
         )
       }
-    })
+    }, options.json)
   })
 
 program
@@ -527,35 +532,43 @@ program
   .description('Print the diagram input contract as JSON Schema.')
   .option('--flat', 'the flat form only, without the nested `children` shape')
   .action((options) => {
-    run(async () => {
+    return run(async () => {
+      const { toJsonSchema } = await import('@archdraw/core/input')
       console.log(JSON.stringify(toJsonSchema(options.flat ? 'flat' : 'input'), null, 2))
     })
   })
 
 /** `-p aws,brands` — one diagram often spans a cloud and the software running on it. */
-function packsFor(provider: string): IconPack[] {
-  return provider.split(',').map((name) => {
-    const pack = packs[name.trim()]
-    if (!pack) {
-      throw new Error(`Unknown provider '${name.trim()}'. Known: ${Object.keys(packs).join(', ')}`)
-    }
-    if (Object.keys(pack.icons).length === 0) {
-      throw new Error(
-        `The ${name.trim()} icon pack is empty — run \`pnpm icons:sync ${name.trim()}\` in the repo.`,
-      )
-    }
-    return pack
-  })
+async function packsFor(provider: string): Promise<IconPack[]> {
+  return Promise.all(
+    provider.split(',').map(async (name) => {
+      const load = providers.get(name.trim())
+      if (!load) {
+        throw new Error(
+          `Unknown provider '${name.trim()}'. Known: ${[...providers.keys()].join(', ')}`,
+        )
+      }
+      const pack = await load()
+      if (Object.keys(pack.icons).length === 0) {
+        throw new Error(
+          `The ${name.trim()} icon pack is empty — run \`pnpm icons:sync ${name.trim()}\` in the repo.`,
+        )
+      }
+      return pack
+    }),
+  )
 }
 
-function iconsFor(provider: string) {
-  return createResolver(...packsFor(provider))
+async function iconsFor(provider: string) {
+  const { createResolver } = await import('@archdraw/core/input')
+  return createResolver(...(await packsFor(provider)))
 }
 
-function themeFor(name: string): Theme {
-  const theme = themes[name]
+async function themeFor(name: string): Promise<Theme> {
+  const { defaultTheme, darkTheme } = await import('@archdraw/core')
+  const theme = name === 'dark' ? darkTheme : name === 'light' ? defaultTheme : undefined
   if (!theme) {
-    throw new Error(`Unknown theme '${name}'. Known: ${Object.keys(themes).join(', ')}`)
+    throw new Error(`Unknown theme '${name}'. Known: light, dark`)
   }
   return theme
 }
@@ -573,12 +586,13 @@ function scaleFor(input: string): number {
   return scale
 }
 
-function write(markup: string | Uint8Array, out: string | undefined, scale: number) {
+async function write(markup: string | Uint8Array, out: string | undefined, scale: number) {
   if (!out) {
     process.stdout.write(markup)
     return
   }
   if (typeof markup === 'string' && extname(out).toLowerCase() === '.png') {
+    const { Resvg } = await import('@resvg/resvg-js')
     const png = new Resvg(markup, {
       fitTo: { mode: 'zoom', value: scale },
       font: { loadSystemFonts: false, fontFiles: [FONT], defaultFontFamily: 'Noto Sans KR' },
@@ -596,8 +610,10 @@ async function run(action: () => Promise<void>, json = false) {
   try {
     await action()
   } catch (error) {
-    if (json) console.log(JSON.stringify(validationReport(error), null, 2))
-    else console.error(error instanceof Error ? error.message : String(error))
+    if (json) {
+      const { validationReport } = await import('./validation.js')
+      console.log(JSON.stringify(validationReport(error), null, 2))
+    } else console.error(error instanceof Error ? error.message : String(error))
     process.exitCode = 1
   }
 }

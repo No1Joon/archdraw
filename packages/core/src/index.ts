@@ -1,11 +1,14 @@
 import type { ElkNode } from 'elkjs'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { parse as parseYaml, YAMLParseError } from 'yaml'
+import { parse } from './input.js'
+
+export { parse } from './input.js'
+
 import { page } from './html.js'
 import { createResolver, type IconPack, type IconResolver } from './icons.js'
 import { layout } from './layout.js'
 import type { Ir } from './normalize.js'
-import { DiagramError, normalize } from './normalize.js'
+import { normalize } from './normalize.js'
 import { Diagram, defaultTheme, FLOW_DURATION, FLOW_PERIOD, type Theme } from './render.js'
 import { selectView, type ViewOptions } from './view.js'
 
@@ -41,25 +44,6 @@ export interface RenderOptions extends ViewOptions {
   onLayout?: (ir: Ir, root: ElkNode) => void
   /** HTML only: the page follows `archdraw serve`, reloading on a redraw and keeping its view. */
   live?: boolean
-}
-
-/** Parses YAML or JSON source into the untyped document `normalize` accepts. */
-export function parse(source: string): unknown {
-  try {
-    return parseYaml(source)
-  } catch (error) {
-    if (!(error instanceof YAMLParseError)) throw error
-    const at = error.linePos?.[0]
-    throw new DiagramError(
-      error.message,
-      'Fix the YAML/JSON syntax before validating the diagram.',
-      {
-        code: 'parse-error',
-        line: at?.line,
-        column: at?.col,
-      },
-    )
-  }
 }
 
 function toResolver(icons: RenderOptions['icons']): IconResolver {

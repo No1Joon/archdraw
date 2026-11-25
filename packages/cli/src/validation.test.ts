@@ -40,6 +40,48 @@ describe('machine-readable validation', () => {
     })
   })
 
+  it('reports both bad icon paths across nested and flat entries', () => {
+    const { status, report } = check(
+      'groups: [{id: g, children: [{id: a, type: lambdaa}]}]\nnodes: [{id: b, type: lambdaa, parent: g}]',
+    )
+    expect(status).toBe(1)
+    expect(report.errors.map((e: { path: unknown }) => e.path)).toEqual([
+      ['groups', 0, 'children', 0, 'type'],
+      ['nodes', 0, 'type'],
+    ])
+  })
+
+  it('reports independent schema fields and semantic references in source order', () => {
+    expect(check('nodes: [{id: a, status: bad}, {id: b, status: bad}]').report.errors).toHaveLength(
+      2,
+    )
+    const { report } = check(
+      'nodes: [{id: a}]\nedges: [{from: missing1, to: a}, {from: a, to: missing2}]',
+    )
+    expect(report.errors.map((e: { path: unknown }) => e.path)).toEqual([
+      ['edges', 0, 'from'],
+      ['edges', 1, 'to'],
+    ])
+  })
+
+  it('returns structured mixed search results with provider and canonical names', () => {
+    const result = spawnSync(
+      process.execPath,
+      [cli, 'types', '대기', 'unmatchable987', '-p', 'basic', '--json'],
+      { encoding: 'utf8' },
+    )
+    expect(result.status).toBe(1)
+    expect(result.stderr).toBe('')
+    const { version, results } = JSON.parse(result.stdout)
+    expect(version).toBe(1)
+    expect(results[0]).toMatchObject({
+      query: '대기',
+      matched: true,
+      matches: expect.arrayContaining([{ alias: '대기', provider: 'basic', slug: 'basic-clock' }]),
+    })
+    expect(results[1]).toMatchObject({ matched: false, matches: [] })
+  })
+
   it.each([
     [
       'schema',
