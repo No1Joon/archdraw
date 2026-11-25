@@ -23,6 +23,7 @@ groups:
       - { id: apigw, type: apigw, label: "API Gateway\n(partner API)" }
 
   - id: acct-prod-use1
+    direction: RIGHT
     label: Account — workload / us-east-1
     kind: account
     type: aws-organizations-account

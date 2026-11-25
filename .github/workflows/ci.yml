@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -25,6 +27,9 @@ jobs:
       # Before typecheck: packages resolve each other through the built `dist/*.d.mts`.
       - run: pnpm build
       - run: pnpm typecheck
+      - run: node scripts/example-quality.mjs
+        env:
+          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - run: pnpm test
       # Reuse Node 22's build and dependencies; these check CLI runtime compatibility only.
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
