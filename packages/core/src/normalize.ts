@@ -56,6 +56,14 @@ export interface DiagramIssue {
 }
 
 export class DiagramError extends Error {
+  static combine(errors: DiagramError[]): DiagramError {
+    const first = errors[0]
+    if (!first) throw new Error('Expected a diagram error')
+    first.issues = errors.flatMap((error) => error.issues)
+    return first
+  }
+
+  issues: DiagramIssue[]
   readonly issue: DiagramIssue
 
   constructor(
@@ -74,6 +82,7 @@ export class DiagramError extends Error {
       elements: [],
       ...details,
     }
+    this.issues = [this.issue]
   }
 }
 
@@ -81,34 +90,41 @@ export class DiagramError extends Error {
 export function normalize(input: unknown): Ir {
   const parsed = DiagramSchema.safeParse(input)
   if (!parsed.success) {
-    const first = parsed.error.issues[0]
-    const path = first?.path.map((part) => (typeof part === 'number' ? part : String(part))) ?? []
-    let value = input
-    let element: DiagramIssue['elements'][number] | undefined
-    for (let depth = 0; depth <= path.length; depth++) {
-      if (value && typeof value === 'object') {
-        const entry = value as Record<string, unknown>
-        const collection = path[depth - 2]
-        const id =
-          typeof entry.id === 'string'
-            ? entry.id
-            : typeof entry.from === 'string' && typeof entry.to === 'string'
-              ? `${entry.from}->${entry.to}`
-              : undefined
-        if (id && ['nodes', 'groups', 'children', 'edges'].includes(String(collection))) {
-          element = { kind: collection === 'edges' ? 'edge' : 'node', id }
+    throw DiagramError.combine(
+      parsed.error.issues.map((issue) => {
+        const path = issue.path.map((part) => (typeof part === 'number' ? part : String(part)))
+        let value = input
+        let element: DiagramIssue['elements'][number] | undefined
+        for (let depth = 0; depth <= path.length; depth++) {
+          if (value && typeof value === 'object') {
+            const entry = value as Record<string, unknown>
+            const collection = path[depth - 2]
+            const id =
+              typeof entry.id === 'string'
+                ? entry.id
+                : typeof entry.from === 'string' && typeof entry.to === 'string'
+                  ? `${entry.from}->${entry.to}`
+                  : undefined
+            if (id && ['nodes', 'groups', 'children', 'edges'].includes(String(collection))) {
+              element = { kind: collection === 'edges' ? 'edge' : 'node', id }
+            }
+            const part = path[depth]
+            value = part === undefined ? undefined : entry[part]
+          }
         }
-        const part = path[depth]
-        value = part === undefined ? undefined : entry[part]
-      }
-    }
-    throw new DiagramError(
-      `Invalid diagram at ${first?.path.join('.') || '<root>'}: ${first?.message}`,
-      'Use `archdraw schema` for the input contract.',
-      { code: 'invalid-schema', path, elements: element ? [element] : [] },
+        return new DiagramError(
+          `Invalid diagram at ${issue.path.join('.') || '<root>'}: ${issue.message}`,
+          'Use `archdraw schema` for the input contract.',
+          { code: 'invalid-schema', path, elements: element ? [element] : [] },
+        )
+      }),
     )
   }
 
+  const errors: DiagramError[] = []
+  function report(...args: ConstructorParameters<typeof DiagramError>) {
+    errors.push(new DiagramError(...args))
+  }
   const doc = parsed.data
   const nodes: FlatNode[] = []
   const seen = new Set<string>()
@@ -134,15 +150,11 @@ export function normalize(input: unknown): Ir {
     path: (string | number)[],
   ): void => {
     if (seen.has(entry.id)) {
-      throw new DiagramError(
-        `Duplicate id '${entry.id}'.`,
-        'Give every node and group a unique id.',
-        {
-          code: 'duplicate-node',
-          path: [...path, 'id'],
-          elements: [{ kind: 'node', id: entry.id }],
-        },
-      )
+      report(`Duplicate id '${entry.id}'.`, 'Give every node and group a unique id.', {
+        code: 'duplicate-node',
+        path: [...path, 'id'],
+        elements: [{ kind: 'node', id: entry.id }],
+      })
     }
     seen.add(entry.id)
     paths.set(entry.id, path)
@@ -180,6 +192,8 @@ export function normalize(input: unknown): Ir {
   doc.groups.forEach((entry, index) => walk(entry, null, true, ['groups', index]))
   doc.nodes.forEach((entry, index) => walk(entry, null, false, ['nodes', index]))
 
+  if (errors.length) throw DiagramError.combine(errors)
+
   // The other half of the flat form: `parent` names a container whether or not it was declared
   // under `groups`. A leaf with children is not built, and the children go with it.
   const claimed = new Set(nodes.map((node) => node.parent).filter((id) => id !== null))
@@ -192,7 +206,7 @@ export function normalize(input: unknown): Ir {
       (node.direction !== undefined || node.ports !== undefined || node.entry !== undefined) &&
       !node.isGroup
     ) {
-      throw new DiagramError(
+      report(
         `Node '${node.id}' has group-only direction or ports${node.entry !== undefined ? ' or entry' : ''}.`,
         'Add children or declare it under `groups`.',
         nodeDetails(
@@ -205,7 +219,7 @@ export function normalize(input: unknown): Ir {
     const ports = new Set<string>()
     for (const port of node.ports ?? []) {
       if (ports.has(port.id))
-        throw new DiagramError(
+        report(
           `Duplicate port '${port.id}' on group '${node.id}'.`,
           'Give each port on this group a unique id.',
           nodeDetails('duplicate-port', node.id, 'ports'),
@@ -213,14 +227,14 @@ export function normalize(input: unknown): Ir {
       ports.add(port.id)
     }
     if (node.collapsed !== undefined && !node.isGroup) {
-      throw new DiagramError(
+      report(
         `Node '${node.id}' has \`collapsed\` but is not a group.`,
         'Add children or declare it under `groups`.',
         nodeDetails('group-only-field', node.id, 'collapsed'),
       )
     }
     if (node.parent !== null && !seen.has(node.parent)) {
-      throw new DiagramError(
+      report(
         `Node '${node.id}' has parent '${node.parent}', which does not exist.`,
         'Use an existing group id or omit parent.',
         nodeDetails('unknown-parent', node.id, 'parent'),
@@ -235,7 +249,7 @@ export function normalize(input: unknown): Ir {
   const checkEntry = (entry: string | undefined, parent: string | null) => {
     if (entry === undefined) return
     if (!nodes.some((node) => node.id === entry && node.parent === parent)) {
-      throw new DiagramError(
+      report(
         `Entry '${entry}' is not a direct child of '${parent ?? '<root>'}'.`,
         'Choose a direct child, or declare entry on the group containing that node.',
         {
@@ -249,23 +263,26 @@ export function normalize(input: unknown): Ir {
   checkEntry(doc.entry, null)
   for (const node of nodes) checkEntry(node.entry, node.id)
   for (const node of nodes) {
-    const path = [node.id]
+    const path = new Set([node.id])
     for (let cursor = node.parent; cursor !== null; cursor = parentOf.get(cursor) ?? null) {
-      if (cursor === node.id) {
-        throw new DiagramError(
-          `Node '${node.id}' is inside itself: ${[...path, cursor].join(' -> ')}.`,
+      if (path.has(cursor)) {
+        report(
+          cursor === node.id
+            ? `Node '${node.id}' is inside itself: ${[...path, cursor].join(' -> ')}.`
+            : `Node '${node.id}' has a cyclic parent chain: ${[...path, cursor].join(' -> ')}.`,
           'A parent chain must end at the top level.',
           nodeDetails('parent-cycle', node.id, 'parent'),
         )
+        break
       }
-      path.push(cursor)
+      path.add(cursor)
     }
   }
   for (const [index, edge] of doc.edges.entries()) {
     for (const field of ['from', 'to'] as const) {
       const end = edge[field]
       if (!seen.has(end)) {
-        throw new DiagramError(
+        report(
           `Edge ${edge.from} -> ${edge.to} references unknown node '${end}'.`,
           'Declare the endpoint or use an existing node id.',
           edgeDetails('unknown-node', edge, index, field),
@@ -275,9 +292,9 @@ export function normalize(input: unknown): Ir {
   }
 
   for (const [index, edge] of doc.edges.entries()) {
-    if (edge.layout !== 'back') continue
+    if (edge.layout !== 'back' || !seen.has(edge.from) || !seen.has(edge.to)) continue
     if (parentOf.get(edge.from) !== parentOf.get(edge.to) || edge.fromPort || edge.toPort) {
-      throw new DiagramError(
+      report(
         `Back edge ${edge.from} -> ${edge.to} needs sibling endpoints without named ports.`,
         'Route the local cycle inside one group. Use separate boundary-port edges to cross groups.',
         edgeDetails('invalid-back-edge', edge, index, 'layout'),
@@ -292,10 +309,11 @@ export function normalize(input: unknown): Ir {
     ] as const) {
       const port = edge[field]
       if (
+        seen.has(edge[end]) &&
         port &&
         !nodes.find((node) => node.id === edge[end])?.ports?.some((entry) => entry.id === port)
       ) {
-        throw new DiagramError(
+        report(
           `Edge ${edge.from} -> ${edge.to} names unknown port '${port}' on '${edge[end]}'.`,
           'Declare the port on the endpoint group with an id and side.',
           edgeDetails('unknown-port', edge, index, field),
@@ -311,7 +329,7 @@ export function normalize(input: unknown): Ir {
   for (const [index, edge] of doc.edges.entries()) {
     if (!edge.id) continue
     if (edgeIds.has(edge.id)) {
-      throw new DiagramError(
+      report(
         `Duplicate edge id '${edge.id}'.`,
         'Edge ids must be unique among edges.',
         edgeDetails('duplicate-edge', edge, index, 'id'),
@@ -339,11 +357,10 @@ export function normalize(input: unknown): Ir {
   const scenarios = new Set<string>()
   for (const [index, scenario] of doc.scenarios.entries()) {
     if (scenarios.has(scenario.id))
-      throw new DiagramError(
-        `Duplicate scenario id '${scenario.id}'.`,
-        'Give every scenario a unique id.',
-        { code: 'duplicate-scenario', path: ['scenarios', index, 'id'] },
-      )
+      report(`Duplicate scenario id '${scenario.id}'.`, 'Give every scenario a unique id.', {
+        code: 'duplicate-scenario',
+        path: ['scenarios', index, 'id'],
+      })
     scenarios.add(scenario.id)
   }
   const known = [...scenarios].join(', ')
@@ -355,7 +372,7 @@ export function normalize(input: unknown): Ir {
   ): void => {
     for (const [index, id] of (ids ?? []).entries()) {
       if (scenarios.has(id)) continue
-      throw new DiagramError(
+      report(
         `${where} names scenario '${id}' in \`${field}\`, which is not declared.`,
         known ? `Declared scenarios: ${known}.` : 'The diagram declares no `scenarios`.',
         { ...details, path: [...details.path, index] },
@@ -384,6 +401,8 @@ export function normalize(input: unknown): Ir {
       edgeDetails('unknown-scenario', edge, index, 'when'),
     )
   }
+
+  if (errors.length) throw DiagramError.combine(errors)
 
   // The nearest word wins: a group says it for everything inside it, a child may say otherwise.
   for (const node of nodes) {

@@ -63,6 +63,10 @@ Unknown type 'lambdaa'.
   Did you mean: lambda?
 ```
 
+### Icon search JSON
+
+`archdraw types waiting redis -p basic,brands --json` returns a version 1 report with one result per query in input order. Each result includes `query`, `matched`, `total`, ranked `matches` (provider, canonical slug and optional alias), and `alternatives` from other packs. Any miss exits 1 after emitting every result. With no queries it reports aggregate type and alias counts.
+
 ## Animated GIF
 
 ```bash

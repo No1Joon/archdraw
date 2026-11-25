@@ -68,11 +68,15 @@ A `type` that does not resolve is **never** replaced with a similar icon. A wron
 }
 ```
 
-A valid report is `{"version":1,"valid":true,"errors":[]}`. Invalid input reports the first blocking error; fix it and validate again. `path` uses zero-based indices in the original nested or flat input. `elements` identifies a known node/edge; it may be empty when no element is known. `hint` and `suggestions` are optional. YAML/JSON syntax errors use `code: "parse-error"` and include one-based `line` and `column` when available. Argument and I/O errors have an empty path. Unknown icon types include candidates without substituting an icon.
+A valid report is `{"version":1,"valid":true,"errors":[]}`. Fix all reported errors and validate again. Schema, diagram reference and icon checks report independent errors within the first failing stage. `path` uses zero-based indices in the original nested or flat input. `elements` identifies a known node/edge; it may be empty when no element is known. `hint` and `suggestions` are optional. YAML/JSON syntax errors use `code: "parse-error"` and include one-based `line` and `column` when available. Argument and I/O errors have an empty path. Unknown icon types include candidates without substituting an icon.
 
 Codes are `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `invalid-entry`, `invalid-back-edge`, `unknown-type`, `invalid-options`, `io-error`, and fallback `validation-error` / `invalid-diagram`. Branch on `version` and `code`, not message wording. Commander argument-parsing errors (such as an unknown flag) retain their normal stderr output.
 
 `--json` requires `--check` and cannot be combined with `--out` or `--diagnostics`. Quality diagnostics require layout and use their separate report. Validation checks the input contract and references; quality diagnostics check rendering geometry. Neither proves that the architecture or its connections are semantically correct.
+
+### Icon search JSON
+
+`archdraw types waiting redis -p basic,brands --json` returns a version 1 report with one result per query in input order. Each result includes `query`, `matched`, `total`, ranked `matches` (provider, canonical slug and optional alias), and `alternatives` from other packs. Any miss exits 1 after emitting every result. With no queries it reports aggregate type and alias counts.
 
 ## Choosing packs
 

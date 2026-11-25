@@ -1,4 +1,5 @@
-import { DiagramError, type DiagramIssue, type IconResolver, type Ir } from '@archdraw/core'
+import type { DiagramIssue, IconResolver, Ir } from '@archdraw/core'
+import { DiagramError } from '@archdraw/core/input'
 
 export interface ValidationReport {
   version: 1
@@ -8,20 +9,16 @@ export interface ValidationReport {
 
 export function validationReport(error?: unknown): ValidationReport {
   if (error === undefined) return { version: 1, valid: true, errors: [] }
-  const issue: DiagramIssue =
-    error instanceof DiagramError
-      ? error.issue
-      : {
-          code:
-            typeof (error as NodeJS.ErrnoException)?.code === 'string'
-              ? 'io-error'
-              : 'validation-error',
-          severity: 'error',
-          message: error instanceof Error ? error.message : String(error),
-          hint: 'Check the input file and command options.',
-          path: [],
-          elements: [],
-        }
+  if (error instanceof DiagramError) return { version: 1, valid: false, errors: error.issues }
+  const issue: DiagramIssue = {
+    code:
+      typeof (error as NodeJS.ErrnoException)?.code === 'string' ? 'io-error' : 'validation-error',
+    severity: 'error',
+    message: error instanceof Error ? error.message : String(error),
+    hint: 'Check the input file and command options.',
+    path: [],
+    elements: [],
+  }
   return { version: 1, valid: false, errors: [issue] }
 }
 
@@ -41,6 +38,7 @@ function nodePath(input: unknown, id: string): (string | number)[] {
 
 /** A resolver knows the type; the CLI also knows which input node requested it. */
 export function checkIcons(document: unknown, ir: Ir, icons: IconResolver): void {
+  const errors: DiagramError[] = []
   for (const node of ir.nodes) {
     if (!node.type) continue
     try {
@@ -49,8 +47,9 @@ export function checkIcons(document: unknown, ir: Ir, icons: IconResolver): void
       if (error instanceof DiagramError) {
         error.issue.path = [...nodePath(document, node.id), 'type']
         error.issue.elements = [{ kind: 'node', id: node.id }]
-      }
-      throw error
+        errors.push(error)
+      } else throw error
     }
   }
+  if (errors.length) throw DiagramError.combine(errors)
 }

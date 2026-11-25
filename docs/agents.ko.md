@@ -68,11 +68,15 @@ Unknown type 'lambdaa'.
 }
 ```
 
-성공은 `{"version":1,"valid":true,"errors":[]}`다. 실패하면 첫 번째 차단 오류를 반환하므로 고친 뒤 다시 검증한다. `path`는 원본 중첩·평면 입력의 경로이며 배열 인덱스는 0부터다. `elements`는 확인 가능한 노드·간선 ID이며 알 수 없으면 빈 배열이다. `hint`와 `suggestions`는 선택 필드다. YAML/JSON 문법 오류는 `parse-error`이며 가능하면 1부터 세는 `line`·`column`을 포함한다. 인자·파일 오류의 경로는 빈 배열이다. 아이콘 오타는 후보만 제안하고 자동 대체하지 않는다.
+성공은 `{"version":1,"valid":true,"errors":[]}`다. 스키마·요소 참조·아이콘 검사 중 실패한 단계에서 독립 오류를 함께 반환한다. 보고된 경로를 고친 뒤 다시 검증한다. `path`는 원본 중첩·평면 입력의 경로이며 배열 인덱스는 0부터다. `elements`는 확인 가능한 노드·간선 ID이며 알 수 없으면 빈 배열이다. `hint`와 `suggestions`는 선택 필드다. YAML/JSON 문법 오류는 `parse-error`이며 가능하면 1부터 세는 `line`·`column`을 포함한다. 인자·파일 오류의 경로는 빈 배열이다. 아이콘 오타는 후보만 제안하고 자동 대체하지 않는다.
 
 오류 코드는 `parse-error`, `invalid-schema`, `duplicate-node`, `group-only-field`, `duplicate-port`, `unknown-parent`, `parent-cycle`, `unknown-node`, `unknown-port`, `duplicate-edge`, `duplicate-scenario`, `unknown-scenario`, `scenario-required`, `invalid-collapse`, `invalid-entry`, `invalid-back-edge`, `unknown-type`, `invalid-options`, `io-error`, 기타 `validation-error` / `invalid-diagram`이다. 문구 대신 `version`·`code`로 분기한다. 알 수 없는 플래그 등 Commander의 인자 파싱 오류는 기존 stderr 형식을 유지한다.
 
 `--json`은 `--check`와 함께 쓰며 `--out`·`--diagnostics`와 조합할 수 없다. 품질 진단은 레이아웃을 계산하는 별도 보고서다. 입력 검증은 계약·참조를, 품질 진단은 렌더의 기하 정보를 검사한다. 둘 다 연결 의미나 아키텍처 설계 타당성을 보증하지 않는다.
+
+### 아이콘 검색 JSON
+
+`archdraw types 대기 redis -p basic,brands --json`은 질의 순서대로 `results`를 출력한다. 각 항목은 `query`, `matched`, 전체 개수 `total`, 상위 `matches`(provider, slug, 선택 alias), 다른 팩의 `alternatives`를 담는다. 미일치 질의가 하나라도 있으면 결과를 모두 출력하고 코드 1로 끝난다. 질의가 없으면 팩별 선택을 합산한 개수를 출력한다.
 
 ## 팩 고르기
 
