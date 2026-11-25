@@ -1,5 +1,11 @@
 # @archdraw/core
 
+## 0.16.0
+
+### Minor Changes
+
+- 036f112: Report independent input issues together and expose ranked icon search as JSON. Load only the modules needed by each CLI command. Update YAML, Zod, ELK and the bundled React viewer.
+
 ## 0.15.0
 
 ### Minor Changes
